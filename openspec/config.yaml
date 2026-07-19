@@ -1,0 +1,40 @@
+schema: spec-driven
+
+context: |
+  项目：HNB Cloud 开放可组装云原生平台。
+  架构：微内核 + Provider/CapabilityPack；应用市场、制品存储、运行治理、AI Extension Plane 四个逻辑平面解耦。
+  执行：Release/CompositionRelease -> ExecutionPlan -> Operation 是唯一写入运行目标的路径。
+  异步：PostgreSQL Operation Store 保存唯一执行事实，Transactional Outbox + NATS JetStream 负责内部命令和领域事件；至少一次投递配合业务幂等，NATS 不作为状态机、Secret 或大文件数据面。
+  告警通知：PostgreSQL Alert Store 保存告警、路由和送达事实，NATS JetStream 分发通知任务；Portal、Email/SMTP、签名 Webhook 为 T1，SMS 为 T2 可替换 Provider；Portal 不直连 NATS，渠道凭据仅使用 SecretReference。
+  制品：OCI 优先、内容寻址、生产固定 digest；市场和平台 API 不代理大文件。
+  运行目标：KubernetesTarget、ContainerEngineTarget、EdgeRuntimeTarget；ExternalServiceConnector 不是执行目标。
+  服务网络：Gateway API 是 KubernetesTarget 首选规范，实际 Controller/Data Plane 通过 Gateway Provider 接入。
+  AI：可独立启停，不是事实源，不得绕过 Operation。
+  Edge：Edge Pack 不是第五平面；云为权威、边可自治；KubeEdge 节点不重复部署 HNB Agent。
+  能力分级：T0 内核必装；T1 默认交付；T2 标准可选；T3 POC/Conformance 后可选。
+  架构与技术栈描述：openspec/architecture.md。
+  方案基线文档：HNB_Cloud_OpenSpec_实施基线_V3_8_6.md。
+  基线规格版本：HNB Cloud OpenSpec V3.8.6。
+  语言与框架：Web Portal 使用 Vue 3 + TypeScript + Vite，不引入 Tauri；Core、Market、Operation、Read Model、Agent、Provider、Runtime Driver 和 CLI 默认使用 Go；Rust 仅用于经性能证据确认的大文件传输、备份、采集、边缘缓冲或其他热路径，并以独立进程/容器通过版本化公共契约接入，不得通过 FFI 编译进入 Core。
+
+rules:
+  proposal:
+    - 必须声明 change ID、T0/T1/T2/T3 分级、影响平面、受影响 specs、依赖 change、迁移影响和回滚策略。
+    - 必须说明用户价值、非目标、兼容性、安全风险、资源预算、可观测要求和退出判据。
+    - 涉及新中间件或数据库时，必须说明为何不能复用已有能力，并列出安装、升级、备份、恢复和卸载影响。
+  specs:
+    - 使用行为优先的 SHALL/SHALL NOT 语句，不把具体库、类名或内部实现细节写成系统行为。
+    - 每个 Requirement 名称前必须包含稳定 ID，并至少包含一个 GIVEN/WHEN/THEN Scenario。
+    - 新增或修改 Requirement 时必须填写 Traceability，引用落地方案需求编号或上游 Requirement ID。
+    - Delta spec 仅使用 ADDED、MODIFIED、REMOVED Requirements；MODIFIED 必须给出完整新文本。
+    - 主规格描述已批准并可验收的系统行为；尚未实现或拟变更的行为必须先进入 change delta，不得直接改写主规格。
+  design:
+    - 必须包含上下文、目标/非目标、架构图、数据模型、API/事件契约、状态机、失败模式和替代方案。
+    - 必须评估租户隔离、Secret、供应链、权限、审计、性能预算、容量、升级、回滚、灾备和可观测性；不适用项必须说明理由。
+    - Provider/RuntimeTarget/Gateway/Edge 变更必须附兼容矩阵与 Conformance 计划。
+    - 跨平面设计必须证明不存在数据库共享、执行旁路和数据面代理。
+  tasks:
+    - 任务按可独立验证的增量拆分，单项建议不超过一个工作日。
+    - 必须评估 Schema/API、数据库迁移、实现、单元测试、集成测试、契约测试、E2E、文档和回滚验证；不适用项必须标记 N/A 并说明理由。
+    - 每个任务引用 Requirement ID；完成时附测试或演练证据。
+    - 归档前必须运行 `openspec validate --all --strict`；如工作流提供 verify 步骤，还必须完成 verify，随后通过 archive 将 delta 合并到主规格。
