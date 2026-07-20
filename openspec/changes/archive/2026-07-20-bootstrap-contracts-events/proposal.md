@@ -46,7 +46,7 @@ HNB Cloud 已批准 Schema First、向后兼容、幂等关联和 Transactional 
 - **API/事件:** 新增基础公共类型与示例 API/事件；不发布可执行的业务写接口。
 - **依赖:** 增加固定版本的契约 lint、兼容检查和 Go/TypeScript 生成工具；不增加运行时中间件或数据库。
 - **数据:** 无数据库 Schema 或数据迁移；生成物只表示公共传输模型。
-- **资源:** 本地和 CI 使用单个短时生成作业，目标在常规环境 120 秒内完成 lint、生成、兼容和漂移检查。
+- **资源:** 本地使用单个短时生成作业，目标在常规环境 120 秒内完成 lint、生成、兼容和漂移检查。
 - **运维:** 生成工具进入 Core BOM；升级必须验证输出差异、兼容性和回滚，不新增常驻服务、备份或灾备组件。
 
 ## Compatibility and Migration
@@ -60,12 +60,12 @@ HNB Cloud 已批准 Schema First、向后兼容、幂等关联和 Transactional 
 
 - 基础类型只传播 Tenant、Project、Environment、Actor、Correlation 等标识，不携带认证凭据。
 - Secret、Token、kubeconfig 和大文件正文不得进入示例或基础事件；敏感数据仅允许使用 SecretReference 或不可变 Payload Reference。
-- 生成过程不读取运行 Secret、数据库或 RuntimeTarget；CI 使用仓库只读权限和固定工具版本。
+- 生成过程不读取运行 Secret、数据库、RuntimeTarget 或仓库凭据；本地门禁使用固定工具版本。
 - 契约不得暴露内部表名、内部 Go struct、数据库主键实现或其他平面私有字段。
 
 ## Reliability and Operations
 
-- 相同提交、相同 BOM 和相同平台架构上的生成结果必须稳定，CI 通过重新生成后的零差异验证。
+- 相同提交、相同 BOM 和相同平台架构上的生成结果必须稳定，本地门禁通过重新生成后的零差异验证。
 - lint、兼容或生成失败返回非零退出码和可定位的 Schema/字段信息。
 - 记录各工具版本、生成耗时、Schema 数量和生成物差异，作为 CONTRACT-006 证据。
 - 本 change 不新增运行时可用性、备份或灾备要求；仓库版本控制保存 Schema 与生成物历史。
@@ -75,7 +75,7 @@ HNB Cloud 已批准 Schema First、向后兼容、幂等关联和 Transactional 
 1. 固定契约格式、目录、工具版本和生成命令。
 2. 引入基础类型、示例 API/事件及 Go/TypeScript 生成物。
 3. 运行 lint、兼容、互操作、重复生成和漂移测试。
-4. 将统一契约门禁接入 CI，后续领域 change 必须复用该入口。
+4. 将统一契约门禁纳入提交前评审证据，后续领域 change 必须复用该入口。
 5. 回滚时整体恢复上一版 Schema、配置、工具版本和生成物，并重新执行门禁。
 
 本 change 无数据库或运行时部署，卸载影响仅为后续 change 暂时失去生成基础；一旦下游契约依赖首版包，不得单独删除该基础。

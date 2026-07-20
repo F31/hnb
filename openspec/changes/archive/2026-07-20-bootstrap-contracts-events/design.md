@@ -2,7 +2,7 @@
 
 当前仓库只有领域主规格、活动 change 和 OpenSpec 治理脚本，没有 `contracts/`、Go/TypeScript 工程、公共 API、事件实现或生成工具链。`CONTRACT-001` 至 `CONTRACT-004` 已批准 Schema First、向后兼容、幂等关联和 Transactional Outbox 行为；`adopt-nats-jetstream-messaging` 又依赖统一 Envelope，但不得让 NATS 产品细节反向进入公共契约。
 
-本 change 是 Identity、Provider、Operation、Market、Portal 和消息实现的前置基础。利益相关方包括 Go/TypeScript 开发者、Provider 开发者、规格评审者、安全人员和 CI 管理员。设计必须可在当前 WSL/Linux 环境和 GitHub Actions 重复执行，不修改系统级工具，不访问数据库或运行 Secret。
+本 change 是 Identity、Provider、Operation、Market、Portal 和消息实现的前置基础。利益相关方包括 Go/TypeScript 开发者、Provider 开发者、规格评审者和安全人员。设计必须可在当前 WSL/Linux 与独立 Linux 验证环境重复执行，不修改系统级工具，不访问数据库或运行 Secret；GitHub 仅用于代码托管。
 
 当前系统 Go 1.24.2 安装存在标准库源文件冲突，不能作为批准工具链。工具引导程序因此把固定版本安装到仓库忽略的 `.tools/` 缓存；生成与编译不依赖 `/usr/local/go`。
 
@@ -46,7 +46,7 @@
 - 建立 OpenAPI 3.1、Protobuf 和 JSON Schema Draft 2020-12 的固定目录与版本规则。
 - 生成可编译的 Go 1.26.5 与 TypeScript 7.0.2 客户端/消息类型。
 - 定义跨 API 与事件复用的上下文、关联、幂等、期望版本、分页、资源引用和错误类型。
-- 以一个本地和 CI 共用的命令执行 lint、兼容、安全、生成、编译和漂移检查。
+- 以一个本地和独立验证环境共用的命令执行 lint、兼容、安全、生成、编译和漂移检查。
 - 不依赖系统 Go、全局 npm 包或运行时远程生成插件。
 
 **Non-Goals:**
@@ -117,9 +117,9 @@ OpenAPI 使用 oasdiff，Protobuf 使用 Buf breaking；JSON Schema 由仓库脚
 | oasdiff | 1.23.0 | OpenAPI breaking 检查 |
 | AJV | 8.20.0 | JSON Schema 与示例验证 |
 
-`scripts/bootstrap-contract-tools.mjs` 根据 `contracts/toolchain.lock.json` 下载并校验 SHA-256，把二进制和 Go SDK放入 `.tools/contracts/`。npm 依赖使用精确版本和 lockfile。CI 可缓存 `.tools/`，但每次仍校验版本和摘要。
+`scripts/bootstrap-contract-tools.mjs` 根据 `contracts/toolchain.lock.json` 下载并校验 SHA-256，把二进制和 Go SDK放入 `.tools/contracts/`。npm 依赖使用精确版本和 lockfile。本地或独立验证环境可缓存 `.tools/`，但每次仍校验版本和摘要。
 
-备选方案是依赖开发者全局工具，但已发现系统 Go 安装不可靠，且全局版本会使本地与 CI 输出漂移。另一个方案是每次使用远程 Buf Plugin，但离线环境不可重现，因此拒绝。
+备选方案是依赖开发者全局工具，但已发现系统 Go 安装不可靠，且全局版本会使不同验证环境输出漂移。另一个方案是每次使用远程 Buf Plugin，但离线环境不可重现，因此拒绝。
 
 ### Decision 4: API 公共语义使用标准 Header 和 Problem Details
 
@@ -253,9 +253,9 @@ Draft Schema
 
 - **租户隔离:** 基础契约传播作用域 ID，但不实现授权。测试验证序列化不丢失 Tenant/Project/Environment；跨租户拒绝由后续 Identity change 实现。
 - **Secret:** 禁止字段名和示例值扫描覆盖 secret、password、token、kubeconfig、private key 等；允许的 SecretReference 只包含 provider、scope、name/version 等引用。
-- **权限:** 工具只需仓库读写和下载批准工具的权限；CI 校验阶段使用只读仓库权限。
+- **权限:** 工具只需仓库读写和下载批准工具的权限；校验脚本不读取仓库凭据或运行 Secret。
 - **供应链:** 版本、下载 URL、SHA-256、npm lockfile 和许可证进入 BOM；禁止浮动 latest 和运行时远程插件。
-- **审计:** CI 保存工具版本、Schema 数、兼容结果、生成差异和关联提交；不记录 payload 示例中的敏感值。
+- **审计:** 版本化证据保存工具版本、Schema 数、兼容结果、生成差异和关联提交；不记录 payload 示例中的敏感值。
 - **跨平面:** 只共享生成契约，不共享数据库、内部 struct 或凭据；echo 测试不调用 RuntimeTarget，因此不存在执行旁路或数据面代理。
 
 ## Performance, Capacity, and Observability
@@ -263,7 +263,7 @@ Draft Schema
 - 冷启动工具引导可超过常规门禁预算，但单独计时并可缓存；缓存命中后的完整门禁目标低于 120 秒。
 - 初始容量按 100 个 OpenAPI operations、500 个 Protobuf messages 和 200 个 JSON Schemas 设计，扫描和生成按输入规模线性增长。
 - 输出各格式文件数、operation/message/schema 数、生成器版本、兼容结果、生成与编译耗时。
-- 门禁失败即 CI 告警信号；本 change 不新增运行时指标、日志后端或分布式链路。
+- 门禁失败必须阻止提交进入评审；本 change 不新增运行时指标、日志后端或分布式链路。
 - 生成日志不得输出完整 payload、Secret 示例或下载凭据。
 
 ## Compatibility and Conformance
@@ -285,7 +285,7 @@ Draft Schema
 - `[破坏性变化]` -> compatibility 失败；要求恢复兼容或创建新主版本。
 - `[生成器输出漂移]` -> 门禁失败并提示运行生成命令，禁止手工修补生成物。
 - `[生成到一半失败]` -> 临时目录被丢弃，已提交生成物不变。
-- `[origin/main 不可用]` -> 首次基线显式标记 no-baseline；已有基线的 CI 不允许静默跳过兼容检查。
+- `[origin/main 不可用]` -> 首次基线显式标记 no-baseline；已有基线的验证不允许静默跳过兼容检查。
 - `[下载源不可用]` -> 使用已校验缓存或失败；不切换到未批准镜像。
 - `[敏感字段误报]` -> 通过窄化允许列表处理 SecretReference，不关闭全局安全扫描。
 
@@ -314,7 +314,7 @@ Draft Schema
 2. 添加基础 OpenAPI、Protobuf、JSON Schema 与正反示例。
 3. 添加生成配置并生成 Go/TypeScript 基线。
 4. 实现 lint、安全、兼容、编译和漂移自动测试。
-5. 在 GitHub Actions 中增加契约门禁，并保存首次成功证据。
+5. 将契约门禁纳入提交前约定，并保存绑定提交 SHA 的本地成功证据。
 6. 后续 Identity、Provider 和 Operation change 只增量扩展契约，不复制基础类型。
 
 回滚必须整体恢复 Schema、工具锁、配置和生成物。首版尚无下游时可完整移除；产生下游依赖后只能回滚到兼容版本，不得删除已发布 package/version。
@@ -328,5 +328,5 @@ Draft Schema
 
 ## Open Questions
 
-- GitHub 分支规则中契约门禁的最终作业名称和生成物差异展示保留期是什么？
+- 未来若引入独立 CI，契约差异展示和证据保留期如何定义？该问题不阻塞当前本地门禁。
 - 首次 Release Bundle 是否直接包含 `.tools` 的 Linux x64/arm64 二进制，还是由离线构建流程按锁文件组装？

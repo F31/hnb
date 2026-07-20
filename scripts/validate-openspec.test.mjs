@@ -124,7 +124,7 @@ test("rejects missing traceability and incomplete scenarios", () => {
   assert.ok(errors.some((error) => error.includes("[incomplete-scenario]") && error.includes("THEN")));
 });
 
-test("current repository passes with a stable success summary", () => {
+test("current repository passes with a stable success summary", async () => {
   const output = execFileSync(process.execPath, [validatorPath], {
     cwd: repositoryRoot,
     encoding: "utf8",
@@ -134,9 +134,9 @@ test("current repository passes with a stable success summary", () => {
     /OpenSpec 质量门禁通过: (\d+) specs, (\d+) requirements, (\d+) scenarios, (\d+) traceability, \d+ ms/,
   );
   assert.ok(summary);
-  assert.ok(Number(summary[1]) >= 24);
-  assert.ok(Number(summary[2]) >= 104);
-  assert.ok(Number(summary[3]) >= 119);
+  assert.equal(Number(summary[1]), (await discoverSpecFiles(repositoryRoot)).length);
+  assert.ok(Number(summary[2]) >= 105);
+  assert.ok(Number(summary[3]) >= 122);
   assert.equal(summary[2], summary[4]);
   assert.match(output, /环境: Node\.js \d+\.\d+\.\d+, OpenSpec 1\.3\.1, \w+\/\w+/);
 });

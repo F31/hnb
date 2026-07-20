@@ -37,9 +37,9 @@
 - [x] 5.4 `[CONTRACT-006]` 测量缓存命中后的完整门禁并确认低于 120 秒，记录 CPU、内存、工具和输入规模；证据：绑定环境的性能报告。
 - [x] 5.5 `[CONTRACT-001][CONTRACT-006]` 扫描生成物依赖方向，确认不导入服务内部包、数据库模型或具体 Broker 类型；证据：依赖边界测试。
 
-## 6. CI, Documentation, and Applicability
+## 6. Validation Policy, Documentation, and Applicability
 
-- [ ] 6.1 `[CONTRACT-006]` 在 GitHub Actions 中固定工具版本并调用统一契约门禁，将作业纳入 `main` 必需检查；证据：工作流、分支规则和首次成功链接。
+- [x] 6.1 `[CONTRACT-006]` 记录 GitHub 仅用于代码托管、不承担 CI，并固定提交前统一契约门禁、工具版本和本地证据要求；证据：开发指南、工具锁和完整门禁成功日志。
 - [x] 6.2 `[CONTRACT-001][CONTRACT-002][CONTRACT-006]` 编写新增契约、生成 SDK、兼容演进、弃用和主版本升级指南；证据：文档路径和示例变更演练。
 - [x] 6.3 `[CONTRACT-001][CONTRACT-006]` 记录数据库迁移、运行时 E2E、Provider/RuntimeTarget/Gateway/Edge Conformance、备份和灾备为 N/A，因为本 change 只交付静态契约基础；证据：适用性评审记录。
 - [x] 6.4 `[CONTRACT-006]` 记录工具许可证、下载摘要、漏洞扫描和离线 Release Bundle 组装方式；证据：供应链报告与离线门禁演练。
@@ -48,4 +48,4 @@
 
 - [x] 7.1 `[CONTRACT-002][CONTRACT-006]` 演练整体回滚 Schema、工具锁、配置和生成物，并确认统一门禁恢复通过；证据：回滚与恢复日志。
 - [x] 7.2 `[CONTRACT-001][CONTRACT-006]` 运行 `openspec validate bootstrap-contracts-events --strict --no-interactive`、`openspec validate --all --strict --no-interactive` 和统一 OpenSpec/Contracts 门禁；证据：全部零退出码。
-- [ ] 7.3 `[CONTRACT-001][CONTRACT-002][CONTRACT-003][CONTRACT-004][CONTRACT-006]` 汇总 Requirement 到 Schema、生成物、单元测试、兼容测试、CI、文档和回滚证据，完成 verify 后归档；证据：追踪矩阵和归档评审记录。
+- [x] 7.3 `[CONTRACT-001][CONTRACT-002][CONTRACT-003][CONTRACT-004][CONTRACT-006]` 汇总 Requirement 到 Schema、生成物、单元测试、兼容测试、本地门禁、文档和回滚证据，完成 verify 后归档；证据：追踪矩阵和归档评审记录。

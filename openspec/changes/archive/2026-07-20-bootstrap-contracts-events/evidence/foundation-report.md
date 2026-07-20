@@ -29,13 +29,13 @@ Result:
 
 ```text
 Contract gate passed: 1 operations, 4 messages, 4 JSON schemas,
-compatibility=no-baseline, 29721 ms
+compatibility=checked, 33070 ms
 Tool versions: node=20.20.2, npm=10.8.2, go=1.26.5, buf=1.72.0,
 typescript=7.0.2, redocly=2.39.0, oasdiff=v1.23.0
-Stage timings: environment=1402ms, schema=9189ms, compatibility=81ms, drift=19042ms
+Stage timings: environment=1316ms, schema=8505ms, compatibility=3764ms, drift=19481ms
 ```
 
-Performance environment: 24 logical CPUs, 15 GiB memory (10 GiB available during measurement), Linux x64. The cached gate completed in 29.7 seconds, below the 120-second budget.
+Performance environment: 24 logical CPUs, 15 GiB memory (10 GiB available during measurement), Linux x64. The post-archive cached gate completed in 33.1 seconds, below the 120-second budget.
 
 The gate verified:
 
@@ -48,7 +48,7 @@ The gate verified:
 - generated dependency boundaries;
 - committed generated output has zero drift.
 
-`compatibility=no-baseline` is expected because `origin/main` does not yet contain a `contracts/` baseline. Once this change is merged, future branches must run oasdiff and Buf breaking against `origin/main`.
+`origin/main` now contains the Contracts baseline. OpenAPI oasdiff, Protobuf Buf breaking, and JSON Schema compatibility checks completed with `compatibility=checked` and detected no breaking changes.
 
 ## Automated tests
 
