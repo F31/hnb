@@ -1,0 +1,6 @@
+extends:
+  - recommended
+
+rules:
+  # Foundation components are intentionally reusable before business APIs consume them.
+  no-unused-components: off

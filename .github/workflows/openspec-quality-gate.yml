@@ -1,0 +1,43 @@
+name: OpenSpec Quality Gate
+
+on:
+  pull_request:
+    paths:
+      - "openspec/**"
+      - "scripts/validate-openspec.mjs"
+      - ".github/workflows/openspec-quality-gate.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "openspec/**"
+      - "scripts/validate-openspec.mjs"
+      - ".github/workflows/openspec-quality-gate.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: openspec-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-openspec:
+    name: Validate OpenSpec
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.20.2
+
+      - name: Install approved OpenSpec CLI
+        run: npm install --global @fission-ai/openspec@1.3.1
+
+      - name: Run repository quality gate
+        run: node scripts/validate-openspec.mjs

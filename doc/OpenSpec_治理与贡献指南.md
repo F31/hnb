@@ -103,7 +103,7 @@ node scripts/validate-openspec.mjs
 
 CI 不得复制脚本中的解析或校验逻辑。合并门禁启用后，应保存首次成功作业链接，并演练移除调用后规格仍可读取、恢复调用后违规提交重新被阻止。
 
-当前仓库尚未选定 CI 平台，也不是 Git 仓库，因此远端必需检查和 CI 回滚演练仍是阻塞项。
+当前仓库已使用 GitHub，并已提供 `.github/workflows/openspec-quality-gate.yml`。该工作流提交并推送后，还需在 GitHub 分支规则中把 `Validate OpenSpec` 配置为 `main` 的必需检查，并保存首次成功作业链接；在完成这些远端操作前，CI 回滚演练仍是阻塞项。
 
 ## 适用性评估
 

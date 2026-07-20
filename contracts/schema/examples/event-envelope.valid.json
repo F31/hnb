@@ -1,0 +1,13 @@
+{
+  "messageId": "018f6c2a-4a64-7b58-9cc3-9f70462f36c1",
+  "messageType": "hnb.event.contract.echoed.v1",
+  "schemaVersion": "1.0.0",
+  "occurredAt": "2026-07-20T12:00:00Z",
+  "tenantId": "tenant-a",
+  "actorId": "user-42",
+  "correlationId": "018f6c2a-4a64-7b58-9cc3-9f70462f36c2",
+  "idempotencyKey": "contract-echo-001",
+  "payload": {
+    "value": "contract fixture"
+  }
+}

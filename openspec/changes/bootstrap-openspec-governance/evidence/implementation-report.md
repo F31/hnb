@@ -60,8 +60,8 @@ Totals: 21 passed, 0 failed (21 items)
 
 ## 未完成与阻塞
 
-- 任务 4.1：仓库尚未选定 CI 平台，也不是 Git 仓库，无法配置必需合并检查或提供首次作业链接。
-- 任务 5.1：没有 CI 调用层，无法执行移除与恢复演练。
+- 任务 4.1：已选择 GitHub Actions 并新增 `.github/workflows/openspec-quality-gate.yml`，本地格式、门禁和测试通过；该文件尚未提交推送，无法提供首次作业链接，也尚未把 `Validate OpenSpec` 配置为 `main` 必需检查。
+- 任务 5.1：CI 调用层已创建，但在远端首次生效前无法执行真实的移除与恢复演练。
 - 任务 5.3：追踪表已建立，但 CI、回滚和归档证据不完整，不能确认最终 Definition of Done，也不能归档。
 
-解除条件是初始化或接入实际 Git 仓库、确定 CI 平台及批准的 Node/npm 安装来源，然后只调用现有统一脚本。
+解除条件是提交并推送 GitHub Actions 文件、确认首次作业成功、配置 `main` 分支必需检查，然后执行一次 CI 调用移除与恢复演练。工作流只调用现有统一脚本，OpenSpec CLI 固定为 1.3.1。

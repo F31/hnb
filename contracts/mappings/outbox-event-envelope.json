@@ -1,0 +1,26 @@
+{
+  "source": "OutboxEventRecord",
+  "target": "hnb.contracts.v1.EventEnvelope",
+  "fields": {
+    "messageId": "eventId",
+    "messageType": "eventType",
+    "schemaVersion": "schemaVersion",
+    "occurredAt": "occurredAt",
+    "tenantId": "tenantId",
+    "projectId": "projectId",
+    "environmentId": "environmentId",
+    "actorId": "actorId",
+    "correlationId": "correlationId",
+    "causationId": "causationId",
+    "idempotencyKey": "idempotencyKey",
+    "aggregateId": "aggregateId",
+    "aggregateVersion": "aggregateVersion",
+    "payloadRef": "payloadRef",
+    "payload": "payload"
+  },
+  "constraints": {
+    "transactionalFact": "The outbox row and owning business fact are committed in one database transaction.",
+    "delivery": "Transport adapters may deliver more than once; messageId and idempotencyKey remain stable.",
+    "secrets": "Payload contains references only and never resolved credentials."
+  }
+}

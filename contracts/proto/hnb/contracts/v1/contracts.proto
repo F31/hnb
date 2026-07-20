@@ -1,0 +1,52 @@
+syntax = "proto3";
+
+package hnb.contracts.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/F31/hnb/contracts/generated/go/proto/hnb/contracts/v1;contractsv1";
+
+message RequestContext {
+  string tenant_id = 1;
+  optional string project_id = 2;
+  optional string environment_id = 3;
+  string actor_id = 4;
+  string correlation_id = 5;
+  optional string traceparent = 6;
+}
+
+message ResourceReference {
+  string api_version = 1;
+  string kind = 2;
+  string id = 3;
+  string tenant_id = 4;
+  optional string digest = 5;
+  optional string version = 6;
+}
+
+message ContractEchoed {
+  RequestContext context = 1;
+  optional ResourceReference resource_ref = 2;
+  string value = 3;
+}
+
+message EventEnvelope {
+  string message_id = 1;
+  string message_type = 2;
+  string schema_version = 3;
+  google.protobuf.Timestamp occurred_at = 4;
+  string tenant_id = 5;
+  optional string project_id = 6;
+  optional string environment_id = 7;
+  optional string actor_id = 8;
+  string correlation_id = 9;
+  optional string causation_id = 10;
+  string idempotency_key = 11;
+  optional string aggregate_id = 12;
+  optional int64 aggregate_version = 13;
+  optional string payload_ref = 14;
+
+  oneof payload {
+    ContractEchoed contract_echoed = 20;
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "@hnb/contracts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@bufbuild/protobuf": "2.12.1"
+  },
+  "devDependencies": {
+    "typescript": "7.0.2"
+  }
+}

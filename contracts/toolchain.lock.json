@@ -1,0 +1,47 @@
+{
+  "node": "20.20.2",
+  "npm": "10.8.2",
+  "typescript": "7.0.2",
+  "go": {
+    "version": "1.26.5",
+    "linux-x64": {
+      "url": "https://go.dev/dl/go1.26.5.linux-amd64.tar.gz",
+      "sha256": "5c2c3b16caefa1d968a94c1daca04a7ca301a496d9b086e17ad77bb81393f053",
+      "license": "BSD-3-Clause"
+    }
+  },
+  "buf": {
+    "version": "1.72.0",
+    "linux-x64": {
+      "url": "https://github.com/bufbuild/buf/releases/download/v1.72.0/buf-Linux-x86_64",
+      "sha256": "8720830e26a733da55bb89bcd3cb44849c0965fc0c44fb5d691cccdc64dca5af",
+      "license": "Apache-2.0"
+    }
+  },
+  "goTools": {
+    "github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen": {
+      "version": "v2.8.0",
+      "sourceCommit": "de2d8b2b0afb287198554eb305bb0d2687d26a85",
+      "license": "Apache-2.0"
+    },
+    "google.golang.org/protobuf/cmd/protoc-gen-go": {
+      "version": "v1.36.11",
+      "sourceCommit": "96a179180f0ad6bba9b1e7b6e38d0affb0168e9a",
+      "license": "BSD-3-Clause"
+    },
+    "github.com/oasdiff/oasdiff": {
+      "version": "v1.23.0",
+      "sourceCommit": "48c3e04facf8c4dba125e1f88a4212aed5c1c7bc",
+      "license": "Apache-2.0"
+    }
+  },
+  "nodeTools": {
+    "@bufbuild/protobuf": "2.12.1",
+    "@bufbuild/protoc-gen-es": "2.12.1",
+    "@redocly/cli": "2.39.0",
+    "ajv": "8.20.0",
+    "ajv-formats": "3.0.1",
+    "openapi-typescript-codegen": "0.31.0",
+    "tsx": "4.23.1"
+  }
+}

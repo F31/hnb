@@ -1,0 +1,205 @@
+openapi: 3.1.0
+info:
+  title: HNB Contract Foundation
+  version: 1.0.0
+  description: Build-time contract fixture; it is not a production Platform API.
+  license:
+    name: Apache-2.0
+    identifier: Apache-2.0
+servers:
+  - url: https://contract.invalid
+security:
+  - bearerAuth: []
+paths:
+  /v1/contract-echo:
+    post:
+      operationId: echoContract
+      summary: Verify generated clients and common transport types
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContractEchoRequest"
+      responses:
+        "200":
+          description: Contract data round-tripped without a runtime mutation.
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContractEchoResponse"
+        "400":
+          description: The contract fixture is invalid.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+        default:
+          description: RFC 9457 problem response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    CorrelationId:
+      name: X-Correlation-ID
+      in: header
+      required: true
+      schema:
+        type: string
+        format: uuid
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 128
+        pattern: "^[!-~]+$"
+    IfMatch:
+      name: If-Match
+      in: header
+      required: true
+      schema:
+        type: string
+        minLength: 1
+  headers:
+    ETag:
+      required: true
+      schema:
+        type: string
+  schemas:
+    RequestContext:
+      type: object
+      additionalProperties: false
+      required: [tenantId, actorId, correlationId]
+      properties:
+        tenantId:
+          type: string
+          minLength: 1
+        projectId:
+          type: string
+          minLength: 1
+        environmentId:
+          type: string
+          minLength: 1
+        actorId:
+          type: string
+          minLength: 1
+        correlationId:
+          type: string
+          format: uuid
+        traceparent:
+          type: string
+          pattern: "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$"
+    ResourceReference:
+      type: object
+      additionalProperties: false
+      required: [apiVersion, kind, id, tenantId]
+      properties:
+        apiVersion:
+          type: string
+        kind:
+          type: string
+        id:
+          type: string
+        tenantId:
+          type: string
+        digest:
+          type: string
+          pattern: "^sha256:[0-9a-f]{64}$"
+        version:
+          type: string
+    PageRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        cursor:
+          type: string
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 200
+          default: 50
+    PageResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        nextCursor:
+          type: string
+        totalEstimate:
+          type: integer
+          minimum: 0
+    Violation:
+      type: object
+      additionalProperties: false
+      required: [field, code]
+      properties:
+        field:
+          type: string
+        code:
+          type: string
+        message:
+          type: string
+    ProblemDetails:
+      type: object
+      additionalProperties: false
+      required: [type, title, status, code, correlationId]
+      properties:
+        type:
+          type: string
+          format: uri-reference
+        title:
+          type: string
+        status:
+          type: integer
+          minimum: 400
+          maximum: 599
+        detail:
+          type: string
+        instance:
+          type: string
+          format: uri-reference
+        code:
+          type: string
+        correlationId:
+          type: string
+          format: uuid
+        violations:
+          type: array
+          items:
+            $ref: "#/components/schemas/Violation"
+    ContractEchoRequest:
+      type: object
+      additionalProperties: false
+      required: [context, value]
+      properties:
+        context:
+          $ref: "#/components/schemas/RequestContext"
+        resourceRef:
+          $ref: "#/components/schemas/ResourceReference"
+        value:
+          type: string
+          maxLength: 4096
+    ContractEchoResponse:
+      allOf:
+        - $ref: "#/components/schemas/ContractEchoRequest"
+        - type: object
+          required: [observedAt]
+          properties:
+            observedAt:
+              type: string
+              format: date-time

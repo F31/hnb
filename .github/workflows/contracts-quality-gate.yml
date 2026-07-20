@@ -1,0 +1,39 @@
+name: Contracts Quality Gate
+
+on:
+  pull_request:
+    paths:
+      - "contracts/**"
+      - "scripts/*contract*.mjs"
+      - "package.json"
+      - "package-lock.json"
+      - "redocly.yaml"
+      - ".github/workflows/contracts-quality-gate.yml"
+  push:
+    branches: [main]
+    paths:
+      - "contracts/**"
+      - "scripts/*contract*.mjs"
+      - "package.json"
+      - "package-lock.json"
+      - "redocly.yaml"
+      - ".github/workflows/contracts-quality-gate.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate-contracts:
+    name: Validate Contracts
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.20.2
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: node scripts/validate-contracts.mjs

@@ -1,0 +1,9 @@
+{
+  "node": "20.20.2",
+  "npm": "10.8.2",
+  "go": "go version go1.26.5 linux/amd64",
+  "buf": "1.72.0",
+  "oapiCodegen": "github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen\nv2.8.0",
+  "protocGenGo": "protoc-gen-go v1.36.11",
+  "oasdiff": "v1.23.0 (oasdiff version main)"
+}
