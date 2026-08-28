@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.hnb.cloud/dr/v1/dr-protection-group.schema.json",
+  "title": "DRProtectionGroup",
+  "description": "DR 保护组（OpenSpec change dr-protection-group，OBS-008）：按“数据层 → 流量层”顺序编排地域级切换。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "tenantId", "name", "primaryRegion", "standbyRegion", "lifecycleState"],
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "tenantId": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "name": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "primaryRegion": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "standbyRegion": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "lifecycleState": { "enum": ["Ready", "Switching", "FailedOver", "SwitchingBack"] },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "updatedAt": { "type": "string", "format": "date-time" }
+  }
+}

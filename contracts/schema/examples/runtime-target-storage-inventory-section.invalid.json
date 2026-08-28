@@ -1,0 +1,10 @@
+{
+  "storageClasses": [
+    {
+      "resourceVersion": "1842",
+      "name": "fast",
+      "source": "kubernetes.storage.k8s.io/v1",
+      "observedAt": "2026-08-01T12:00:00Z"
+    }
+  ]
+}

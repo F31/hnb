@@ -1,0 +1,2704 @@
+openapi: 3.1.0
+info:
+  title: HNB Console BFF API
+  version: 1.0.0
+  description: Authoritative browser-facing cluster, RuntimeIntent, dictionary, and Operation contracts.
+  license:
+    name: Apache-2.0
+    identifier: Apache-2.0
+servers:
+  - url: https://console-api.hnb.cloud
+security:
+  - bearerAuth: []
+tags:
+  - name: Clusters
+    description: Tenant-scoped cluster Read Model queries.
+  - name: Dictionaries
+    description: Server-owned labels and semantic tokens.
+  - name: Runtime Intents
+    description: Typed cluster lifecycle intent submission.
+  - name: Operations
+    description: Tenant-scoped Operation projections and allowed actions.
+  - name: Navigation
+    description: Server-driven menu and route catalog (UI 规范 V2.6 §6).
+  - name: Schema Pages
+    description: Server-driven declarative PageSchema runtime metadata (UI 规范 V2.6 §7).
+  - name: GSLB Services
+    description: 流量层容灾受控变更与只读投影（GSLB-005/007/008）。
+  - name: DR Protection Groups
+    description: DR 保护组编排：数据层 → 流量层顺序切换与运行追踪（OBS-008）。
+paths:
+  /api/v1/resources/clusters:
+    get:
+      tags: [Clusters]
+      operationId: listClusters
+      summary: List cluster targets with exact page totals
+      description: Returns only KubernetesTarget and EdgeRuntimeTarget rows ordered by updatedAt DESC, targetId DESC.
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/ClusterPageSize"
+        - $ref: "#/components/parameters/Keyword"
+        - $ref: "#/components/parameters/TargetKindQuery"
+        - $ref: "#/components/parameters/LifecycleStateQuery"
+        - $ref: "#/components/parameters/HealthStateQuery"
+        - $ref: "#/components/parameters/ConnectivityStateQuery"
+        - $ref: "#/components/parameters/FreshnessQuery"
+      responses:
+        "200":
+          description: Exact tenant-scoped cluster page.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClusterListResponse"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/resources/clusters/{targetId}:
+    get:
+      tags: [Clusters]
+      operationId: getCluster
+      summary: Get one cluster target
+      description: Inaccessible targets and RuntimeTarget kinds outside the cluster contract return a non-enumerating 404.
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+        - $ref: "#/components/parameters/TargetId"
+      responses:
+        "200":
+          description: Cluster target detail.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClusterDetailResponse"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/resources/clusters/{targetId}/nodes:
+    get:
+      tags: [Clusters]
+      operationId: listClusterNodes
+      summary: List projected cluster nodes with exact page totals
+      description: Reads the node projection only and never fans out to an Agent, CloudCore, or target.
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+        - $ref: "#/components/parameters/TargetId"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/NodePageSize"
+        - $ref: "#/components/parameters/Keyword"
+        - $ref: "#/components/parameters/LifecycleStateQuery"
+        - $ref: "#/components/parameters/HealthStateQuery"
+        - $ref: "#/components/parameters/ConnectivityStateQuery"
+        - $ref: "#/components/parameters/FreshnessQuery"
+      responses:
+        "200":
+          description: Exact tenant-scoped node page.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClusterNodeListResponse"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/dictionaries/{dictionaryId}:
+    get:
+      tags: [Dictionaries]
+      operationId: getClusterDictionary
+      summary: Get a server-owned cluster state dictionary
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+        - $ref: "#/components/parameters/DictionaryId"
+      responses:
+        "200":
+          description: Versioned dictionary labels and semantic tokens.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DictionaryResponse"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/runtime-intents:
+    post:
+      tags: [Runtime Intents]
+      operationId: submitClusterRuntimeIntent
+      summary: Submit a typed cluster lifecycle intent
+      description: Header and body idempotency and correlation values must match. The server selects all Providers and Steps.
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClusterRuntimeIntent"
+      responses:
+        "202":
+          description: Intent accepted or exactly replayed; this is not an execution success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RuntimeIntentSubmissionResponse"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        "422":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/operations:
+    get:
+      tags: [Operations]
+      operationId: listOperations
+      summary: List tenant-scoped Operations
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/OperationPageSize"
+        - $ref: "#/components/parameters/OperationStatusQuery"
+        - $ref: "#/components/parameters/OperationTypeQuery"
+        - $ref: "#/components/parameters/TargetIdQuery"
+      responses:
+        "200":
+          description: Exact tenant-scoped Operation page.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OperationListResponse"
+        "400":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/operations/{operationId}:
+    get:
+      tags: [Operations]
+      operationId: getOperation
+      summary: Get an Operation projection
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+        - $ref: "#/components/parameters/OperationId"
+      responses:
+        "200":
+          description: Operation detail, progress, safe failure, deep links, and allowed actions.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OperationDetailResponse"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/operations/{operationId}/actions:
+    get:
+      tags: [Operations]
+      operationId: listOperationActions
+      summary: Get actions allowed for the current actor and Operation state
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+        - $ref: "#/components/parameters/OperationId"
+      responses:
+        "200":
+          description: Current actor-specific action projection.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OperationActionsResponse"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/operations/{operationId}/actions/approve:
+    post:
+      tags: [Operations]
+      operationId: approveOperation
+      summary: Approve an Operation through the authoritative domain API
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/OperationId"
+      requestBody:
+        $ref: "#/components/requestBodies/OperationActionBody"
+      responses:
+        "200":
+          $ref: "#/components/responses/OperationActionAccepted"
+        "409":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/operations/{operationId}/actions/reject:
+    post:
+      tags: [Operations]
+      operationId: rejectOperation
+      summary: Reject an Operation through the authoritative domain API
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/OperationId"
+      requestBody:
+        $ref: "#/components/requestBodies/OperationActionBody"
+      responses:
+        "200":
+          $ref: "#/components/responses/OperationActionAccepted"
+        "409":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/operations/{operationId}/actions/cancel:
+    post:
+      tags: [Operations]
+      operationId: cancelOperation
+      summary: Cancel an Operation through the authoritative domain API
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/OperationId"
+      requestBody:
+        $ref: "#/components/requestBodies/OperationActionBody"
+      responses:
+        "200":
+          $ref: "#/components/responses/OperationActionAccepted"
+        "409":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/navigation/menus:
+    get:
+      tags: [Navigation]
+      operationId: getNavigationMenus
+      summary: Get the tenant-scoped navigation response (menus and routes)
+      description: |
+        Server-driven navigation catalog (UI 规范 V2.6 §6). Combines user
+        identity, roles, tenant/space/locale, plugin enablement, License,
+        Feature Flag and Capability into a single NavigationResponse.
+        The ETag header enables conditional requests: a matching
+        If-None-Match returns 304 without a body.
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+        - $ref: "#/components/parameters/TenantQuery"
+        - $ref: "#/components/parameters/SpaceIdQuery"
+        - $ref: "#/components/parameters/LocaleQuery"
+        - name: If-None-Match
+          in: header
+          required: false
+          description: ETag from a previous response; 304 when current.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Tenant-scoped navigation catalog.
+          headers:
+            ETag:
+              description: Version tag for conditional requests.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NavigationResponse"
+        "304":
+          description: Cached navigation is current (If-None-Match matched).
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/schema/page/{id}:
+    get:
+      tags: [Schema Pages]
+      operationId: getPageSchema
+      summary: Get one declarative PageSchema by page id
+      description: |
+        Returns the declarative PageSchema for a standard page (UI 规范 V2.6 §7).
+        The payload only carries trusted componentType / endpointId / actionId
+        identifiers and never executable code (V2.6 §2.2 / §3.4).
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+        - $ref: "#/components/parameters/SchemaPageId"
+      responses:
+        "200":
+          description: PageSchema envelope with revision metadata.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PageSchema"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/ui/pages/{id}/publish:
+    post:
+      tags: [Schema Pages]
+      operationId: publishPageSchema
+      summary: Publish a PageSchema as the next revision
+      description: |
+        Publishes a declarative PageSchema as a new revision (UI 规范 V2.6 §20.3):
+        bumps the revision, appends to the immutable history and enqueues an
+        outbox event (hnb.event.ui.page-published.v1) in the same transaction.
+        Requires schema:update. Admin write operation.
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/SchemaPageId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PageSchema"
+      responses:
+        "200":
+          description: The published PageSchema with its new revision and ETag.
+          headers:
+            ETag:
+              description: Version tag for the new revision.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PageSchema"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/ui/pages/{id}/rollback:
+    post:
+      tags: [Schema Pages]
+      operationId: rollbackPageSchema
+      summary: Roll the active PageSchema back to a historical revision
+      description: |
+        Switches the active revision without overwriting history (UI 规范 V2.6 §20.4)
+        and enqueues an outbox event (hnb.event.ui.page-rolled-back.v1) in the
+        same transaction. Requires schema:update. Admin write operation.
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/SchemaPageId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RollbackRequest"
+      responses:
+        "200":
+          description: The PageSchema now active after the rollback.
+          headers:
+            ETag:
+              description: Version tag of the active revision.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PageSchema"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/gslb/services:
+    get:
+      tags: [GSLB Services]
+      operationId: listGslbServices
+      summary: List tenant-scoped GSLB services from the Read Model
+      description: Reads gslb_read_model only (GSLB-007); never probes clusters or queries DNS on the request path.
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: Tenant-scoped GSLB service projections.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GslbServiceListResponse"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/gslb/services/{id}:
+    get:
+      tags: [GSLB Services]
+      operationId: getGslbService
+      summary: Get one GSLB service projection
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+        - $ref: "#/components/parameters/GslbServiceId"
+      responses:
+        "200":
+          description: GSLB service Read Model projection.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GslbReadModel"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/gslb/services/{id}/drills:
+    get:
+      tags: [GSLB Services]
+      operationId: listGslbDrillReports
+      summary: List structured drill reports of a GSLB service
+      description: |
+        GSLB-010 只读演练报告：结构化落库（gslb_drill_reports），按时间倒序返回。
+        演练不产生任何真实 DNS 变更；查询只读落库报告，请求路径零探测。
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+        - $ref: "#/components/parameters/GslbServiceId"
+      responses:
+        "200":
+          description: Structured drill reports, newest first.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GslbDrillReportListResponse"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/gslb/services/{id}/pools:
+    get:
+      tags: [GSLB Services]
+      operationId: listGslbPools
+      summary: List the pools of a GSLB service
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+        - $ref: "#/components/parameters/GslbServiceId"
+      responses:
+        "200":
+          description: Pools with members.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GslbPool"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/gslb/services/{id}/intents:
+    post:
+      tags: [GSLB Services]
+      operationId: submitGslbIntent
+      summary: Submit a controlled GSLB traffic change intent
+      description: |
+        GSLB-005 受控写路径：类型化 RuntimeIntent（gslb.failover / gslb.switchback /
+        gslb.weight-update / gslb.drill）经审批门控进入执行；意图不得携带执行细节。
+        failover/switchback 默认 require_approval。
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/GslbServiceId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GslbRuntimeIntent"
+      responses:
+        "200":
+          description: The approval-gated switch request.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GslbSwitchRequest"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/gslb/switch-requests/{id}/approve:
+    post:
+      tags: [GSLB Services]
+      operationId: approveGslbSwitchRequest
+      summary: Approve a pending GSLB traffic change
+      description: Requires gslb:update. Approved executable requests are dispatched via outbox command.
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/GslbSwitchRequestId"
+      responses:
+        "200":
+          description: The approved switch request.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GslbSwitchRequest"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/gslb/switch-requests/{id}/reject:
+    post:
+      tags: [GSLB Services]
+      operationId: rejectGslbSwitchRequest
+      summary: Reject a pending GSLB traffic change
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/GslbSwitchRequestId"
+      responses:
+        "200":
+          description: The rejected switch request.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GslbSwitchRequest"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/dr/groups:
+    get:
+      tags: [DR Protection Groups]
+      operationId: listDrGroups
+      summary: List tenant-scoped DR protection groups
+      description: OBS-008 只读列表；DR 保护组按“数据层 → 流量层”顺序编排地域级切换。
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: Tenant-scoped DR protection groups.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DrGroupListResponse"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+    post:
+      tags: [DR Protection Groups]
+      operationId: createDrGroup
+      summary: Create a DR protection group
+      description: Requires dr:create. The group starts in lifecycleState Ready.
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DrCreateGroupRequest"
+      responses:
+        "201":
+          description: The created DR protection group.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DrProtectionGroup"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/dr/groups/{id}:
+    get:
+      tags: [DR Protection Groups]
+      operationId: getDrGroup
+      summary: Get one DR protection group with members and recent runs
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+        - $ref: "#/components/parameters/DrGroupId"
+      responses:
+        "200":
+          description: DR protection group detail.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DrGroupDetailResponse"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/dr/groups/{id}/members:
+    post:
+      tags: [DR Protection Groups]
+      operationId: addDrGroupMember
+      summary: Add a member to a DR protection group
+      description: |
+        Requires dr:update. gslb_service 成员为流量层切换目标（引用必须存在）；
+        data_layer_ref 为数据层引用，切换时停在 DataLayerPending 等待人工确认门。
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/DrGroupId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DrAddMemberRequest"
+      responses:
+        "201":
+          description: The added group member.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DrGroupMember"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/dr/groups/{id}/runs:
+    get:
+      tags: [DR Protection Groups]
+      operationId: listDrSwitchRuns
+      summary: List switch runs of a DR protection group
+      description: 终态按子 gslb 切换请求聚合推导（全部 Succeeded → Completed；任一 Failed/Rejected → Failed）。
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+        - $ref: "#/components/parameters/DrGroupId"
+      responses:
+        "200":
+          description: Switch runs of the group.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DrSwitchRunListResponse"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/dr/groups/{id}/switch:
+    post:
+      tags: [DR Protection Groups]
+      operationId: initiateDrSwitch
+      summary: Initiate a DR switch chain (failover or switchback)
+      description: |
+        Requires dr:execute. 幂等创建运行：同 idempotencyKey 直接返回既有运行；
+        单活跃运行守卫，存在进行中运行返回 409。无数据层成员时立即进入流量层，
+        否则停留 DataLayerPending 等待 confirm-data-layer 显式确认（OBS-008 顺序保证）。
+        流量层步骤复用 gslb 受控意图链路（drGroupRef + 审批门控）。
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/DrGroupId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DrInitiateSwitchRequest"
+      responses:
+        "200":
+          description: The switch run (existing run returned on idempotent retry).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DrSwitchRun"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/dr/runs/{id}/confirm-data-layer:
+    post:
+      tags: [DR Protection Groups]
+      operationId: confirmDrDataLayer
+      summary: Confirm the data-layer step of a switch run
+      description: |
+        Requires dr:update. 仅 DataLayerPending 状态的运行可确认；确认后推进流量层步骤。
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/DrRunId"
+      responses:
+        "200":
+          description: The switch run after data-layer confirmation.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DrSwitchRun"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    CorrelationId:
+      name: X-Correlation-ID
+      in: header
+      required: true
+      schema:
+        type: string
+        format: uuid
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 128
+        pattern: "^[!-~]+$"
+    Page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    ClusterPageSize:
+      name: pageSize
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    NodePageSize:
+      name: pageSize
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 200
+        default: 50
+    OperationPageSize:
+      name: pageSize
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    Keyword:
+      name: keyword
+      in: query
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 256
+    TargetKindQuery:
+      name: targetKind
+      in: query
+      schema:
+        $ref: "#/components/schemas/TargetKind"
+    LifecycleStateQuery:
+      name: lifecycleState
+      in: query
+      schema:
+        $ref: "#/components/schemas/LifecycleState"
+    HealthStateQuery:
+      name: healthState
+      in: query
+      schema:
+        $ref: "#/components/schemas/HealthState"
+    ConnectivityStateQuery:
+      name: connectivityState
+      in: query
+      schema:
+        $ref: "#/components/schemas/ConnectivityState"
+    FreshnessQuery:
+      name: freshness
+      in: query
+      schema:
+        $ref: "#/components/schemas/Freshness"
+    OperationStatusQuery:
+      name: status
+      in: query
+      schema:
+        $ref: "#/components/schemas/OperationStatus"
+    OperationTypeQuery:
+      name: type
+      in: query
+      schema:
+        $ref: "#/components/schemas/ClusterIntentKind"
+    TargetIdQuery:
+      name: targetId
+      in: query
+      schema:
+        type: string
+        format: uuid
+    TargetId:
+      name: targetId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    OperationId:
+      name: operationId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    DictionaryId:
+      name: dictionaryId
+      in: path
+      required: true
+      schema:
+        enum:
+          - resource.cluster.lifecycle
+          - resource.cluster.health
+          - resource.cluster.connectivity
+          - resource.cluster.freshness
+          - resource.cluster.status
+    TenantQuery:
+      name: tenant
+      in: query
+      required: true
+      description: Tenant id used to scope the navigation catalog.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 128
+    SpaceIdQuery:
+      name: spaceId
+      in: query
+      required: false
+      description: Optional workspace/space id further scoping the catalog.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 128
+    LocaleQuery:
+      name: locale
+      in: query
+      required: false
+      description: Locale used for localized menu titles. Defaults to zh-CN.
+      schema:
+        type: string
+        enum: [zh-CN, en-US]
+        default: zh-CN
+    SchemaPageId:
+      name: id
+      in: path
+      required: true
+      description: PageSchema id, e.g. `cluster.list` (V2.6 §22.2 naming).
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 128
+        pattern: "^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$"
+    GslbServiceId:
+      name: id
+      in: path
+      required: true
+      description: GSLB service id.
+      schema:
+        type: string
+        format: uuid
+    GslbSwitchRequestId:
+      name: id
+      in: path
+      required: true
+      description: GSLB switch request id.
+      schema:
+        type: string
+        format: uuid
+    DrGroupId:
+      name: id
+      in: path
+      required: true
+      description: DR protection group id.
+      schema:
+        type: string
+        format: uuid
+    DrRunId:
+      name: id
+      in: path
+      required: true
+      description: DR switch run id.
+      schema:
+        type: string
+        format: uuid
+  requestBodies:
+    OperationActionBody:
+      required: false
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/OperationActionRequest"
+  responses:
+    Problem:
+      description: RFC 9457 problem with bounded, non-sensitive extensions.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetails"
+    OperationActionAccepted:
+      description: Authoritative action result and refreshed Operation projection.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/OperationDetailResponse"
+  schemas:
+    ApiVersion:
+      type: string
+      const: ui.hnb.io/v1
+    TargetKind:
+      type: string
+      enum: [KubernetesTarget, EdgeRuntimeTarget]
+    LifecycleState:
+      type: string
+      enum: [UNKNOWN, REGISTERING, PROVISIONING, ACTIVE, UPGRADING, FAILED, DELETING, TERMINATED]
+    HealthState:
+      type: string
+      enum: [UNKNOWN, HEALTHY, DEGRADED, UNHEALTHY]
+    ConnectivityState:
+      type: string
+      enum: [UNKNOWN, CONNECTED, DISCONNECTED]
+    Freshness:
+      type: string
+      enum: [UNKNOWN, FRESH, STALE]
+    StateDimensions:
+      type: object
+      required: [lifecycleState, healthState, connectivityState, freshness, lastKnownStateAt]
+      properties:
+        lifecycleState:
+          $ref: "#/components/schemas/LifecycleState"
+        healthState:
+          $ref: "#/components/schemas/HealthState"
+        connectivityState:
+          $ref: "#/components/schemas/ConnectivityState"
+        freshness:
+          $ref: "#/components/schemas/Freshness"
+        observedAt:
+          type: string
+          format: date-time
+        lastKnownStateAt:
+          type: string
+          format: date-time
+    CapabilitySnapshotSummary:
+      type: object
+      additionalProperties: false
+      required: [snapshotId, version, digest, observedAt]
+      properties:
+        snapshotId:
+          type: string
+          format: uuid
+        version:
+          type: integer
+          minimum: 1
+        digest:
+          type: string
+          pattern: "^sha256:[0-9a-f]{64}$"
+        observedAt:
+          type: string
+          format: date-time
+    ClusterSummary:
+      allOf:
+        - $ref: "#/components/schemas/StateDimensions"
+        - type: object
+          required: [targetId, targetKind, displayName, source, staleThresholdSeconds, nodeCount, createdAt, updatedAt]
+          properties:
+            targetId:
+              type: string
+              format: uuid
+            targetKind:
+              $ref: "#/components/schemas/TargetKind"
+            displayName:
+              type: string
+              minLength: 1
+              maxLength: 256
+            source:
+              enum: [created, imported]
+            staleThresholdSeconds:
+              type: integer
+              minimum: 1
+              maximum: 86400
+            runtimeVersion:
+              type: string
+              maxLength: 128
+            nodeCount:
+              type: integer
+              minimum: 0
+            capabilitySnapshot:
+              $ref: "#/components/schemas/CapabilitySnapshotSummary"
+            createdAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
+    ClusterDetail:
+      allOf:
+        - $ref: "#/components/schemas/ClusterSummary"
+        - type: object
+          properties:
+            labels:
+              type: object
+              maxProperties: 64
+              propertyNames:
+                maxLength: 128
+              additionalProperties:
+                type: string
+                maxLength: 256
+    ClusterNode:
+      allOf:
+        - $ref: "#/components/schemas/StateDimensions"
+        - type: object
+          required: [nodeId, name]
+          properties:
+            nodeId:
+              type: string
+              minLength: 1
+              maxLength: 128
+            name:
+              type: string
+              minLength: 1
+              maxLength: 256
+            role:
+              type: string
+              maxLength: 64
+            architecture:
+              type: string
+              maxLength: 64
+            operatingSystem:
+              type: string
+              maxLength: 128
+            runtimeVersion:
+              type: string
+              maxLength: 128
+    PageMetadata:
+      type: object
+      additionalProperties: false
+      required: [page, pageSize, total, pageCount, exactTotal]
+      properties:
+        page:
+          type: integer
+          minimum: 1
+        pageSize:
+          type: integer
+          minimum: 1
+          maximum: 200
+        total:
+          type: integer
+          minimum: 0
+          description: Exact count for the complete filtered query before LIMIT/OFFSET.
+        pageCount:
+          type: integer
+          minimum: 0
+        exactTotal:
+          type: boolean
+          const: true
+    ClusterListResponse:
+      type: object
+      additionalProperties: false
+      required: [apiVersion, items, pagination]
+      properties:
+        apiVersion:
+          $ref: "#/components/schemas/ApiVersion"
+        items:
+          type: array
+          maxItems: 100
+          items:
+            $ref: "#/components/schemas/ClusterSummary"
+        pagination:
+          $ref: "#/components/schemas/PageMetadata"
+    ClusterDetailResponse:
+      type: object
+      additionalProperties: false
+      required: [apiVersion, data]
+      properties:
+        apiVersion:
+          $ref: "#/components/schemas/ApiVersion"
+        data:
+          $ref: "#/components/schemas/ClusterDetail"
+    ClusterNodeListResponse:
+      type: object
+      additionalProperties: false
+      required: [apiVersion, targetId, targetKind, items, pagination]
+      properties:
+        apiVersion:
+          $ref: "#/components/schemas/ApiVersion"
+        targetId:
+          type: string
+          format: uuid
+        targetKind:
+          $ref: "#/components/schemas/TargetKind"
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: "#/components/schemas/ClusterNode"
+        pagination:
+          $ref: "#/components/schemas/PageMetadata"
+    DictionaryEntry:
+      type: object
+      additionalProperties: false
+      required: [code, label, labelKey, semanticToken, terminal]
+      properties:
+        code:
+          type: string
+          pattern: "^[A-Z][A-Z0-9_]*$"
+        label:
+          type: string
+          minLength: 1
+          maxLength: 128
+        labelKey:
+          type: string
+          pattern: "^resource\\.clusterMgmt\\.[A-Za-z0-9_.-]+$"
+        semanticToken:
+          enum: [default, processing, success, warning, error, info]
+        iconToken:
+          type: string
+          pattern: "^[a-z][a-z0-9-]*$"
+        terminal:
+          type: boolean
+    DictionaryResponse:
+      type: object
+      additionalProperties: false
+      required: [apiVersion, dictionaryId, version, entries]
+      properties:
+        apiVersion:
+          $ref: "#/components/schemas/ApiVersion"
+        dictionaryId:
+          type: string
+          pattern: "^resource\\.cluster\\.(lifecycle|health|connectivity|freshness|status)$"
+        version:
+          type: string
+          pattern: "^[1-9][0-9]*\\.[0-9]+\\.[0-9]+$"
+        compatibilityOnly:
+          type: boolean
+        entries:
+          type: array
+          minItems: 1
+          maxItems: 32
+          items:
+            $ref: "#/components/schemas/DictionaryEntry"
+    IntentMetadata:
+      type: object
+      additionalProperties: false
+      required: [idempotencyKey, correlationId]
+      properties:
+        idempotencyKey:
+          type: string
+          minLength: 1
+          maxLength: 128
+          pattern: "^[!-~]+$"
+        correlationId:
+          type: string
+          format: uuid
+    RiskConfirmation:
+      type: object
+      additionalProperties: false
+      required: [acknowledged, confirmation]
+      properties:
+        acknowledged:
+          type: boolean
+          const: true
+        confirmation:
+          type: string
+          minLength: 16
+          maxLength: 2048
+          description: Opaque, short-lived challenge proof; never interpreted as authorization by the caller.
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 512
+    SecretReference:
+      $ref: "../../../schema/common/v1/secret-reference.schema.json"
+    CreateKubernetesTargetIntent:
+      type: object
+      additionalProperties: false
+      required: [apiVersion, kind, metadata, spec]
+      properties:
+        apiVersion:
+          type: string
+          const: hnb.io/v1
+        kind:
+          type: string
+          const: CreateKubernetesTarget
+        metadata:
+          $ref: "#/components/schemas/IntentMetadata"
+        spec:
+          type: object
+          additionalProperties: false
+          required: [targetKind, displayName, credentialSecretRef]
+          properties:
+            targetKind:
+              type: string
+              const: KubernetesTarget
+            displayName:
+              type: string
+              minLength: 1
+              maxLength: 256
+            kubernetesVersion:
+              type: string
+              maxLength: 128
+            credentialSecretRef:
+              $ref: "#/components/schemas/SecretReference"
+    ImportKubernetesTargetIntent:
+      type: object
+      additionalProperties: false
+      required: [apiVersion, kind, metadata, spec]
+      properties:
+        apiVersion:
+          type: string
+          const: hnb.io/v1
+        kind:
+          type: string
+          const: ImportRuntimeTarget
+        metadata:
+          $ref: "#/components/schemas/IntentMetadata"
+        spec:
+          type: object
+          additionalProperties: false
+          required: [targetKind, displayName, credentialSecretRef]
+          properties:
+            targetKind:
+              type: string
+              const: KubernetesTarget
+            displayName:
+              type: string
+              minLength: 1
+              maxLength: 256
+            credentialSecretRef:
+              $ref: "#/components/schemas/SecretReference"
+    ImportEdgeRuntimeTargetIntent:
+      type: object
+      additionalProperties: false
+      required: [apiVersion, kind, metadata, spec]
+      properties:
+        apiVersion:
+          type: string
+          const: hnb.io/v1
+        kind:
+          type: string
+          const: ImportRuntimeTarget
+        metadata:
+          $ref: "#/components/schemas/IntentMetadata"
+        spec:
+          type: object
+          additionalProperties: false
+          required: [targetKind, displayName, cloudCoreEndpoint, credentialSecretRef]
+          properties:
+            targetKind:
+              type: string
+              const: EdgeRuntimeTarget
+            displayName:
+              type: string
+              minLength: 1
+              maxLength: 256
+            cloudCoreEndpoint:
+              type: string
+              format: uri
+              pattern: "^(https|wss)://[^/?#@]+(?::[0-9]{1,5})?(/[^?#]*)?$"
+              maxLength: 512
+              description: CloudCore target address only; userinfo, query, and fragment are forbidden.
+            credentialSecretRef:
+              $ref: "#/components/schemas/SecretReference"
+            nodeGroupMappings:
+              type: object
+              maxProperties: 64
+              propertyNames:
+                minLength: 1
+                maxLength: 128
+              additionalProperties:
+                type: string
+                minLength: 1
+                maxLength: 128
+    UpgradeRuntimeTargetIntent:
+      type: object
+      additionalProperties: false
+      required: [apiVersion, kind, metadata, spec]
+      properties:
+        apiVersion:
+          type: string
+          const: hnb.io/v1
+        kind:
+          type: string
+          const: UpgradeRuntimeTarget
+        metadata:
+          $ref: "#/components/schemas/IntentMetadata"
+        spec:
+          type: object
+          additionalProperties: false
+          required: [targetId, targetKind, expectedVersion, desiredVersion]
+          properties:
+            targetId:
+              type: string
+              format: uuid
+            targetKind:
+              $ref: "#/components/schemas/TargetKind"
+            expectedVersion:
+              type: integer
+              minimum: 1
+            desiredVersion:
+              type: string
+              minLength: 1
+              maxLength: 128
+            riskConfirmation:
+              $ref: "#/components/schemas/RiskConfirmation"
+    DeleteRuntimeTargetIntent:
+      type: object
+      additionalProperties: false
+      required: [apiVersion, kind, metadata, spec]
+      properties:
+        apiVersion:
+          type: string
+          const: hnb.io/v1
+        kind:
+          type: string
+          const: DeleteRuntimeTarget
+        metadata:
+          $ref: "#/components/schemas/IntentMetadata"
+        spec:
+          type: object
+          additionalProperties: false
+          required: [targetId, targetKind, expectedVersion]
+          properties:
+            targetId:
+              type: string
+              format: uuid
+            targetKind:
+              $ref: "#/components/schemas/TargetKind"
+            expectedVersion:
+              type: integer
+              minimum: 1
+            riskConfirmation:
+              $ref: "#/components/schemas/RiskConfirmation"
+    ClusterRuntimeIntent:
+      title: RuntimeIntent
+      oneOf:
+        - $ref: "#/components/schemas/CreateKubernetesTargetIntent"
+        - $ref: "#/components/schemas/ImportKubernetesTargetIntent"
+        - $ref: "#/components/schemas/ImportEdgeRuntimeTargetIntent"
+        - $ref: "#/components/schemas/UpgradeRuntimeTargetIntent"
+        - $ref: "#/components/schemas/DeleteRuntimeTargetIntent"
+    RuntimeIntentSubmissionResponse:
+      type: object
+      additionalProperties: false
+      required: [apiVersion, intentId, executionPlanId, operationId, status, replayed, correlationId, links]
+      properties:
+        apiVersion:
+          $ref: "#/components/schemas/ApiVersion"
+        intentId:
+          type: string
+          format: uuid
+        executionPlanId:
+          type: string
+          format: uuid
+        operationId:
+          type: string
+          format: uuid
+        status:
+          enum: [accepted, pending_approval, queued, queued_offline]
+        replayed:
+          type: boolean
+        correlationId:
+          type: string
+          format: uuid
+        links:
+          $ref: "#/components/schemas/OperationLinks"
+    ClusterIntentKind:
+      enum: [CreateKubernetesTarget, ImportRuntimeTarget, UpgradeRuntimeTarget, DeleteRuntimeTarget]
+    OperationStatus:
+      enum: [pending, pending_approval, queued, queued_offline, in_progress, paused, compensating, succeeded, failed, cancelled]
+    OperationAction:
+      enum: [approve, reject, cancel]
+    OperationLinks:
+      type: object
+      additionalProperties: false
+      required: [operation]
+      properties:
+        operation:
+          type: string
+          pattern: "^/operations/[0-9a-f-]{36}$"
+        intent:
+          type: string
+          pattern: "^/runtime-intents/[0-9a-f-]{36}$"
+        target:
+          type: string
+          pattern: "^/resource/clusters/[0-9a-f-]{36}$"
+    OperationProgress:
+      type: object
+      additionalProperties: false
+      required: [completedSteps, totalSteps, percent]
+      properties:
+        completedSteps:
+          type: integer
+          minimum: 0
+        totalSteps:
+          type: integer
+          minimum: 0
+        percent:
+          type: integer
+          minimum: 0
+          maximum: 100
+    SafeFailure:
+      type: object
+      additionalProperties: false
+      required: [code, message, retryable]
+      properties:
+        code:
+          type: string
+          pattern: "^[A-Z][A-Z0-9_]*$"
+          maxLength: 128
+        message:
+          type: string
+          minLength: 1
+          maxLength: 1024
+        retryable:
+          type: boolean
+    OperationSummary:
+      type: object
+      required: [operationId, intentId, type, status, targetId, targetKind, progress, correlationId, createdAt, updatedAt]
+      properties:
+        operationId:
+          type: string
+          format: uuid
+        intentId:
+          type: string
+          format: uuid
+        type:
+          $ref: "#/components/schemas/ClusterIntentKind"
+        status:
+          $ref: "#/components/schemas/OperationStatus"
+        targetId:
+          type: string
+          format: uuid
+        targetKind:
+          $ref: "#/components/schemas/TargetKind"
+        progress:
+          $ref: "#/components/schemas/OperationProgress"
+        failure:
+          $ref: "#/components/schemas/SafeFailure"
+        correlationId:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+    OperationStep:
+      type: object
+      additionalProperties: false
+      required: [stepId, name, status, attempt]
+      properties:
+        stepId:
+          type: string
+          format: uuid
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+        status:
+          enum: [pending, queued, in_progress, paused, succeeded, failed, cancelled, compensating]
+        attempt:
+          type: integer
+          minimum: 0
+        startedAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+        failure:
+          $ref: "#/components/schemas/SafeFailure"
+    OperationDetail:
+      allOf:
+        - $ref: "#/components/schemas/OperationSummary"
+        - type: object
+          required: [executionPlanId, steps, allowedActions, links]
+          properties:
+            executionPlanId:
+              type: string
+              format: uuid
+            steps:
+              type: array
+              maxItems: 256
+              items:
+                $ref: "#/components/schemas/OperationStep"
+            allowedActions:
+              type: array
+              uniqueItems: true
+              maxItems: 3
+              items:
+                $ref: "#/components/schemas/OperationAction"
+            links:
+              $ref: "#/components/schemas/OperationLinks"
+    OperationListResponse:
+      type: object
+      additionalProperties: false
+      required: [apiVersion, items, pagination]
+      properties:
+        apiVersion:
+          $ref: "#/components/schemas/ApiVersion"
+        items:
+          type: array
+          maxItems: 100
+          items:
+            $ref: "#/components/schemas/OperationSummary"
+        pagination:
+          $ref: "#/components/schemas/PageMetadata"
+    OperationDetailResponse:
+      type: object
+      additionalProperties: false
+      required: [apiVersion, data]
+      properties:
+        apiVersion:
+          $ref: "#/components/schemas/ApiVersion"
+        data:
+          $ref: "#/components/schemas/OperationDetail"
+    OperationActionsResponse:
+      type: object
+      additionalProperties: false
+      required: [apiVersion, operationId, status, allowedActions, version]
+      properties:
+        apiVersion:
+          $ref: "#/components/schemas/ApiVersion"
+        operationId:
+          type: string
+          format: uuid
+        status:
+          $ref: "#/components/schemas/OperationStatus"
+        allowedActions:
+          type: array
+          uniqueItems: true
+          maxItems: 3
+          items:
+            $ref: "#/components/schemas/OperationAction"
+        version:
+          type: integer
+          minimum: 1
+    OperationActionRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 512
+    ProblemDetails:
+      type: object
+      additionalProperties: false
+      required: [type, title, status, code, correlationId, traceId]
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          maxLength: 512
+        title:
+          type: string
+          minLength: 1
+          maxLength: 256
+        status:
+          type: integer
+          minimum: 400
+          maximum: 599
+        detail:
+          type: string
+          maxLength: 2048
+        instance:
+          type: string
+          format: uri-reference
+          maxLength: 512
+        code:
+          type: string
+          enum:
+            - VALIDATION_FAILED
+            - UNAUTHORIZED
+            - NOT_FOUND
+            - FORBIDDEN
+            - CONFLICT
+            - RATE_LIMITED
+            - INTERNAL_ERROR
+            - SERVICE_UNAVAILABLE
+            - UPSTREAM_UNAVAILABLE
+            - STALE_CONFIRMATION_REQUIRED
+            - STALE_CONFIRMATION_EXPIRED
+            - STALE_POLICY_DENIED
+            - IDEMPOTENCY_CONFLICT
+            - SECRET_REFERENCE_DENIED
+            - TARGET_VERSION_CONFLICT
+            - TARGET_ACTION_UNSUPPORTED
+            - PROVIDER_INCOMPATIBLE
+            - PROVIDER_ROUTE_NOT_FOUND
+            - OPERATION_ACTION_NOT_ALLOWED
+        correlationId:
+          type: string
+          format: uuid
+        traceId:
+          type: string
+          minLength: 16
+          maxLength: 64
+          pattern: "^[0-9a-f]+$"
+        retryable:
+          type: boolean
+        confirmation:
+          type: string
+          minLength: 16
+          maxLength: 2048
+        targetId:
+          type: string
+          format: uuid
+        action:
+          type: string
+          maxLength: 128
+        lastKnownStateAt:
+          type: string
+          format: date-time
+        lifecycleState:
+          type: string
+          maxLength: 64
+        healthState:
+          type: string
+          maxLength: 64
+        connectivityState:
+          type: string
+          maxLength: 64
+        policyOutcome:
+          type: string
+          enum: [allow, require_approval, queued_offline, deny]
+        violations:
+          type: array
+          maxItems: 64
+          items:
+            type: object
+            additionalProperties: false
+            required: [field, code]
+            properties:
+              field:
+                type: string
+                minLength: 1
+                maxLength: 256
+              code:
+                type: string
+                pattern: "^[A-Z][A-Z0-9_]*$"
+              message:
+                type: string
+                maxLength: 512
+    NavigationResponse:
+      type: object
+      additionalProperties: false
+      required: [apiVersion, etag, generatedAt, context, versions, menus, routes]
+      properties:
+        apiVersion:
+          type: string
+          const: navigation.hnb.io/v1
+        etag:
+          type: string
+          description: Version tag echoed in the ETag header for conditional requests.
+        generatedAt:
+          type: string
+          format: date-time
+        context:
+          $ref: "#/components/schemas/NavigationContext"
+        versions:
+          type: object
+          description: Content versions (permission / pluginCatalog / navigation / license).
+          additionalProperties:
+            type: string
+        plugins:
+          type: array
+          items:
+            $ref: "#/components/schemas/NavigationPlugin"
+        menus:
+          type: array
+          items:
+            $ref: "#/components/schemas/NavigationMenu"
+        routes:
+          type: array
+          items:
+            $ref: "#/components/schemas/NavigationRoute"
+    NavigationContext:
+      type: object
+      additionalProperties: false
+      required: [tenantId]
+      properties:
+        tenantId:
+          type: string
+        spaceId:
+          type: string
+    NavigationPlugin:
+      type: object
+      additionalProperties: false
+      required: [name, version, displayName, tier, enabled, mode, permissions, capabilities, dependencies, menu]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        version:
+          type: string
+        displayName:
+          type: string
+        tier:
+          type: string
+          enum: [T0, T1, T2, T3]
+          x-enum-varnames: [PluginTierT0, PluginTierT1, PluginTierT2, PluginTierT3]
+        enabled:
+          type: boolean
+        mode:
+          type: string
+          enum: [local, remote]
+          x-enum-varnames: [PluginModeLocal, PluginModeRemote]
+        permissions:
+          $ref: "#/components/schemas/PluginPermissionSet"
+        capabilities:
+          $ref: "#/components/schemas/PluginPermissionSet"
+        dependencies:
+          $ref: "#/components/schemas/PluginDependencies"
+        menu:
+          $ref: "#/components/schemas/PluginMenu"
+    PluginPermissionSet:
+      type: object
+      additionalProperties: false
+      required: [required]
+      properties:
+        required:
+          type: array
+          items:
+            type: string
+        optional:
+          type: array
+          items:
+            type: string
+    PluginDependencies:
+      type: object
+      additionalProperties: false
+      required: [backend]
+      properties:
+        backend:
+          type: array
+          items:
+            type: string
+        plugins:
+          type: array
+          items:
+            type: string
+    PluginMenu:
+      type: object
+      additionalProperties: false
+      required: [group, items]
+      properties:
+        group:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/NavigationItem"
+    NavigationMenu:
+      type: object
+      additionalProperties: false
+      required: [group, items]
+      properties:
+        group:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/NavigationItem"
+    NavigationItem:
+      type: object
+      additionalProperties: false
+      required: [title]
+      description: |
+        A menu entry. Parent groups carry children and may have an empty path;
+        leaf entries reference a route path.
+      properties:
+        title:
+          type: string
+        path:
+          type: string
+        icon:
+          type: string
+        permission:
+          type: string
+        capability:
+          type: string
+        children:
+          type: array
+          items:
+            $ref: "#/components/schemas/NavigationItem"
+    NavigationRoute:
+      type: object
+      additionalProperties: false
+      required: [name, path, pluginId]
+      properties:
+        name:
+          type: string
+        path:
+          type: string
+        pluginId:
+          type: string
+        componentKey:
+          type: string
+          description: Component key when the route is rendered by a plugin; schemaId routes omit it.
+        schemaId:
+          type: string
+          description: PageSchema id when the route is rendered by SchemaPage (V2.6 §7).
+        redirect:
+          type: string
+        permission:
+          type: string
+        capability:
+          type: string
+        keepAlive:
+          type: boolean
+    PageSchema:
+      type: object
+      additionalProperties: false
+      required: [apiVersion, kind, metadata, spec]
+      properties:
+        apiVersion:
+          $ref: "#/components/schemas/ApiVersion"
+        kind:
+          type: string
+          const: PageSchema
+        metadata:
+          $ref: "#/components/schemas/SchemaMetadata"
+        spec:
+          $ref: "#/components/schemas/PageSchemaSpec"
+    SchemaMetadata:
+      type: object
+      additionalProperties: false
+      required: [id, revision]
+      properties:
+        id:
+          type: string
+        revision:
+          type: integer
+          minimum: 0
+        etag:
+          type: string
+        generatedAt:
+          type: string
+          format: date-time
+        minShellVersion:
+          type: string
+        pluginId:
+          type: string
+        texts:
+          type: object
+          additionalProperties:
+            type: string
+    PageSchemaSpec:
+      type: object
+      additionalProperties: false
+      required: [template, regions]
+      properties:
+        template:
+          type: string
+          enum: [list, detail, form, dashboard, wizard, split, settings, custom]
+          x-enum-varnames: [PageTemplateList, PageTemplateDetail, PageTemplateForm, PageTemplateDashboard, PageTemplateWizard, PageTemplateSplit, PageTemplateSettings, PageTemplateCustom]
+        titleKey:
+          type: string
+        descriptionKey:
+          type: string
+        contextRequirements:
+          type: array
+          items:
+            type: string
+        layout:
+          type: object
+          additionalProperties: true
+        endpoints:
+          type: array
+          items:
+            $ref: "#/components/schemas/SchemaEndpointDefinition"
+        dataSources:
+          type: array
+          items:
+            $ref: "#/components/schemas/SchemaDataSourceDefinition"
+        actions:
+          type: array
+          items:
+            $ref: "#/components/schemas/SchemaAction"
+        regions:
+          type: array
+          items:
+            $ref: "#/components/schemas/SchemaRegion"
+    SchemaEndpointDefinition:
+      type: object
+      additionalProperties: false
+      required: [id, path]
+      properties:
+        id:
+          type: string
+        path:
+          type: string
+          description: Trusted relative path; only allowlisted prefixes are accepted by the client.
+        method:
+          type: string
+          enum: [GET, POST, PUT, PATCH, DELETE]
+          x-enum-varnames: [EndpointMethodGet, EndpointMethodPost, EndpointMethodPut, EndpointMethodPatch, EndpointMethodDelete]
+    SchemaDataSourceDefinition:
+      type: object
+      additionalProperties: false
+      required: [id, type, endpointId]
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [query, paginatedQuery, aggregate, dictionary, stream, operationStatus]
+          x-enum-varnames: [DataSourceTypeQuery, DataSourceTypePaginatedQuery, DataSourceTypeAggregate, DataSourceTypeDictionary, DataSourceTypeStream, DataSourceTypeOperationStatus]
+        endpointId:
+          type: string
+        method:
+          type: string
+          enum: [GET, POST]
+        contextBindings:
+          type: array
+          items:
+            type: string
+        queryBindings:
+          type: array
+          items:
+            type: string
+        responseMapping:
+          type: object
+          additionalProperties:
+            type: string
+        cache:
+          type: object
+          additionalProperties: true
+          description: Client-side response cache configuration (V2.6 §13.6).
+    SchemaCondition:
+      type: object
+      additionalProperties: false
+      description: |
+        Controlled condition DSL (V2.6 §4.3). Only permission / feature /
+        license / capability / context terms are allowed.
+      properties:
+        all:
+          type: array
+          items:
+            $ref: "#/components/schemas/SchemaConditionTerm"
+        any:
+          type: array
+          items:
+            $ref: "#/components/schemas/SchemaConditionTerm"
+    SchemaConditionTerm:
+      type: object
+      additionalProperties: false
+      properties:
+        permission:
+          type: string
+        feature:
+          type: string
+        license:
+          type: string
+        capability:
+          type: string
+        context:
+          type: string
+    SchemaAction:
+      type: object
+      additionalProperties: false
+      required: [id, type]
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [navigate, api, operation, workflow, download, openDrawer, openModal, emitEvent]
+          x-enum-varnames: [ActionTypeNavigate, ActionTypeApi, ActionTypeOperation, ActionTypeWorkflow, ActionTypeDownload, ActionTypeOpenDrawer, ActionTypeOpenModal, ActionTypeEmitEvent]
+        labelKey:
+          type: string
+        permission:
+          type: string
+        enabledWhen:
+          $ref: "#/components/schemas/SchemaCondition"
+        confirm:
+          type: object
+          additionalProperties: true
+        request:
+          $ref: "#/components/schemas/SchemaActionRequest"
+        route:
+          $ref: "#/components/schemas/SchemaActionRoute"
+        event:
+          type: object
+          additionalProperties: true
+        result:
+          type: object
+          additionalProperties: true
+    SchemaActionRequest:
+      type: object
+      additionalProperties: false
+      required: [method, endpointId]
+      properties:
+        method:
+          type: string
+          enum: [GET, POST, PUT, PATCH, DELETE]
+          x-enum-varnames: [ActionMethodGet, ActionMethodPost, ActionMethodPut, ActionMethodPatch, ActionMethodDelete]
+        endpointId:
+          type: string
+          description: Trusted endpoint identifier registered with the DataSourceManager allowlist.
+        pathParams:
+          type: array
+          items:
+            type: string
+        queryParams:
+          type: array
+          items:
+            type: string
+    SchemaActionRoute:
+      type: object
+      additionalProperties: false
+      required: [name]
+      properties:
+        name:
+          type: string
+        params:
+          type: object
+          additionalProperties:
+            type: string
+    SchemaRegion:
+      type: object
+      additionalProperties: false
+      required: [id, componentType]
+      properties:
+        id:
+          type: string
+        componentType:
+          type: string
+          description: Trusted component type registered in the ComponentRegistry (V2.6 §8).
+        extensionPoint:
+          type: string
+          description: Declarative extension point namespace; takes precedence over componentType when set.
+        span:
+          type: integer
+          minimum: 1
+          maximum: 12
+          default: 12
+        responsive:
+          type: object
+          additionalProperties:
+            type: integer
+        props:
+          type: object
+          additionalProperties: true
+        condition:
+          $ref: "#/components/schemas/SchemaCondition"
+
+    RollbackRequest:
+      type: object
+      additionalProperties: false
+      required: [revision]
+      properties:
+        revision:
+          type: integer
+          minimum: 1
+          description: Historical revision to switch the active PageSchema to (V2.6 §20.4).
+    GslbLifecycleState:
+      type: string
+      enum: [Inactive, Provisioning, Active, Degraded, FailingOver, Paused, Disabled, Terminated]
+      x-enum-varnames: [GslbStateInactive, GslbStateProvisioning, GslbStateActive, GslbStateDegraded, GslbStateFailingOver, GslbStatePaused, GslbStateDisabled, GslbStateTerminated]
+    GslbRoutingMode:
+      type: string
+      enum: [dns, anycast]
+      x-enum-varnames: [GslbRoutingDns, GslbRoutingAnycast]
+    GslbIntentKind:
+      type: string
+      enum: [gslb.failover, gslb.switchback, gslb.weight-update, gslb.drill]
+      x-enum-varnames: [GslbIntentFailover, GslbIntentSwitchback, GslbIntentWeightUpdate, GslbIntentDrill]
+    GslbService:
+      type: object
+      additionalProperties: false
+      required: [id, tenantId, name, domain, routingMode, lifecycleState, requireApproval]
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenantId:
+          type: string
+        name:
+          type: string
+        domain:
+          type: string
+        routingMode:
+          $ref: "#/components/schemas/GslbRoutingMode"
+        activePoolId:
+          type: string
+          format: uuid
+        lifecycleState:
+          $ref: "#/components/schemas/GslbLifecycleState"
+        requireApproval:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    GslbPoolMember:
+      type: object
+      additionalProperties: false
+      required: [clusterId, weight, enabled, healthy]
+      properties:
+        clusterId:
+          type: string
+        weight:
+          type: integer
+          minimum: 0
+          maximum: 100
+        enabled:
+          type: boolean
+        healthy:
+          type: boolean
+        lastHealthAt:
+          type: string
+          format: date-time
+    GslbPool:
+      type: object
+      additionalProperties: false
+      required: [id, serviceId, name, priority]
+      properties:
+        id:
+          type: string
+          format: uuid
+        serviceId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        priority:
+          type: integer
+          minimum: 0
+        members:
+          type: array
+          items:
+            $ref: "#/components/schemas/GslbPoolMember"
+    GslbReadModel:
+      type: object
+      additionalProperties: false
+      required: [serviceId, tenantId, domain, lifecycleState, observedAt]
+      properties:
+        serviceId:
+          type: string
+          format: uuid
+        tenantId:
+          type: string
+        domain:
+          type: string
+        activePoolId:
+          type: string
+          format: uuid
+        lifecycleState:
+          $ref: "#/components/schemas/GslbLifecycleState"
+        healthyPools:
+          type: array
+          items:
+            type: string
+        currentDnsTargets:
+          type: array
+          items:
+            type: string
+        lastSwitchRequestId:
+          type: string
+          format: uuid
+        lastSwitchAt:
+          type: string
+          format: date-time
+        lastDrillReportId:
+          type: string
+          format: uuid
+        lastDrillVerdict:
+          $ref: "#/components/schemas/GslbDrillVerdict"
+        lastDrillAt:
+          type: string
+          format: date-time
+        observedAt:
+          type: string
+          format: date-time
+    GslbServiceListResponse:
+      type: object
+      additionalProperties: false
+      required: [items, total]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/GslbReadModel"
+        total:
+          type: integer
+          minimum: 0
+    GslbRuntimeIntent:
+      type: object
+      additionalProperties: false
+      required: [apiVersion, kind, serviceId, tenantId, metadata]
+      properties:
+        apiVersion:
+          type: string
+          const: gslb.hnb.io/v1
+        kind:
+          $ref: "#/components/schemas/GslbIntentKind"
+        serviceId:
+          type: string
+          format: uuid
+        tenantId:
+          type: string
+        targetPoolId:
+          type: string
+          format: uuid
+        weights:
+          type: object
+          additionalProperties:
+            type: integer
+            minimum: 0
+            maximum: 100
+        reason:
+          type: string
+          maxLength: 512
+        drGroupRef:
+          type: string
+          pattern: "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          description: DRProtectionGroup 编排来源引用（GSLB-009 对接缝）；DR 来源的回切强制 require_approval。
+        metadata:
+          type: object
+          additionalProperties: false
+          required: [idempotencyKey, correlationId]
+          properties:
+            idempotencyKey:
+              type: string
+              pattern: "^[!-~]{1,128}$"
+            correlationId:
+              type: string
+              format: uuid
+    GslbSwitchRequest:
+      type: object
+      additionalProperties: false
+      required: [id, tenantId, serviceId, intentKind, intentDigest, status, requireApproval]
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenantId:
+          type: string
+        serviceId:
+          type: string
+          format: uuid
+        intentKind:
+          $ref: "#/components/schemas/GslbIntentKind"
+        intentDigest:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        idempotencyKey:
+          type: string
+        correlationId:
+          type: string
+          format: uuid
+        requireApproval:
+          type: boolean
+        status:
+          type: string
+          enum: [PendingApproval, Approved, Rejected, Dispatched, Succeeded, Failed, DrillCompleted]
+          x-enum-varnames: [SwitchStatusPendingApproval, SwitchStatusApproved, SwitchStatusRejected, SwitchStatusDispatched, SwitchStatusSucceeded, SwitchStatusFailed, SwitchStatusDrillCompleted]
+        actorId:
+          type: string
+        approvedBy:
+          type: string
+        approvedAt:
+          type: string
+          format: date-time
+        reason:
+          type: string
+        error:
+          type: string
+        operationId:
+          type: string
+          format: uuid
+          description: 关联的平台 operations 行（Operation Center 统一接线）。
+        drGroupRef:
+          type: string
+          description: DRProtectionGroup 编排来源引用（GSLB-009）。
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    GslbDrillCheck:
+      type: object
+      additionalProperties: false
+      required: [name, passed]
+      properties:
+        name:
+          type: string
+        passed:
+          type: boolean
+        detail:
+          type: string
+    GslbDrillVerdict:
+      type: string
+      enum: [Ready, Degraded, Blocked]
+      x-enum-varnames: [DrillVerdictReady, DrillVerdictDegraded, DrillVerdictBlocked]
+    GslbDrillReportPayload:
+      type: object
+      additionalProperties: false
+      required: [serviceId, domain, currentTargets, projectedTargets, checks, verdict, generatedAt]
+      properties:
+        serviceId:
+          type: string
+          format: uuid
+        domain:
+          type: string
+        activePoolId:
+          type: string
+          format: uuid
+        targetPoolId:
+          type: string
+          format: uuid
+        currentTargets:
+          type: array
+          items:
+            type: string
+        projectedTargets:
+          type: array
+          items:
+            type: string
+        projectedWeights:
+          type: object
+          additionalProperties:
+            type: integer
+        healthyPools:
+          type: array
+          items:
+            type: string
+        checks:
+          type: array
+          items:
+            $ref: "#/components/schemas/GslbDrillCheck"
+        verdict:
+          $ref: "#/components/schemas/GslbDrillVerdict"
+        generatedAt:
+          type: string
+          format: date-time
+    GslbDrillReport:
+      type: object
+      additionalProperties: false
+      required: [id, tenantId, serviceId, requestId, verdict, report, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenantId:
+          type: string
+        serviceId:
+          type: string
+          format: uuid
+        requestId:
+          type: string
+          format: uuid
+        verdict:
+          $ref: "#/components/schemas/GslbDrillVerdict"
+        report:
+          $ref: "#/components/schemas/GslbDrillReportPayload"
+        createdAt:
+          type: string
+          format: date-time
+    GslbDrillReportListResponse:
+      type: object
+      additionalProperties: false
+      required: [items, total]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/GslbDrillReport"
+        total:
+          type: integer
+          minimum: 0
+    DrLifecycleState:
+      type: string
+      enum: [Ready, Switching, FailedOver, SwitchingBack]
+      x-enum-varnames: [DrStateReady, DrStateSwitching, DrStateFailedOver, DrStateSwitchingBack]
+    DrSwitchDirection:
+      type: string
+      enum: [failover, switchback]
+      x-enum-varnames: [DrDirectionFailover, DrDirectionSwitchback]
+    DrRunStatus:
+      type: string
+      enum: [DataLayerPending, DataLayerCompleted, TrafficDispatched, AwaitingApproval, Completed, Failed, Cancelled]
+      x-enum-varnames: [DrRunDataLayerPending, DrRunDataLayerCompleted, DrRunTrafficDispatched, DrRunAwaitingApproval, DrRunCompleted, DrRunFailed, DrRunCancelled]
+    DrMemberType:
+      type: string
+      enum: [gslb_service, data_layer_ref]
+      x-enum-varnames: [DrMemberGslbService, DrMemberDataLayerRef]
+    DrProtectionGroup:
+      type: object
+      additionalProperties: false
+      required: [id, tenantId, name, primaryRegion, standbyRegion, lifecycleState]
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenantId:
+          type: string
+        name:
+          type: string
+          maxLength: 128
+        primaryRegion:
+          type: string
+        standbyRegion:
+          type: string
+        lifecycleState:
+          $ref: "#/components/schemas/DrLifecycleState"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    DrGroupMember:
+      type: object
+      additionalProperties: false
+      required: [id, groupId, memberType, refId, name]
+      properties:
+        id:
+          type: string
+          format: uuid
+        groupId:
+          type: string
+          format: uuid
+        memberType:
+          $ref: "#/components/schemas/DrMemberType"
+        refId:
+          type: string
+          description: gslb_service 成员为 GSLB 服务 id；data_layer_ref 为数据层引用标识。
+        name:
+          type: string
+          maxLength: 128
+        createdAt:
+          type: string
+          format: date-time
+    DrSwitchRun:
+      type: object
+      additionalProperties: false
+      required: [id, groupId, tenantId, direction, status, idempotencyKey, correlationId, trafficRequestIds]
+      properties:
+        id:
+          type: string
+          format: uuid
+        groupId:
+          type: string
+          format: uuid
+        tenantId:
+          type: string
+        direction:
+          $ref: "#/components/schemas/DrSwitchDirection"
+        status:
+          $ref: "#/components/schemas/DrRunStatus"
+        idempotencyKey:
+          type: string
+          pattern: "^[!-~]{1,128}$"
+        correlationId:
+          type: string
+          format: uuid
+        operationId:
+          type: string
+          format: uuid
+          description: 关联的平台 operations 行（Operation Center 统一接线）。
+        trafficRequestIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: 流量层子 gslb 切换请求 id 列表（每 gslb_service 成员一个）。
+        reason:
+          type: string
+          maxLength: 512
+        error:
+          type: string
+        actorId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    DrGroupListResponse:
+      type: object
+      additionalProperties: false
+      required: [items, total]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/DrProtectionGroup"
+        total:
+          type: integer
+          minimum: 0
+    DrGroupDetailResponse:
+      type: object
+      additionalProperties: false
+      required: [group, members, runs]
+      properties:
+        group:
+          $ref: "#/components/schemas/DrProtectionGroup"
+        members:
+          type: array
+          items:
+            $ref: "#/components/schemas/DrGroupMember"
+        runs:
+          type: array
+          items:
+            $ref: "#/components/schemas/DrSwitchRun"
+    DrSwitchRunListResponse:
+      type: object
+      additionalProperties: false
+      required: [items, total]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/DrSwitchRun"
+        total:
+          type: integer
+          minimum: 0
+    DrCreateGroupRequest:
+      type: object
+      additionalProperties: false
+      required: [name, primaryRegion, standbyRegion]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 128
+        primaryRegion:
+          type: string
+          minLength: 1
+          maxLength: 128
+        standbyRegion:
+          type: string
+          minLength: 1
+          maxLength: 128
+    DrAddMemberRequest:
+      type: object
+      additionalProperties: false
+      required: [memberType, refId, name]
+      properties:
+        memberType:
+          $ref: "#/components/schemas/DrMemberType"
+        refId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        name:
+          type: string
+          minLength: 1
+          maxLength: 128
+    DrInitiateSwitchRequest:
+      type: object
+      additionalProperties: false
+      required: [direction, idempotencyKey]
+      properties:
+        direction:
+          $ref: "#/components/schemas/DrSwitchDirection"
+        reason:
+          type: string
+          maxLength: 512
+        idempotencyKey:
+          type: string
+          pattern: "^[!-~]{1,128}$"

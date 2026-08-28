@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.hnb.cloud/platform/v1/tenant-switch.schema.json",
+  "title": "TenantSwitch",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["tenantId"],
+  "properties": {
+    "tenantId": { "type": "string", "minLength": 1, "maxLength": 128 }
+  }
+}

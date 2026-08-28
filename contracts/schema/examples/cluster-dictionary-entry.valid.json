@@ -1,0 +1,8 @@
+{
+  "code": "STALE",
+  "label": "Stale",
+  "labelKey": "resource.clusterMgmt.freshness.STALE",
+  "semanticToken": "warning",
+  "iconToken": "alert",
+  "terminal": false
+}

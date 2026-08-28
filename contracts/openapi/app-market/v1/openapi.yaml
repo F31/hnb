@@ -1,0 +1,132 @@
+openapi: 3.1.0
+info:
+  title: HNB App Market Artifact Storage API
+  version: v1
+servers:
+  - url: /
+    description: HNB API server
+security:
+  - bearerAuth: []
+paths:
+  /api/v1/artifacts:
+    get:
+      summary: List artifact descriptors
+      responses:
+        "200": { description: Descriptor list }
+  /api/v1/artifacts/{id}:
+    get:
+      summary: Get an artifact descriptor by tenant-scoped ID
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Descriptor }
+        "404": { description: Not found }
+  /api/v1/artifacts/session:
+    post:
+      summary: Create a direct upload session with temporary Harbor credentials
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        "200": { description: Upload session }
+  /api/v1/artifacts/confirm:
+    post:
+      summary: Verify Harbor manifest digest and atomically create descriptor
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        "200": { description: Verified descriptor reference }
+        "409": { description: Missing or mismatched digest }
+  /api/v1/artifact-storage/profiles:
+    get:
+      summary: List artifact storage profiles
+      responses:
+        "200": { description: Profile list }
+    post:
+      summary: Create an artifact storage profile using SecretReference only
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        "201": { description: Created profile }
+  /api/v1/artifact-distributions:
+    get:
+      summary: List distribution target status
+      responses:
+        "200": { description: Distribution target list }
+  /api/v1/artifact-distributions/{id}/rebuild:
+    post:
+      summary: Submit idempotent distribution rebuild metadata command
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        "202": { description: Rebuild command accepted }
+  /api/v1/artifacts/{id}/references:
+    get:
+      summary: List protected artifact references
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Reference list }
+    post:
+      summary: Register a protected artifact reference
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        "201": { description: Reference registered }
+  /api/v1/artifacts/{id}/gc/preview:
+    post:
+      summary: Preview GC blockers without mutation
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        "200": { description: GC preview }
+  /api/v1/artifacts/{id}/gc:
+    post:
+      summary: Create retained tombstone and Operation-correlated GC request
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        "202": { description: Tombstone created }
+        "409": { description: Protected references block GC }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    CorrelationId:
+      name: X-Correlation-ID
+      in: header
+      required: true
+      schema:
+        type: string
+        format: uuid
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 128
+  schemas:
+    ArtifactDescriptor:
+      type: object
+      required: [id, tenant_id, digest, verification_status, lifecycle_state]
+      properties:
+        id: { type: string }
+        tenant_id: { type: string }
+        digest: { type: string, pattern: "^sha256:[0-9a-f]{64}$" }
+        verification_status: { type: string, enum: [pending, verified, failed] }
+        lifecycle_state: { type: string, enum: [active, tombstoned, deleting, deleted] }

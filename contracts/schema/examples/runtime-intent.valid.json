@@ -1,0 +1,15 @@
+{
+  "apiVersion": "hnb.io/v1",
+  "kind": "InstallRelease",
+  "metadata": {
+    "idempotencyKey": "install-release-42",
+    "correlationId": "018f6c2a-4a64-7b58-9cc3-9f70462f36c1"
+  },
+  "spec": {
+    "releaseId": "release-42",
+    "targetRef": "target-a",
+    "scopeRef": "namespace-a",
+    "parameters": { "replicas": 2 },
+    "secretReferences": [{ "provider": "vault", "scope": "tenant-a", "name": "registry" }]
+  }
+}

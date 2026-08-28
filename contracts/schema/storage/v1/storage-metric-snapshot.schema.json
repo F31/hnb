@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.hnb.cloud/storage/v1/storage-metric-snapshot.schema.json",
+  "title": "StorageMetricSnapshot",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "providerId", "targetId", "resourceKind", "resourceUid", "metrics"],
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "providerId": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "targetId": { "type": "string", "format": "uuid" },
+    "resourceKind": { "enum": ["StorageBackend", "WorkloadStorageOffering", "StorageClassBinding", "StorageClass", "PersistentVolumeClaim", "PersistentVolume"] },
+    "resourceUid": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "metrics": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "unit", "status", "applicability", "source", "observedAt", "freshness"],
+        "properties": {
+          "kind": { "enum": ["capacity", "usage", "iops", "throughput", "latency", "health"] },
+          "unit": { "enum": ["By", "1/s", "By/s", "s", "1"] },
+          "value": { "type": "number", "minimum": 0 },
+          "status": { "enum": ["Known", "Elastic", "Unknown", "NotReported"] },
+          "applicability": { "enum": ["Applicable", "Unsupported", "Unknown"] },
+          "source": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "observedAt": { "type": "string", "format": "date-time" },
+          "freshness": { "enum": ["Fresh", "Stale", "Unknown"] }
+        },
+        "allOf": [
+          {
+            "if": { "properties": { "status": { "const": "Known" } }, "required": ["status"] },
+            "then": { "required": ["value"] },
+            "else": { "not": { "required": ["value"] } }
+          },
+          {
+            "if": { "required": ["value"] },
+            "then": { "properties": { "applicability": { "const": "Applicable" } } }
+          }
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "apiVersion": "hnb.io/v1",
+  "kind": "ImportRuntimeTarget",
+  "metadata": {
+    "idempotencyKey": "import-edge-factory-a",
+    "correlationId": "018f6c2a-4a64-7b58-9cc3-9f70462f3811"
+  },
+  "spec": {
+    "targetKind": "EdgeRuntimeTarget",
+    "displayName": "factory-a",
+    "cloudCoreEndpoint": "wss://cloudcore.factory.example:10002",
+    "credentialSecretRef": { "provider": "vault", "scope": "tenant:tenant-a", "name": "cloudcore-client", "version": "3" },
+    "nodeGroupMappings": { "factory-a": "edge-factory-a" }
+  }
+}

@@ -1,0 +1,68 @@
+{
+  "schemaVersion": "1.0.0",
+  "eventId": "018f6c2a-4a64-7b58-9cc3-9f70462f3701",
+  "tenantId": "tenant-a",
+  "targetId": "018f6c2a-4a64-7b58-9cc3-9f70462f3702",
+  "targetKind": "KubernetesTarget",
+  "observerId": "agent-prod-a-epoch-4",
+  "observerKind": "Agent",
+  "observerGeneration": 4,
+  "sequence": 21,
+  "observedAt": "2026-08-01T12:00:00Z",
+  "inventoryMode": "Full",
+  "target": {
+    "lifecycleState": "ACTIVE",
+    "healthState": "HEALTHY",
+    "connectivityState": "CONNECTED",
+    "lastKnownStateAt": "2026-08-01T12:00:00Z",
+    "staleThresholdSeconds": 300,
+    "runtimeVersion": "containerd://2.0.4"
+  },
+  "capability": {
+    "snapshotId": "018f6c2a-4a64-7b58-9cc3-9f70462f3703",
+    "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "kubernetesVersion": "v1.34.0",
+    "runtimeVersion": "containerd://2.0.4",
+    "architectures": ["amd64"],
+    "resources": { "cpuMillis": 16000, "memoryBytes": 68719476736 }
+  },
+  "nodes": [
+    {
+      "nodeId": "node-uid-1",
+      "name": "worker-1",
+      "lifecycleState": "ACTIVE",
+      "healthState": "HEALTHY",
+      "connectivityState": "CONNECTED",
+      "freshness": "FRESH",
+      "observedAt": "2026-08-01T12:00:00Z",
+      "lastKnownStateAt": "2026-08-01T12:00:00Z",
+      "deleted": false,
+      "resources": { "cpuMillis": 8000, "memoryBytes": 34359738368 }
+    }
+  ],
+  "storageInventory": {
+    "storageClasses": [
+      {
+        "uid": "storage-class-uid-1",
+        "resourceVersion": "1842",
+        "name": "fast",
+        "source": "kubernetes.storage.k8s.io/v1",
+        "observedAt": "2026-08-01T12:00:00Z",
+        "provisioner": "example.csi.io",
+        "reclaimPolicy": "Delete",
+        "volumeBindingMode": "WaitForFirstConsumer",
+        "allowVolumeExpansion": true,
+        "isDefault": false
+      }
+    ],
+    "csiDrivers": [],
+    "csiNodes": [],
+    "csiStorageCapacities": [],
+    "volumeAttachments": [],
+    "snapshotApi": {
+      "status": "NotInstalled",
+      "source": "kubernetes.apidiscovery.k8s.io/v1",
+      "observedAt": "2026-08-01T12:00:00Z"
+    }
+  }
+}

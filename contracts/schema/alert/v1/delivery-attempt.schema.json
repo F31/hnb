@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.hnb.cloud/alert/v1/delivery-attempt.schema.json",
+  "title": "DeliveryAttempt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "deliveryId",
+    "attemptedAt",
+    "resultClass"
+  ],
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "deliveryId": { "type": "string", "format": "uuid" },
+    "attemptedAt": { "type": "string", "format": "date-time" },
+    "resultClass": { "type": "string", "enum": ["success", "transient_failure", "permanent_failure", "timeout", "circuit_open", "rate_limited"] },
+    "responseCode": { "type": "integer", "minimum": 100, "maximum": 599 },
+    "duration": { "type": "string", "pattern": "^[0-9]+ms$" },
+    "traceId": { "type": "string", "minLength": 1 }
+  }
+}

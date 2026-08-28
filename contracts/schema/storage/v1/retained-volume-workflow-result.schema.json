@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.hnb.cloud/storage/v1/retained-volume-workflow-result.schema.json",
+  "title": "RetainedVolumeWorkflowResult",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "state", "volumeId", "providerId", "operationId", "stepId", "idempotencyKey", "fencingGeneration", "recordedAt"],
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "state": { "enum": ["Sanitized", "ManualReleaseRequired"] },
+    "volumeId": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "providerId": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "operationId": { "type": "string", "format": "uuid" },
+    "stepId": { "type": "string", "format": "uuid" },
+    "idempotencyKey": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "fencingGeneration": { "type": "integer", "minimum": 1 },
+    "recordedAt": { "type": "string", "format": "date-time" },
+    "sanitizationEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["evidenceRef", "evidenceDigest", "method", "completedAt"],
+      "properties": {
+        "evidenceRef": { "type": "string", "minLength": 1, "maxLength": 2048 },
+        "evidenceDigest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+        "method": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "completedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "manualRelease": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reason", "dataRetained"],
+      "properties": {
+        "reason": { "type": "string", "minLength": 1, "maxLength": 2048 },
+        "dataRetained": { "const": true }
+      }
+    }
+  },
+  "allOf": [
+    { "if": { "properties": { "state": { "const": "Sanitized" } } }, "then": { "required": ["sanitizationEvidence"], "not": { "required": ["manualRelease"] } } },
+    { "if": { "properties": { "state": { "const": "ManualReleaseRequired" } } }, "then": { "required": ["manualRelease"], "not": { "required": ["sanitizationEvidence"] } } }
+  ]
+}

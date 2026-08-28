@@ -1,0 +1,8 @@
+{
+  "snapshotId": "not-a-uuid",
+  "digest": "sha256:not-a-digest",
+  "runtimeVersion": "containerd://2.0.4",
+  "architectures": [],
+  "resources": { "cpuMillis": 64000, "memoryBytes": -1 },
+  "providerUrl": "https://provider.internal"
+}

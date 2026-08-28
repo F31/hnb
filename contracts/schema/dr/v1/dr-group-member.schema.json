@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.hnb.cloud/dr/v1/dr-group-member.schema.json",
+  "title": "DRGroupMember",
+  "description": "DR 保护组成员（OBS-008）：gslb_service（流量层）或 data_layer_ref（数据层引用，人工确认门）。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "groupId", "memberType", "refId", "name"],
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "groupId": { "type": "string", "format": "uuid" },
+    "memberType": { "enum": ["gslb_service", "data_layer_ref"] },
+    "refId": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "name": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "createdAt": { "type": "string", "format": "date-time" }
+  }
+}

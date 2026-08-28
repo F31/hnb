@@ -1,0 +1,24 @@
+{
+  "apiVersion": "ui.hnb.io/v1",
+  "data": {
+    "operationId": "018f6c2a-4a64-7b58-9cc3-9f70462f3821",
+    "intentId": "018f6c2a-4a64-7b58-9cc3-9f70462f3822",
+    "executionPlanId": "018f6c2a-4a64-7b58-9cc3-9f70462f3823",
+    "type": "UpgradeRuntimeTarget",
+    "status": "failed",
+    "targetId": "018f6c2a-4a64-7b58-9cc3-9f70462f3824",
+    "targetKind": "EdgeRuntimeTarget",
+    "progress": { "completedSteps": 1, "totalSteps": 2, "percent": 50 },
+    "failure": { "code": "PROVIDER_UNAVAILABLE", "message": "Lifecycle provider is unavailable.", "retryable": true },
+    "correlationId": "018f6c2a-4a64-7b58-9cc3-9f70462f3825",
+    "createdAt": "2026-08-01T12:00:00Z",
+    "updatedAt": "2026-08-01T12:01:00Z",
+    "steps": [],
+    "allowedActions": [],
+    "links": {
+      "operation": "/operations/018f6c2a-4a64-7b58-9cc3-9f70462f3821",
+      "intent": "/runtime-intents/018f6c2a-4a64-7b58-9cc3-9f70462f3822",
+      "target": "/resource/clusters/018f6c2a-4a64-7b58-9cc3-9f70462f3824"
+    }
+  }
+}

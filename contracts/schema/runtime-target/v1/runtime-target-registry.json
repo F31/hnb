@@ -1,0 +1,14 @@
+{
+  "title": "RuntimeTarget Contract Registry",
+  "version": "1.0.0",
+  "schemas": {
+    "observation": { "$ref": "runtime-target-observation.schema.json", "description": "Tenant-bound ordered target, capability, and node observation." },
+    "source-reset": { "$ref": "source-reset.schema.json", "description": "Authenticated observer generation reset." },
+    "capability-section": { "$ref": "capability-section.schema.json", "description": "Bounded immutable capability snapshot content." },
+    "node-section": { "$ref": "node-section.schema.json", "description": "Stable node identity and four-dimensional last-known state." },
+    "storage-inventory-section": { "$ref": "storage-inventory-section.schema.json", "description": "Bounded typed Kubernetes storage inventory facts with UID/resourceVersion identity." },
+    "kubernetes-lifecycle-input": { "$ref": "kubernetes-lifecycle-step-input.schema.json", "description": "Planner-authored Kubernetes lifecycle Step inputs." },
+    "edge-lifecycle-input": { "$ref": "edge-lifecycle-step-input.schema.json", "description": "Planner-authored Edge lifecycle Step inputs." },
+    "compatibility-matrix": { "$ref": "compatibility-matrix.schema.json", "instance": "compatibility-matrix.json", "description": "Exact targetKind/action/provider routing authority." }
+  }
+}

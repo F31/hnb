@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.hnb.cloud/gslb/v1/gslb-pool.schema.json",
+  "title": "GSLBPool",
+  "description": "GSLB 流量池：主/备池与成员权重（GSLB-003 灰度、GSLB-005 受控切换）。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "serviceId", "name", "priority"],
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "serviceId": { "type": "string", "format": "uuid" },
+    "name": { "type": "string", "pattern": "^[a-z][a-z0-9-]{0,62}$", "maxLength": 64 },
+    "priority": { "type": "integer", "minimum": 0 },
+    "members": {
+      "type": "array",
+      "items": { "$ref": "gslb-pool-member.schema.json" }
+    }
+  }
+}

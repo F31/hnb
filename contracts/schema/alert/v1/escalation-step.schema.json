@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.hnb.cloud/alert/v1/escalation-step.schema.json",
+  "title": "EscalationStep",
+  "description": "Defines an escalation step within a notification policy, including timing, target group, and channels.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["after", "contactGroupId", "channels", "stopOnAck"],
+  "properties": {
+    "after": { "type": "string", "pattern": "^[0-9]+[smhd]$", "description": "Duration after which this escalation step activates, e.g. 5m, 1h, 1d" },
+    "contactGroupId": { "type": "string", "format": "uuid" },
+    "channels": {
+      "type": "array",
+      "items": { "type": "string", "enum": ["portal", "email", "webhook", "sms"] },
+      "minItems": 1
+    },
+    "stopOnAck": { "type": "boolean", "description": "If true, escalation stops when the alert is acknowledged" },
+    "alternateChannels": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["channelType", "afterFailures"],
+        "properties": {
+          "channelType": { "type": "string", "enum": ["portal", "email", "webhook", "sms"] },
+          "afterFailures": { "type": "integer", "minimum": 1 }
+        },
+        "additionalProperties": false
+      }
+    }
+  }
+}

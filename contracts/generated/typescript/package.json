@@ -3,6 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "exports": {
+    "./console": "./console-openapi/index.ts",
+    "./foundation": "./openapi/index.ts",
+    "./platform": "./platform-openapi/index.ts",
+    "./runtime-target": "./runtime-target-openapi/index.ts",
+    "./storage": "./storage-openapi/index.ts"
+  },
   "dependencies": {
     "@bufbuild/protobuf": "2.12.1"
   },

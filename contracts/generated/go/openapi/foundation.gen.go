@@ -20,6 +20,7 @@ import (
 
 // ContractEchoRequest defines model for ContractEchoRequest.
 type ContractEchoRequest struct {
+	// Context Request metadata only. On protected routes tenantId and actorId are non-authoritative inputs and are overwritten by the verified trusted context tenantId/membershipId claims.
 	Context     RequestContext     `json:"context"`
 	ResourceRef *ResourceReference `json:"resourceRef,omitempty"`
 	Value       string             `json:"value"`
@@ -27,6 +28,7 @@ type ContractEchoRequest struct {
 
 // ContractEchoResponse defines model for ContractEchoResponse.
 type ContractEchoResponse struct {
+	// Context Request metadata only. On protected routes tenantId and actorId are non-authoritative inputs and are overwritten by the verified trusted context tenantId/membershipId claims.
 	Context     RequestContext     `json:"context"`
 	ObservedAt  time.Time          `json:"observedAt"`
 	ResourceRef *ResourceReference `json:"resourceRef,omitempty"`
@@ -45,7 +47,7 @@ type ProblemDetails struct {
 	Violations    *[]Violation       `json:"violations,omitempty"`
 }
 
-// RequestContext defines model for RequestContext.
+// RequestContext Request metadata only. On protected routes tenantId and actorId are non-authoritative inputs and are overwritten by the verified trusted context tenantId/membershipId claims.
 type RequestContext struct {
 	ActorId       string             `json:"actorId"`
 	CorrelationId openapi_types.UUID `json:"correlationId"`

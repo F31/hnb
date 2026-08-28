@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.hnb.cloud/messaging/v1/message-types.schema.json",
+  "title": "MessageTypeRegistry",
+  "description": "Versioned NATS subject conventions for internal async messaging",
+  "type": "object",
+  "required": ["messageTypes"],
+  "properties": {
+    "messageTypes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["type", "class", "domain", "description", "majorVersion"],
+        "properties": {
+          "type": { "type": "string", "pattern": "^hnb\\.[a-z]+\\.[a-z][a-z0-9-]*\\.[a-z][a-z0-9-]*\\.v[1-9][0-9]*$" },
+          "class": { "type": "string", "enum": ["command", "event", "notification"] },
+          "domain": { "type": "string", "minLength": 1 },
+          "description": { "type": "string", "minLength": 1 },
+          "majorVersion": { "type": "integer", "minimum": 1 },
+          "payloadRef": { "type": "string", "description": "URL to payload JSON Schema" },
+          "maxSizeBytes": { "type": "integer", "minimum": 1 }
+        }
+      }
+    }
+  }
+}

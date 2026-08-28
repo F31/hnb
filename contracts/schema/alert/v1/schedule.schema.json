@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.hnb.cloud/alert/v1/schedule.schema.json",
+  "title": "Schedule",
+  "description": "On-call schedule defining when a contact group is active.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "tenantId", "name", "timezone", "version"],
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "tenantId": { "type": "string", "minLength": 1 },
+    "name": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "timezone": { "type": "string", "minLength": 1 },
+    "shifts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["daysOfWeek", "startTime", "endTime"],
+        "properties": {
+          "daysOfWeek": {
+            "type": "array",
+            "items": { "type": "integer", "minimum": 0, "maximum": 6 },
+            "minItems": 1
+          },
+          "startTime": { "type": "string", "pattern": "^[0-9]{2}:[0-9]{2}$" },
+          "endTime": { "type": "string", "pattern": "^[0-9]{2}:[0-9]{2}$" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "exceptions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["date", "onCallUserId"],
+        "properties": {
+          "date": { "type": "string", "format": "date" },
+          "onCallUserId": { "type": "string", "minLength": 1 }
+        },
+        "additionalProperties": false
+      }
+    },
+    "version": { "type": "integer", "minimum": 1 }
+  }
+}

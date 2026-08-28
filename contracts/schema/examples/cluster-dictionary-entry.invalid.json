@@ -1,0 +1,7 @@
+{
+  "code": "stale",
+  "label": "Stale",
+  "labelKey": "local.cluster.stale",
+  "semanticToken": "orange",
+  "terminal": "no"
+}

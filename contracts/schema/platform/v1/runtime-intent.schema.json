@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.hnb.cloud/platform/v1/runtime-intent.schema.json",
+  "title": "RuntimeIntent",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "properties": {
+    "apiVersion": { "const": "hnb.io/v1" },
+    "kind": { "enum": ["InstallRelease", "UninstallRelease", "UpgradeRelease", "RollbackRelease", "ChangeConfiguration", "CreateKubernetesTarget", "ImportRuntimeTarget", "UpgradeRuntimeTarget", "DeleteRuntimeTarget", "ImportStorageClassBinding", "ReconcileStorageClassBinding", "InstallStorageDriver", "UpgradeStorageDriver", "UninstallStorageDriver", "ReleaseRetainedVolume", "SanitizeRetainedVolume"] },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["idempotencyKey", "correlationId"],
+      "properties": {
+        "idempotencyKey": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[!-~]+$" },
+        "correlationId": { "type": "string", "format": "uuid" }
+      }
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "releaseId": { "type": "string", "minLength": 1, "maxLength": 256 },
+		"bindingId": { "type": "string", "format": "uuid" },
+		"bindingVersion": { "type": "integer", "minimum": 1 },
+		"offeringId": { "type": "string", "format": "uuid" },
+		"offeringVersion": { "type": "integer", "minimum": 1 },
+		"targetId": { "type": "string", "format": "uuid" },
+		"targetKind": { "const": "KubernetesTarget" },
+		"expectedVersion": { "type": "integer", "minimum": 1 },
+		"storageClassName": { "type": "string", "minLength": 1, "maxLength": 253 },
+		"storageClassUid": { "type": "string", "minLength": 1, "maxLength": 128 },
+		"storageClassResourceVersion": { "type": "string", "minLength": 1, "maxLength": 128 },
+		"installationId": { "type": "string", "format": "uuid" },
+		"packageId": { "type": "string", "minLength": 1, "maxLength": 256 },
+		"packageVersion": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+		"currentVersion": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+		"kubernetesVersion": { "type": "string", "pattern": "^v?\\d+\\.\\d+\\.\\d+$" },
+		"volumeId": { "type": "string", "minLength": 1, "maxLength": 128 },
+		"workflowProviderRef": { "type": "string", "minLength": 1, "maxLength": 256 },
+		"persistentVolume": { "$ref": "#/$defs/retainedVolumeResource" },
+		"persistentVolumeClaim": { "$ref": "#/$defs/retainedVolumeResource" },
+		"podDependencies": { "type": "array", "maxItems": 0 },
+		"statefulSetDependencies": { "type": "array", "maxItems": 0 },
+        "targetRef": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "scopeRef": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "parameters": {
+          "type": "object",
+          "maxProperties": 64,
+          "propertyNames": {
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^(?!(steps|command|commands|providerId|providerCommand|providerCommands|credential|credentials|targetCredential|targetCredentials|artifactBytes|fencing|fencingToken|policyResult|policyResults|approvalResult|approvalResults)$).+$"
+          },
+          "additionalProperties": {
+            "oneOf": [
+              { "type": "string", "maxLength": 4096 },
+              { "type": "number" },
+              { "type": "boolean" },
+              { "type": "null" }
+            ]
+          }
+        },
+        "secretReferences": {
+          "type": "array",
+          "maxItems": 32,
+          "uniqueItems": true,
+          "items": { "$ref": "../../common/v1/secret-reference.schema.json" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "retainedVolumeResource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "uid", "resourceVersion"],
+      "properties": {
+        "namespace": { "type": "string", "maxLength": 253 },
+        "name": { "type": "string", "minLength": 1, "maxLength": 253 },
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "resourceVersion": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "phase": { "type": "string", "maxLength": 64 },
+        "reclaimPolicy": { "const": "Retain" },
+        "deletionObserved": { "type": "boolean" }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "kind": { "enum": ["InstallRelease", "UninstallRelease", "UpgradeRelease", "RollbackRelease", "ChangeConfiguration"] } }, "required": ["kind"] },
+      "then": { "properties": { "spec": { "type": "object", "required": ["releaseId", "targetRef", "scopeRef"] } } }
+    },
+    {
+      "if": { "properties": { "kind": { "enum": ["InstallStorageDriver", "UpgradeStorageDriver", "UninstallStorageDriver"] } }, "required": ["kind"] },
+      "then": { "properties": { "spec": { "type": "object", "required": ["installationId", "packageId", "packageVersion", "targetId", "targetKind", "expectedVersion", "kubernetesVersion"] } } }
+    },
+    {
+      "if": { "properties": { "kind": { "const": "UpgradeStorageDriver" } }, "required": ["kind"] },
+      "then": { "properties": { "spec": { "type": "object", "required": ["currentVersion"] } } }
+    },
+    {
+      "if": { "properties": { "kind": { "enum": ["ReleaseRetainedVolume", "SanitizeRetainedVolume"] } }, "required": ["kind"] },
+      "then": { "properties": { "spec": { "type": "object", "required": ["volumeId", "workflowProviderRef", "targetId", "targetKind", "expectedVersion", "persistentVolume", "persistentVolumeClaim", "podDependencies", "statefulSetDependencies"] } } }
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.hnb.cloud/storage/v1/storage-condition.schema.json",
+  "title": "StorageCondition",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "type", "status", "reason", "source", "observedAt", "freshness"],
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "type": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "status": { "enum": ["True", "False", "Unknown"] },
+    "reason": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "message": { "type": "string", "maxLength": 2048 },
+    "source": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "observedAt": { "type": "string", "format": "date-time" },
+    "freshness": { "enum": ["Fresh", "Stale", "Unknown"] }
+  }
+}

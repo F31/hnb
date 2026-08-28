@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.hnb.cloud/platform/v1/capability.schema.json",
+  "title": "Capability",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["name", "available", "version"],
+  "properties": {
+    "name": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-z][a-z0-9.-]*$" },
+    "available": { "type": "boolean" },
+    "version": { "type": "string", "minLength": 1, "maxLength": 64 }
+  }
+}

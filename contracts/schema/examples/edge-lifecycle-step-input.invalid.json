@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "1.0.0",
+  "targetId": "018f6c2a-4a64-7b58-9cc3-9f70462f3762",
+  "targetKind": "EdgeRuntimeTarget",
+  "action": "create",
+  "cloudCoreEndpoint": "https://user:password@cloudcore.invalid?token=secret",
+  "idempotencyKey": "edge-create-factory",
+  "fencingGeneration": 3,
+  "observationVersion": 0,
+  "executionUrl": "https://caller.invalid/execute"
+}

@@ -1,0 +1,9 @@
+{
+  "nodeId": "edge-node-17",
+  "lifecycleState": "ACTIVE",
+  "healthState": "HEALTHY",
+  "connectivityState": "CONNECTED",
+  "observedAt": "2026-08-01T11:50:00Z",
+  "lastKnownStateAt": "2026-08-01T11:50:00Z",
+  "resources": { "cpuMillis": -1, "memoryBytes": 8589934592 }
+}

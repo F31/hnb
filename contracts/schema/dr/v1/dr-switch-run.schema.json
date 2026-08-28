@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.hnb.cloud/dr/v1/dr-switch-run.schema.json",
+  "title": "DRSwitchRun",
+  "description": "DR 切换链运行（OBS-008）：幂等创建；无数据层成员时立即进入流量层，否则停留 DataLayerPending 等待显式确认。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "groupId", "tenantId", "direction", "status", "idempotencyKey", "correlationId", "trafficRequestIds"],
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "groupId": { "type": "string", "format": "uuid" },
+    "tenantId": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "direction": { "enum": ["failover", "switchback"] },
+    "status": {
+      "enum": ["DataLayerPending", "DataLayerCompleted", "TrafficDispatched", "AwaitingApproval", "Completed", "Failed", "Cancelled"]
+    },
+    "idempotencyKey": { "type": "string", "pattern": "^[!-~]{1,128}$" },
+    "correlationId": { "type": "string", "format": "uuid" },
+    "operationId": { "type": "string", "format": "uuid" },
+    "trafficRequestIds": {
+      "type": "array",
+      "items": { "type": "string", "format": "uuid" }
+    },
+    "reason": { "type": "string", "maxLength": 512 },
+    "error": { "type": "string", "maxLength": 1024 },
+    "actorId": { "type": "string", "maxLength": 128 },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "updatedAt": { "type": "string", "format": "date-time" }
+  }
+}

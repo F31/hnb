@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "018f6c2a-4a64-7b58-9cc3-9f70462f4101",
+  "tenantId": "tenant-a",
+  "providerType": "cloud-disk",
+  "backendId": "elastic-disks",
+  "displayName": "Elastic disks",
+  "healthState": "Healthy",
+  "source": "cloud-provider",
+  "observedAt": "2026-08-09T12:00:00Z",
+  "freshness": "Fresh",
+  "capacity": {
+    "status": "Elastic",
+    "value": 0,
+    "unit": "By",
+    "source": "cloud-provider",
+    "observedAt": "2026-08-09T12:00:00Z",
+    "freshness": "Fresh"
+  },
+  "conditions": [],
+  "version": 1,
+  "createdAt": "2026-08-09T11:00:00Z",
+  "updatedAt": "2026-08-09T12:00:00Z"
+}

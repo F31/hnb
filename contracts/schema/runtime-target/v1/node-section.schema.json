@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.hnb.cloud/runtime-target/v1/node-section.schema.json",
+  "title": "RuntimeTargetNodeSection",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["nodeId", "lifecycleState", "healthState", "connectivityState", "freshness", "observedAt", "lastKnownStateAt", "resources"],
+  "properties": {
+    "nodeId": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "name": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "lifecycleState": { "enum": ["UNKNOWN", "REGISTERING", "PROVISIONING", "ACTIVE", "UPGRADING", "FAILED", "DELETING", "TERMINATED"] },
+    "healthState": { "enum": ["UNKNOWN", "HEALTHY", "DEGRADED", "UNHEALTHY"] },
+    "connectivityState": { "enum": ["UNKNOWN", "CONNECTED", "DISCONNECTED"] },
+    "freshness": { "enum": ["UNKNOWN", "FRESH", "STALE"] },
+    "observedAt": { "type": "string", "format": "date-time" },
+    "lastKnownStateAt": { "type": "string", "format": "date-time" },
+    "deleted": { "type": "boolean", "default": false },
+    "runtimeVersion": { "type": "string", "maxLength": 128 },
+    "kubeletVersion": { "type": "string", "maxLength": 128 },
+    "architecture": { "type": "string", "maxLength": 64 },
+    "resources": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cpuMillis", "memoryBytes"],
+      "properties": {
+        "cpuMillis": { "type": "integer", "minimum": 0 },
+        "memoryBytes": { "type": "integer", "minimum": 0 },
+        "gpuCount": { "type": "integer", "minimum": 0, "maximum": 65535 },
+        "npuCount": { "type": "integer", "minimum": 0, "maximum": 65535 }
+      }
+    },
+    "labels": {
+      "type": "object",
+      "maxProperties": 64,
+      "propertyNames": { "minLength": 1, "maxLength": 128 },
+      "additionalProperties": { "type": "string", "maxLength": 256 }
+    }
+  }
+}

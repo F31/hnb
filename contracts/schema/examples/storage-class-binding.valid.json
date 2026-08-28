@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "018f6c2a-4a64-7b58-9cc3-9f70462f4301",
+  "tenantId": "tenant-a",
+  "offeringId": "018f6c2a-4a64-7b58-9cc3-9f70462f4201",
+  "offeringVersion": 1,
+  "targetId": "018f6c2a-4a64-7b58-9cc3-9f70462f4001",
+  "bindingTarget": "KubernetesStorageClass",
+  "storageClassName": "shared-file",
+  "storageClassUid": "018f6c2a-4a64-7b58-9cc3-9f70462f4302",
+  "storageClassResourceVersion": "12901",
+  "syncState": "Active",
+  "isDefault": false,
+  "source": "runtime-target-agent",
+  "freshness": "Fresh",
+  "conditions": [],
+  "version": 1,
+  "observedAt": "2026-08-09T12:00:00Z",
+  "createdAt": "2026-08-09T11:00:00Z",
+  "updatedAt": "2026-08-09T12:00:00Z"
+}

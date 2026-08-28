@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.hnb.cloud/alert/v1/channel-capability.schema.json",
+  "title": "ChannelCapability",
+  "description": "Defines the delivery capability levels a notification channel can support.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["channelType", "tier", "supportedStates", "maxStates"],
+  "properties": {
+    "channelType": { "type": "string", "enum": ["portal", "email", "webhook", "sms"] },
+    "tier": { "type": "string", "enum": ["T1", "T2"] },
+    "supportedStates": {
+      "type": "array",
+      "items": { "type": "string", "enum": ["pending", "sending", "accepted", "delivered", "read", "failed", "suppressed", "cancelled"] },
+      "minItems": 1
+    },
+    "maxStates": {
+      "type": "string",
+      "enum": ["accepted", "delivered", "read"],
+      "description": "The maximum delivery state this channel can reach. Email defaults to accepted; Portal can reach read."
+    },
+    "requiresReceipt": { "type": "boolean", "description": "True if an external certified receipt is required to mark Delivered" },
+    "supportsReadReceipt": { "type": "boolean" },
+    "defaultRepeatInterval": { "type": "string", "pattern": "^[0-9]+[smhd]$" },
+    "rateLimit": {
+      "type": "object",
+      "properties": {
+        "maxPerMinute": { "type": "integer", "minimum": 0 },
+        "maxPerHour": { "type": "integer", "minimum": 0 },
+        "maxPerDay": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}

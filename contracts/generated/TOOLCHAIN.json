@@ -1,6 +1,6 @@
 {
-  "node": "20.20.2",
-  "npm": "10.8.2",
+  "node": "22.23.1",
+  "npm": "10.9.8",
   "go": "go version go1.26.5 linux/amd64",
   "buf": "1.72.0",
   "oapiCodegen": "github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen\nv2.8.0",

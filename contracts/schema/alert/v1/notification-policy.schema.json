@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.hnb.cloud/alert/v1/notification-policy.schema.json",
+  "title": "NotificationPolicy",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "tenantScope",
+    "matchers",
+    "contactGroupId",
+    "channels",
+    "repeatInterval",
+    "recoveryNotification",
+    "version"
+  ],
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "tenantScope": { "type": "string", "enum": ["global", "tenant", "project"] },
+    "matchers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "value"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "value": { "type": "string", "minLength": 1 },
+          "isRegex": { "type": "boolean" }
+        }
+      }
+    },
+    "contactGroupId": { "type": "string", "format": "uuid" },
+    "channels": {
+      "type": "array",
+      "items": { "type": "string", "enum": ["portal", "email", "webhook", "sms"] },
+      "minItems": 1
+    },
+    "repeatInterval": { "type": "string", "pattern": "^[0-9]+[smhd]$" },
+    "escalationSteps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["after", "contactGroupId", "channels"],
+        "properties": {
+          "after": { "type": "string", "pattern": "^[0-9]+[smhd]$" },
+          "contactGroupId": { "type": "string", "format": "uuid" },
+          "channels": {
+            "type": "array",
+            "items": { "type": "string", "enum": ["portal", "email", "webhook", "sms"] }
+          }
+        }
+      }
+    },
+    "activeSchedule": {
+      "type": "object",
+      "properties": {
+        "timezone": { "type": "string" },
+        "daysOfWeek": { "type": "array", "items": { "type": "integer", "minimum": 0, "maximum": 6 } },
+        "startTime": { "type": "string", "pattern": "^[0-9]{2}:[0-9]{2}$" },
+        "endTime": { "type": "string", "pattern": "^[0-9]{2}:[0-9]{2}$" }
+      }
+    },
+    "recoveryNotification": { "type": "boolean" },
+    "version": { "type": "integer", "minimum": 1 }
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.hnb.cloud/storage/v1/provider-backend-schema.schema.json",
+  "title": "ProviderBackendSchema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "providerType", "providerSchemaVersion", "componentType", "fields"],
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "providerType": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "providerSchemaVersion": { "type": "string", "pattern": "^[1-9][0-9]*\\.[0-9]+\\.[0-9]+$" },
+    "componentType": { "const": "resource.storage.BackendConfigurationForm" },
+    "fields": {
+      "type": "array",
+      "maxItems": 32,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "label", "type", "required"],
+        "properties": {
+          "name": { "type": "string", "pattern": "^[a-z][A-Za-z0-9]{0,63}$" },
+          "label": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "type": { "enum": ["text", "number", "boolean", "select"] },
+          "required": { "type": "boolean" },
+          "options": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 32,
+            "uniqueItems": true,
+            "items": { "type": "string", "minLength": 1, "maxLength": 128 }
+          }
+        },
+        "allOf": [
+          {
+            "if": { "properties": { "type": { "const": "select" } }, "required": ["type"] },
+            "then": { "required": ["options"] },
+            "else": { "not": { "required": ["options"] } }
+          }
+        ]
+      }
+    }
+  }
+}

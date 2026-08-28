@@ -1,0 +1,81 @@
+{
+  "schemaVersion": "1.0.0",
+  "dictionaries": [
+    {
+      "dictionaryId": "resource.cluster.lifecycle",
+      "version": "1.0.0",
+      "entries": [
+        { "code": "UNKNOWN", "label": "Unknown", "labelKey": "resource.clusterMgmt.lifecycle.UNKNOWN", "semanticToken": "default", "terminal": false },
+        { "code": "REGISTERING", "label": "Registering", "labelKey": "resource.clusterMgmt.lifecycle.REGISTERING", "semanticToken": "processing", "terminal": false },
+        { "code": "PROVISIONING", "label": "Provisioning", "labelKey": "resource.clusterMgmt.lifecycle.PROVISIONING", "semanticToken": "processing", "terminal": false },
+        { "code": "ACTIVE", "label": "Active", "labelKey": "resource.clusterMgmt.lifecycle.ACTIVE", "semanticToken": "success", "terminal": false },
+        { "code": "UPGRADING", "label": "Upgrading", "labelKey": "resource.clusterMgmt.lifecycle.UPGRADING", "semanticToken": "processing", "terminal": false },
+        { "code": "FAILED", "label": "Failed", "labelKey": "resource.clusterMgmt.lifecycle.FAILED", "semanticToken": "error", "terminal": false },
+        { "code": "DELETING", "label": "Deleting", "labelKey": "resource.clusterMgmt.lifecycle.DELETING", "semanticToken": "processing", "terminal": false },
+        { "code": "TERMINATED", "label": "Terminated", "labelKey": "resource.clusterMgmt.lifecycle.TERMINATED", "semanticToken": "default", "terminal": true }
+      ]
+    },
+    {
+      "dictionaryId": "resource.cluster.health",
+      "version": "1.0.0",
+      "entries": [
+        { "code": "UNKNOWN", "label": "Unknown", "labelKey": "resource.clusterMgmt.health.UNKNOWN", "semanticToken": "default", "terminal": false },
+        { "code": "HEALTHY", "label": "Healthy", "labelKey": "resource.clusterMgmt.health.HEALTHY", "semanticToken": "success", "terminal": false },
+        { "code": "DEGRADED", "label": "Degraded", "labelKey": "resource.clusterMgmt.health.DEGRADED", "semanticToken": "warning", "terminal": false },
+        { "code": "UNHEALTHY", "label": "Unhealthy", "labelKey": "resource.clusterMgmt.health.UNHEALTHY", "semanticToken": "error", "terminal": false }
+      ]
+    },
+    {
+      "dictionaryId": "resource.cluster.connectivity",
+      "version": "1.0.0",
+      "entries": [
+        { "code": "UNKNOWN", "label": "Unknown", "labelKey": "resource.clusterMgmt.connectivity.UNKNOWN", "semanticToken": "default", "terminal": false },
+        { "code": "CONNECTED", "label": "Connected", "labelKey": "resource.clusterMgmt.connectivity.CONNECTED", "semanticToken": "success", "terminal": false },
+        { "code": "DISCONNECTED", "label": "Disconnected", "labelKey": "resource.clusterMgmt.connectivity.DISCONNECTED", "semanticToken": "warning", "terminal": false }
+      ]
+    },
+    {
+      "dictionaryId": "resource.cluster.freshness",
+      "version": "1.0.0",
+      "entries": [
+        { "code": "UNKNOWN", "label": "Unknown", "labelKey": "resource.clusterMgmt.freshness.UNKNOWN", "semanticToken": "default", "terminal": false },
+        { "code": "FRESH", "label": "Fresh", "labelKey": "resource.clusterMgmt.freshness.FRESH", "semanticToken": "success", "terminal": false },
+        { "code": "STALE", "label": "Stale", "labelKey": "resource.clusterMgmt.freshness.STALE", "semanticToken": "warning", "terminal": false }
+      ]
+    },
+    {
+      "dictionaryId": "resource.cluster.status",
+      "version": "1.0.0",
+      "compatibilityOnly": true,
+      "entries": [
+        { "code": "UNKNOWN", "label": "Unknown", "labelKey": "resource.clusterMgmt.status.UNKNOWN", "semanticToken": "default", "terminal": false },
+        { "code": "REGISTERING", "label": "Registering", "labelKey": "resource.clusterMgmt.status.REGISTERING", "semanticToken": "processing", "terminal": false },
+        { "code": "PROVISIONING", "label": "Provisioning", "labelKey": "resource.clusterMgmt.status.PROVISIONING", "semanticToken": "processing", "terminal": false },
+        { "code": "RUNNING", "label": "Running", "labelKey": "resource.clusterMgmt.status.RUNNING", "semanticToken": "success", "terminal": false },
+        { "code": "UPGRADING", "label": "Upgrading", "labelKey": "resource.clusterMgmt.status.UPGRADING", "semanticToken": "processing", "terminal": false },
+        { "code": "DEGRADED", "label": "Degraded", "labelKey": "resource.clusterMgmt.status.DEGRADED", "semanticToken": "warning", "terminal": false },
+        { "code": "FAILED", "label": "Failed", "labelKey": "resource.clusterMgmt.status.FAILED", "semanticToken": "error", "terminal": false },
+        { "code": "STALE", "label": "Stale", "labelKey": "resource.clusterMgmt.status.STALE", "semanticToken": "warning", "terminal": false },
+        { "code": "DELETING", "label": "Deleting", "labelKey": "resource.clusterMgmt.status.DELETING", "semanticToken": "processing", "terminal": false },
+        { "code": "TERMINATED", "label": "Terminated", "labelKey": "resource.clusterMgmt.status.TERMINATED", "semanticToken": "default", "terminal": true }
+      ]
+    }
+  ],
+  "statusCompatibilityAggregation": {
+    "dictionaryId": "resource.cluster.status",
+    "displayOnly": true,
+    "preservesDimensions": true,
+    "precedence": [
+      { "when": "freshness == STALE", "code": "STALE" },
+      { "when": "lifecycleState == TERMINATED", "code": "TERMINATED" },
+      { "when": "lifecycleState == DELETING", "code": "DELETING" },
+      { "when": "lifecycleState == FAILED", "code": "FAILED" },
+      { "when": "lifecycleState == UPGRADING", "code": "UPGRADING" },
+      { "when": "lifecycleState == PROVISIONING", "code": "PROVISIONING" },
+      { "when": "lifecycleState == REGISTERING", "code": "REGISTERING" },
+      { "when": "healthState in [DEGRADED, UNHEALTHY] || connectivityState == DISCONNECTED", "code": "DEGRADED" },
+      { "when": "lifecycleState == ACTIVE && healthState == HEALTHY", "code": "RUNNING" },
+      { "when": "otherwise", "code": "UNKNOWN" }
+    ]
+  }
+}

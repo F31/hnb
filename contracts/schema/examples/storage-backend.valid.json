@@ -1,0 +1,35 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "018f6c2a-4a64-7b58-9cc3-9f70462f4101",
+  "tenantId": "tenant-a",
+  "providerType": "nfs",
+  "providerSchemaVersion": "1.0.0",
+  "backendId": "nfs-primary",
+  "displayName": "Primary NFS",
+  "secretReference": {
+    "provider": "platform-secrets",
+    "scope": "tenant:tenant-a",
+    "name": "nfs-primary"
+  },
+  "attributes": {
+    "server": "nfs.internal",
+    "exportPath": "/workloads",
+    "readOnly": false
+  },
+  "connectionState": "Connected",
+  "healthState": "Healthy",
+  "source": "nfs-provider",
+  "observedAt": "2026-08-09T12:00:00Z",
+  "freshness": "Fresh",
+  "capacity": {
+    "status": "NotReported",
+    "unit": "By",
+    "source": "nfs-provider",
+    "observedAt": "2026-08-09T12:00:00Z",
+    "freshness": "Fresh"
+  },
+  "conditions": [],
+  "version": 1,
+  "createdAt": "2026-08-09T11:00:00Z",
+  "updatedAt": "2026-08-09T12:00:00Z"
+}

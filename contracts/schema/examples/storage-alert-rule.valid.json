@@ -1,0 +1,33 @@
+{
+  "name": "PVC Pending",
+  "severity": "warning",
+  "resource": {
+    "targetId": "32684d2c-fca8-4f28-a946-fb267363fd6c",
+    "kind": "PersistentVolumeClaim",
+    "uid": "pvc-uid-a",
+    "namespace": "payments",
+    "name": "ledger-data"
+  },
+  "metric": {
+    "providerId": "kubernetes",
+    "kind": "health",
+    "unit": "1",
+    "source": "kube_state_metrics",
+    "freshFor": "5m",
+    "operator": "lt",
+    "threshold": 1
+  },
+  "duration": "10m",
+  "channels": [{
+    "type": "webhook",
+    "configReference": "storage-alert-hook",
+    "secretReference": { "provider": "platform-secrets", "scope": "tenant:tenant-a", "name": "storage-alert-hook", "version": "3" }
+  }],
+  "context": {
+    "bindingId": "42684d2c-fca8-4f28-a946-fb267363fd6c",
+    "offeringId": "52684d2c-fca8-4f28-a946-fb267363fd6c",
+    "operationId": "62684d2c-fca8-4f28-a946-fb267363fd6c",
+    "runbookRef": "runbook://pvc-pending",
+    "navigationRef": "/container/storage/pvcs"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.hnb.cloud/gslb/v1/gslb-health-check.schema.json",
+  "title": "GSLBHealthCheck",
+  "description": "GSLB 健康探测配置：多源 HealthSource 契约（GSLB-011）。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["serviceId", "probeType", "intervalSeconds", "timeoutSeconds", "failureThreshold", "coolDownSeconds"],
+  "properties": {
+    "serviceId": { "type": "string", "format": "uuid" },
+    "probeType": { "enum": ["apiserver", "http", "karmada", "manual"] },
+    "intervalSeconds": { "type": "integer", "minimum": 10, "maximum": 3600 },
+    "timeoutSeconds": { "type": "integer", "minimum": 1, "maximum": 60 },
+    "failureThreshold": { "type": "integer", "minimum": 1, "maximum": 10 },
+    "coolDownSeconds": { "type": "integer", "minimum": 0, "maximum": 3600 },
+    "config": { "type": "object", "additionalProperties": true }
+  }
+}

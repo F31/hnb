@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.hnb.cloud/identity/v1/trusted-request-context.schema.json",
+  "title": "TrustedRequestContext",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["subjectId", "subjectType", "tenantId", "membershipId", "policyVersion", "scopedPermissions", "correlationId", "tokenId", "authTime"],
+  "properties": {
+    "subjectId": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "subjectType": { "enum": ["user", "workload", "service"] },
+    "tenantId": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "membershipId": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "policyVersion": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "scopedPermissions": {
+      "type": "array",
+      "maxItems": 64,
+      "items": { "$ref": "../../platform/v1/scoped-permission.schema.json" }
+    },
+    "projectId": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "environmentId": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "namespaceId": { "type": "string", "minLength": 1, "maxLength": 253 },
+    "correlationId": { "type": "string", "format": "uuid" },
+    "traceparent": { "type": "string", "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$" },
+    "tokenId": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "authTime": { "type": "string", "format": "date-time" }
+  }
+}

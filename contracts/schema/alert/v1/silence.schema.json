@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.hnb.cloud/alert/v1/silence.schema.json",
+  "title": "Silence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "tenantId",
+    "matchers",
+    "startsAt",
+    "endsAt",
+    "reason",
+    "createdBy",
+    "status",
+    "version"
+  ],
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "tenantId": { "type": "string", "minLength": 1 },
+    "matchers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "value"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "value": { "type": "string", "minLength": 1 },
+          "isRegex": { "type": "boolean" }
+        }
+      },
+      "minItems": 1
+    },
+    "startsAt": { "type": "string", "format": "date-time" },
+    "endsAt": { "type": "string", "format": "date-time" },
+    "reason": { "type": "string", "minLength": 1, "maxLength": 1024 },
+    "createdBy": { "type": "string", "minLength": 1 },
+    "status": { "type": "string", "enum": ["active", "expired", "pending"] },
+    "version": { "type": "integer", "minimum": 1 }
+  }
+}

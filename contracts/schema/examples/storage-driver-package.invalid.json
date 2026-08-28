@@ -1,0 +1,31 @@
+{
+  "schemaVersion": "1.0.0",
+  "packageId": "example.csi.io/driver",
+  "packageVersion": "latest",
+  "provisioners": [],
+  "compatibility": {
+    "kubernetesVersions": [],
+    "upgradeFromVersions": [],
+    "rollbackToVersions": []
+  },
+  "capabilities": {
+    "volumeModes": [],
+    "accessModes": [],
+    "topology": "Unknown",
+    "capacityTracking": [],
+    "expansion": "Supported",
+    "clone": "Supported",
+    "snapshot": "Supported",
+    "ephemeral": "Supported",
+    "health": "Supported"
+  },
+  "requiredComponents": { "crds": [], "controllers": [] },
+  "packageDigest": "latest",
+  "signature": {
+    "format": "Unknown",
+    "keyId": "",
+    "signedDigest": "different",
+    "evidenceRef": ""
+  },
+  "conformanceEvidence": []
+}

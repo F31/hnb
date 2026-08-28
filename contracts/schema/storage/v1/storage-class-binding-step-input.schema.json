@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.hnb.cloud/storage/v1/storage-class-binding-step-input.schema.json",
+  "title": "StorageClassBindingStepInput",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "action", "bindingId", "offeringId", "offeringVersion", "targetId", "targetKind", "targetProjectionVersion", "storageClassName", "storageClassUid", "storageClassResourceVersion", "idempotencyKey", "fencingGeneration"],
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "action": { "enum": ["import", "reconcile"] },
+    "bindingId": { "type": "string", "format": "uuid" },
+    "bindingVersion": { "type": "integer", "minimum": 0 },
+    "offeringId": { "type": "string", "format": "uuid" },
+    "offeringVersion": { "type": "integer", "minimum": 1 },
+    "targetId": { "type": "string", "format": "uuid" },
+    "targetKind": { "const": "KubernetesTarget" },
+    "targetProjectionVersion": { "type": "integer", "minimum": 1 },
+    "storageClassName": { "type": "string", "minLength": 1, "maxLength": 253 },
+    "storageClassUid": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "storageClassResourceVersion": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "idempotencyKey": { "type": "string", "pattern": "^step:[0-9a-f]{64}$" },
+    "fencingGeneration": { "type": "integer", "minimum": 1 }
+  }
+}

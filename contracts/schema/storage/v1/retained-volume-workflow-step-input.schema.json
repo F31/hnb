@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.hnb.cloud/storage/v1/retained-volume-workflow-step-input.schema.json",
+  "title": "RetainedVolumeWorkflowStepInput",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "workflow", "volumeId", "targetId", "targetProjectionVersion", "persistentVolume", "persistentVolumeClaim", "podDependencies", "statefulSetDependencies", "approvalPolicy", "providerConformanceEvidenceRef", "idempotencyKey", "fencingGeneration"],
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "workflow": { "enum": ["sanitize", "manualRelease"] },
+    "volumeId": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "targetId": { "type": "string", "format": "uuid" },
+    "targetProjectionVersion": { "type": "integer", "minimum": 1 },
+    "persistentVolume": { "$ref": "#/$defs/resource" },
+    "persistentVolumeClaim": {
+      "allOf": [
+        { "$ref": "#/$defs/resource" },
+        { "type": "object", "required": ["namespace", "deletionObserved"], "properties": { "namespace": { "type": "string", "minLength": 1, "maxLength": 253 }, "deletionObserved": { "const": true } } }
+      ]
+    },
+    "podDependencies": { "type": "array", "maxItems": 0 },
+    "statefulSetDependencies": { "type": "array", "maxItems": 0 },
+    "approvalPolicy": { "const": "explicit-operation-approval" },
+    "providerConformanceEvidenceRef": { "type": "string", "minLength": 1, "maxLength": 2048 },
+    "idempotencyKey": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "fencingGeneration": { "type": "integer", "minimum": 1 }
+  },
+  "$defs": {
+    "resource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "uid", "resourceVersion"],
+      "properties": {
+        "namespace": { "type": "string", "maxLength": 253 },
+        "name": { "type": "string", "minLength": 1, "maxLength": 253 },
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "resourceVersion": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "phase": { "type": "string", "maxLength": 64 },
+        "reclaimPolicy": { "const": "Retain" },
+        "deletionObserved": { "type": "boolean" }
+      }
+    }
+  }
+}

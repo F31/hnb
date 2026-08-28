@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.hnb.cloud/messaging/v1/jetstream-config.schema.json",
+  "title": "JetStreamConfiguration",
+  "description": "NATS JetStream Stream and Consumer configuration for HNB internal messaging",
+  "type": "object",
+  "required": ["streams", "consumers", "failedSubject"],
+  "additionalProperties": false,
+  "properties": {
+    "streams": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "subjects", "storage", "retention", "maxAge", "maxBytes", "replicas"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string", "pattern": "^[A-Za-z0-9_-]+$" },
+          "subjects": {
+            "type": "array",
+            "items": { "type": "string", "pattern": "^hnb\\.[a-z0-9.*>-]+$" },
+            "minItems": 1
+          },
+          "storage": { "type": "string", "enum": ["file", "memory"] },
+          "retention": { "type": "string", "enum": ["limits", "interest", "workQueue"] },
+          "maxAge": { "type": "string", "pattern": "^[0-9]+(s|m|h|d)$" },
+          "maxBytes": { "type": "integer", "minimum": 1048576 },
+          "maxMsgSize": { "type": "integer", "minimum": 1024, "default": 2097152 },
+          "replicas": { "type": "integer", "minimum": 1, "maximum": 5 },
+          "maxMsgsPerSubject": { "type": "integer", "minimum": 1 },
+          "discard": { "type": "string", "enum": ["old", "new"], "default": "old" },
+          "duplicateWindow": { "type": "string", "pattern": "^[0-9]+(s|m|h)$", "default": "2m" }
+        }
+      }
+    },
+    "consumers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "streamName", "filterSubject", "ackPolicy", "ackWait", "maxDeliver", "maxAckPending", "replayPolicy"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string", "pattern": "^[A-Za-z0-9_-]+$" },
+          "streamName": { "type": "string", "pattern": "^[A-Za-z0-9_-]+$" },
+          "filterSubject": { "type": "string", "pattern": "^hnb\\.[a-z0-9.*>-]+$" },
+          "deliverPolicy": {
+            "type": "string",
+            "enum": ["all", "last", "new", "byStartSequence", "byStartTime"],
+            "default": "new"
+          },
+          "ackPolicy": { "type": "string", "enum": ["explicit", "all", "none"], "default": "explicit" },
+          "ackWait": { "type": "string", "pattern": "^[0-9]+(s|m|h)$" },
+          "maxDeliver": { "type": "integer", "minimum": 1, "maximum": 100 },
+          "backoff": {
+            "type": "array",
+            "items": { "type": "string", "pattern": "^[0-9]+(s|m|h)$" },
+            "description": "Per-delivery backoff durations; overrides linear backoff"
+          },
+          "maxAckPending": { "type": "integer", "minimum": 1 },
+          "replayPolicy": { "type": "string", "enum": ["instant", "original"], "default": "instant" },
+          "maxWaiting": { "type": "integer", "minimum": 0, "default": 512 },
+          "numReplicas": { "type": "integer", "minimum": 0, "maximum": 5 },
+          "memoryStorage": { "type": "boolean", "default": false },
+          "inactiveThreshold": { "type": "string", "pattern": "^[0-9]+(s|m|h)$" }
+        }
+      }
+    },
+    "failedSubject": {
+      "type": "object",
+      "required": ["prefix", "maxDeliver", "retention"],
+      "additionalProperties": false,
+      "properties": {
+        "prefix": { "type": "string", "pattern": "^hnb\\.[a-z0-9.]+$" },
+        "maxDeliver": { "type": "integer", "minimum": 1 },
+        "retention": { "type": "string", "pattern": "^[0-9]+(s|m|h|d)$" },
+        "maxBytes": { "type": "integer", "minimum": 1048576 }
+      }
+    }
+  }
+}

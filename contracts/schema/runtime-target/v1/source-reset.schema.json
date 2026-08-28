@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.hnb.cloud/runtime-target/v1/source-reset.schema.json",
+  "$comment": "The authenticated observer lease MUST match all identity fields. newObserverGeneration MUST be greater than previousObserverGeneration and consumers MUST reject observedAt more than 300 seconds in the future.",
+  "title": "RuntimeTargetSourceReset",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "eventId", "tenantId", "targetId", "targetKind", "observerId", "observerKind", "previousObserverGeneration", "newObserverGeneration", "observedAt", "observerLeaseId", "reason"],
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "eventId": { "type": "string", "format": "uuid" },
+    "tenantId": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "targetId": { "type": "string", "format": "uuid" },
+    "targetKind": { "enum": ["KubernetesTarget", "EdgeRuntimeTarget"] },
+    "observerId": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "observerKind": { "enum": ["Agent", "CloudCore"] },
+    "previousObserverGeneration": { "type": "integer", "minimum": 1 },
+    "newObserverGeneration": { "type": "integer", "minimum": 2 },
+    "observedAt": { "type": "string", "format": "date-time" },
+    "observerLeaseId": { "type": "string", "format": "uuid" },
+    "reason": { "enum": ["observer-restarted", "lease-reissued", "disaster-recovery"] }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "targetKind": { "const": "KubernetesTarget" } }, "required": ["targetKind"] },
+      "then": { "properties": { "observerKind": { "const": "Agent" } } }
+    },
+    {
+      "if": { "properties": { "targetKind": { "const": "EdgeRuntimeTarget" } }, "required": ["targetKind"] },
+      "then": { "properties": { "observerKind": { "const": "CloudCore" } } }
+    }
+  ]
+}

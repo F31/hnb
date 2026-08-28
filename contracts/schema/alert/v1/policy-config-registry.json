@@ -1,0 +1,27 @@
+{
+  "title": "Alert Policy Config Registry",
+  "description": "Registers all policy, severity, schedule, contact, and escalation schema files for the alert-notification capability.",
+  "version": "1.0.0",
+  "schemas": {
+    "severity-levels": {
+      "$ref": "severity-levels.schema.json",
+      "description": "Severity level definitions with default routing and mandatory route flags."
+    },
+    "contact-group": {
+      "$ref": "contact-group.schema.json",
+      "description": "Contact group with member list and optional schedule reference."
+    },
+    "schedule": {
+      "$ref": "schedule.schema.json",
+      "description": "On-call schedule with shifts and exceptions."
+    },
+    "escalation-step": {
+      "$ref": "escalation-step.schema.json",
+      "description": "Escalation step with timing, target group, channels, and alternate channels."
+    },
+    "channel-capability": {
+      "$ref": "channel-capability.schema.json",
+      "description": "Channel capability definition with tier, supported states, max state, and rate limits."
+    }
+  }
+}

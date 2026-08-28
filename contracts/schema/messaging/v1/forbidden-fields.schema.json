@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.hnb.cloud/messaging/v1/forbidden-fields.schema.json",
+  "title": "ForbiddenFieldRule",
+  "description": "Fields that MUST NOT appear in message payload, header, or metadata",
+  "type": "object",
+  "required": ["forbiddenPatterns", "action"],
+  "properties": {
+    "forbiddenPatterns": {
+      "type": "array",
+      "items": { "type": "string" },
+      "default": [
+        "password",
+        "token",
+        "kubeconfig",
+        "secret",
+        "private_key",
+        "certificate_key",
+        "access_key",
+        "api_key"
+      ]
+    },
+    "action": {
+      "type": "string",
+      "enum": ["reject", "redact", "audit"]
+    },
+    "maxPayloadSizeBytes": {
+      "type": "integer",
+      "minimum": 1,
+      "default": 1048576
+    },
+    "maxMessageSizeBytes": {
+      "type": "integer",
+      "minimum": 1,
+      "default": 2097152
+    }
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.hnb.cloud/alert/v1/notification-channel.schema.json",
+  "title": "NotificationChannel",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "tenantId",
+    "type",
+    "capability",
+    "configRef",
+    "secretRef",
+    "enabled",
+    "version"
+  ],
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "tenantId": { "type": "string", "minLength": 1 },
+    "type": { "type": "string", "enum": ["portal", "email", "webhook", "sms"] },
+    "capability": {
+      "type": "array",
+      "items": { "type": "string", "enum": ["accepted", "delivered", "read"] },
+      "minItems": 1
+    },
+    "configRef": { "type": "string", "minLength": 1 },
+    "secretRef": { "type": "string", "minLength": 1 },
+    "conformanceRef": { "type": "string", "minLength": 1 },
+    "enabled": { "type": "boolean" },
+    "version": { "type": "integer", "minimum": 1 }
+  }
+}

@@ -1,0 +1,138 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.hnb.cloud/alert/v1/sms-provider-manifest.schema.json",
+  "title": "SmsProviderManifest",
+  "description": "T2 SMS Provider capability declaration and conformance manifest.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "apiVersion",
+    "kind",
+    "metadata",
+    "spec"
+  ],
+  "properties": {
+    "apiVersion": { "type": "string", "pattern": "^hnb\\.cloud/v[1-9][0-9]*$" },
+    "kind": { "const": "SmsProvider" },
+    "metadata": {
+      "type": "object",
+      "required": ["name", "version", "vendor"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+        "vendor": { "type": "string", "minLength": 1 },
+        "description": { "type": "string", "maxLength": 1024 }
+      },
+      "additionalProperties": false
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "regions",
+        "phoneFormats",
+        "supportsTemplates",
+        "supportsSignatures",
+        "supportsReceipts",
+        "supportsQuota",
+        "supportsBudget",
+        "dataResidency",
+        "rateLimit"
+      ],
+      "properties": {
+        "regions": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[A-Z]{2}$" },
+          "minItems": 1,
+          "description": "ISO 3166-1 alpha-2 region codes this provider supports."
+        },
+        "phoneFormats": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["region", "pattern", "example"],
+            "properties": {
+              "region": { "type": "string", "pattern": "^[A-Z]{2}$" },
+              "pattern": { "type": "string", "description": "Regex for valid phone numbers in this region." },
+              "example": { "type": "string" }
+            },
+            "additionalProperties": false
+          },
+          "minItems": 1
+        },
+        "supportsTemplates": { "type": "boolean" },
+        "templateFields": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Allowed template variables if templates are supported."
+        },
+        "supportsSignatures": { "type": "boolean" },
+        "signatureRules": {
+          "type": "object",
+          "properties": {
+            "maxLength": { "type": "integer", "minimum": 1, "maximum": 20 },
+            "requiresApproval": { "type": "boolean" },
+            "allowedChars": { "type": "string" }
+          }
+        },
+        "supportsReceipts": { "type": "boolean", "description": "True if provider returns certified delivery receipts." },
+        "receiptFormat": {
+          "type": "object",
+          "properties": {
+            "type": { "type": "string", "enum": ["callback", "webhook", "polling"] },
+            "signed": { "type": "boolean" },
+            "containsProviderMessageId": { "type": "boolean" },
+            "containsStatus": { "type": "boolean", "description": "delivered, failed, unknown" },
+            "containsTimestamp": { "type": "boolean" }
+          }
+        },
+        "supportsQuota": { "type": "boolean" },
+        "quotaModel": {
+          "type": "object",
+          "properties": {
+            "maxPerDay": { "type": "integer", "minimum": 0 },
+            "maxPerMonth": { "type": "integer", "minimum": 0 },
+            "resetPeriod": { "type": "string", "enum": ["daily", "monthly"] }
+          }
+        },
+        "supportsBudget": { "type": "boolean" },
+        "budgetModel": {
+          "type": "object",
+          "properties": {
+            "currency": { "type": "string", "pattern": "^[A-Z]{3}$" },
+            "costPerMessage": { "type": "number", "minimum": 0 },
+            "monthlyBudget": { "type": "number", "minimum": 0 },
+            "alertThresholds": {
+              "type": "array",
+              "items": { "type": "number", "minimum": 0, "maximum": 100 },
+              "description": "Percentage thresholds at which budget alerts fire."
+            }
+          }
+        },
+        "dataResidency": {
+          "type": "object",
+          "required": ["regions", "processingLocation"],
+          "properties": {
+            "regions": {
+              "type": "array",
+              "items": { "type": "string", "pattern": "^[A-Z]{2}$" },
+              "minItems": 1
+            },
+            "processingLocation": { "type": "string", "description": "Where message data is processed." },
+            "dataRetentionDays": { "type": "integer", "minimum": 0 }
+          },
+          "additionalProperties": false
+        },
+        "rateLimit": {
+          "type": "object",
+          "required": ["maxPerSecond", "maxPerMinute"],
+          "properties": {
+            "maxPerSecond": { "type": "integer", "minimum": 1 },
+            "maxPerMinute": { "type": "integer", "minimum": 1 }
+          },
+          "additionalProperties": false
+        }
+      }
+    }
+  }
+}

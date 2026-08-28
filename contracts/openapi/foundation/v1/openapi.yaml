@@ -52,6 +52,10 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
+      description: >-
+        HNB hnb.identity/v1 access token. Protected services verify ES256,
+        issuer, key ID, time bounds, and presence of their explicit audience.
+        Access-token lifetime and maximum revocation propagation are 60 seconds.
   parameters:
     CorrelationId:
       name: X-Correlation-ID
@@ -84,6 +88,10 @@ components:
   schemas:
     RequestContext:
       type: object
+      description: >-
+        Request metadata only. On protected routes tenantId and actorId are
+        non-authoritative inputs and are overwritten by the verified trusted
+        context tenantId/membershipId claims.
       additionalProperties: false
       required: [tenantId, actorId, correlationId]
       properties:
@@ -105,6 +113,12 @@ components:
         traceparent:
           type: string
           pattern: "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$"
+    AccessTokenClaims:
+      $ref: "../../../schema/identity/v1/access-token-claims.schema.json"
+    TrustedRequestContext:
+      $ref: "../../../schema/identity/v1/trusted-request-context.schema.json"
+    ScopedPermission:
+      $ref: "../../../schema/platform/v1/scoped-permission.schema.json"
     ResourceReference:
       type: object
       additionalProperties: false

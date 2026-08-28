@@ -1,0 +1,76 @@
+{
+  "messageTypes": [
+    {
+      "type": "hnb.command.operation.step-requested.v1",
+      "class": "command",
+      "domain": "operation",
+      "description": "Request execution of a single operation step",
+      "majorVersion": 1,
+      "payloadRef": "https://schemas.hnb.cloud/messaging/v1/step-requested.schema.json",
+      "maxSizeBytes": 65536
+    },
+    {
+      "type": "hnb.event.operation.step-completed.v1",
+      "class": "event",
+      "domain": "operation",
+      "description": "A step has completed execution",
+      "majorVersion": 1,
+      "payloadRef": "https://schemas.hnb.cloud/messaging/v1/step-completed.schema.json",
+      "maxSizeBytes": 65536
+    },
+    {
+      "type": "hnb.event.operation.state-changed.v1",
+      "class": "event",
+      "domain": "operation",
+      "description": "Operation state machine transition",
+      "majorVersion": 1,
+      "payloadRef": "https://schemas.hnb.cloud/messaging/v1/state-changed.schema.json",
+      "maxSizeBytes": 4096
+    },
+    {
+      "type": "hnb.notification.operation.progress.v1",
+      "class": "notification",
+      "domain": "operation",
+      "description": "Non-authoritative progress update for Portal projection",
+      "majorVersion": 1,
+      "payloadRef": "https://schemas.hnb.cloud/messaging/v1/progress.schema.json",
+      "maxSizeBytes": 4096
+    },
+    {
+      "type": "hnb.runtime-target.observed.v1",
+      "class": "event",
+      "domain": "runtime-target",
+      "description": "Authenticated target-state observation",
+      "majorVersion": 1,
+      "payloadRef": "https://schemas.hnb.cloud/runtime-target/v1/runtime-target-observation.schema.json",
+      "maxSizeBytes": 1048576
+    },
+    {
+      "type": "hnb.runtime-target.capability-observed.v1",
+      "class": "event",
+      "domain": "runtime-target",
+      "description": "Authenticated capability observation using the canonical observation envelope",
+      "majorVersion": 1,
+      "payloadRef": "https://schemas.hnb.cloud/runtime-target/v1/runtime-target-observation.schema.json",
+      "maxSizeBytes": 262144
+    },
+    {
+      "type": "hnb.runtime-target.nodes-observed.v1",
+      "class": "event",
+      "domain": "runtime-target",
+      "description": "Authenticated Full or Delta node inventory observation",
+      "majorVersion": 1,
+      "payloadRef": "https://schemas.hnb.cloud/runtime-target/v1/runtime-target-observation.schema.json",
+      "maxSizeBytes": 1048576
+    },
+    {
+      "type": "hnb.runtime-target.source-reset.v1",
+      "class": "event",
+      "domain": "runtime-target",
+      "description": "Authenticated observer generation reset and fencing event",
+      "majorVersion": 1,
+      "payloadRef": "https://schemas.hnb.cloud/runtime-target/v1/source-reset.schema.json",
+      "maxSizeBytes": 16384
+    }
+  ]
+}

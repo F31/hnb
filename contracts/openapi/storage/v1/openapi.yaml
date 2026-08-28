@@ -1,0 +1,1121 @@
+openapi: 3.1.0
+info:
+  title: HNB Workload Storage API
+  version: 1.0.0
+  description: Tenant-scoped workload storage metadata and control-plane contracts. Storage payload bytes remain in Kubernetes volumes or provider-owned storage; this API exposes no binary, multipart, upload, download or data-plane proxy route.
+  license:
+    name: Apache-2.0
+    identifier: Apache-2.0
+servers:
+  - url: https://api.hnb.cloud
+security:
+  - bearerAuth: []
+tags:
+  - name: Storage
+    description: Dedicated storage records and projections; requests never fan out through a generic target proxy.
+paths:
+  /api/v1/storage/overview:
+    get:
+      tags: [Storage]
+      operationId: getStorageOverview
+      summary: Get the tenant storage supply overview
+      description: Reads tenant-bound projections and independently authorizes storageOverview:read.
+      x-hnb-authorization:
+        resourceKind: storageOverview
+        action: read
+        tenantScoped: true
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: Source-attributed storage supply summary.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StorageOverview"
+        "403":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/storage/backends:
+    get:
+      tags: [Storage]
+      operationId: listStorageBackends
+      summary: List tenant-visible storage systems
+      description: Storage systems are represented by StorageBackend projections and require storageBackend:list.
+      x-hnb-authorization:
+        resourceKind: storageBackend
+        action: list
+        tenantScoped: true
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: Tenant-visible storage backend projections.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StorageBackendList"
+        "403":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+    post:
+      tags: [Storage]
+      operationId: createStorageBackend
+      summary: Create a tenant storage backend desired-state record
+      x-hnb-authorization:
+        resourceKind: storageBackend
+        action: create
+        tenantScoped: true
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StorageBackendInput"
+      responses:
+        "201":
+          description: Storage backend record created without resolving its SecretReference.
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StorageBackend"
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/storage/provider-schemas:
+    get:
+      tags: [Storage]
+      operationId: listStorageProviderSchemas
+      summary: List trusted storage backend provider form schemas
+      description: Returns only local declarative field metadata from the server allowlist; no script or remote URL is accepted or returned.
+      x-hnb-authorization:
+        resourceKind: storageBackend
+        action: list
+        tenantScoped: true
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: Versioned provider schema allowlist.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProviderBackendSchemaList"
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/storage/backends/{backendId}:
+    parameters:
+      - $ref: "#/components/parameters/CorrelationId"
+      - $ref: "#/components/parameters/BackendId"
+    get:
+      tags: [Storage]
+      operationId: getStorageBackend
+      summary: Get one tenant storage backend desired-state record
+      x-hnb-authorization:
+        resourceKind: storageBackend
+        resourceIdPathParameter: backendId
+        action: read
+        tenantScoped: true
+      responses:
+        "200":
+          description: Tenant-owned storage backend.
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StorageBackend"
+        default:
+          $ref: "#/components/responses/Problem"
+    put:
+      tags: [Storage]
+      operationId: updateStorageBackend
+      summary: Replace one storage backend desired-state record
+      x-hnb-authorization:
+        resourceKind: storageBackend
+        resourceIdPathParameter: backendId
+        action: update
+        tenantScoped: true
+      parameters:
+        - $ref: "#/components/parameters/IfMatch"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StorageBackendInput"
+      responses:
+        "200":
+          description: Updated storage backend record.
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StorageBackend"
+        "412":
+          $ref: "#/components/responses/Problem"
+        "428":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+    delete:
+      tags: [Storage]
+      operationId: deleteStorageBackend
+      summary: Delete one storage backend desired-state record
+      x-hnb-authorization:
+        resourceKind: storageBackend
+        resourceIdPathParameter: backendId
+        action: delete
+        tenantScoped: true
+      parameters:
+        - $ref: "#/components/parameters/IfMatch"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "204":
+          description: Storage backend desired-state record deleted.
+        "412":
+          $ref: "#/components/responses/Problem"
+        "428":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/storage/offerings:
+    get:
+      tags: [Storage]
+      operationId: listWorkloadStorageOfferings
+      summary: List tenant-visible workload storage offerings
+      description: Returns offerings owned by the active tenant after workloadStorageOffering:list authorization.
+      x-hnb-authorization:
+        resourceKind: workloadStorageOffering
+        action: list
+        tenantScoped: true
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: Tenant-visible workload storage offerings.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkloadStorageOfferingList"
+        "403":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+    post:
+      tags: [Storage]
+      operationId: createWorkloadStorageOffering
+      summary: Create a tenant workload storage offering
+      x-hnb-authorization:
+        resourceKind: workloadStorageOffering
+        action: create
+        tenantScoped: true
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkloadStorageOfferingInput"
+      responses:
+        "201":
+          description: Workload storage offering created.
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkloadStorageOffering"
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/storage/offerings/{offeringId}:
+    parameters:
+      - $ref: "#/components/parameters/CorrelationId"
+      - $ref: "#/components/parameters/OfferingId"
+    get:
+      tags: [Storage]
+      operationId: getWorkloadStorageOffering
+      summary: Get one tenant workload storage offering
+      x-hnb-authorization:
+        resourceKind: workloadStorageOffering
+        resourceIdPathParameter: offeringId
+        action: read
+        tenantScoped: true
+      responses:
+        "200":
+          description: Tenant-owned workload storage offering.
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkloadStorageOffering"
+        default:
+          $ref: "#/components/responses/Problem"
+    put:
+      tags: [Storage]
+      operationId: updateWorkloadStorageOffering
+      summary: Replace one workload storage offering
+      x-hnb-authorization:
+        resourceKind: workloadStorageOffering
+        resourceIdPathParameter: offeringId
+        action: update
+        tenantScoped: true
+      parameters:
+        - $ref: "#/components/parameters/IfMatch"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkloadStorageOfferingInput"
+      responses:
+        "200":
+          description: Updated workload storage offering.
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkloadStorageOffering"
+        "412":
+          $ref: "#/components/responses/Problem"
+        "428":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+    delete:
+      tags: [Storage]
+      operationId: deleteWorkloadStorageOffering
+      summary: Delete one workload storage offering
+      x-hnb-authorization:
+        resourceKind: workloadStorageOffering
+        resourceIdPathParameter: offeringId
+        action: delete
+        tenantScoped: true
+      parameters:
+        - $ref: "#/components/parameters/IfMatch"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "204":
+          description: Workload storage offering deleted.
+        "412":
+          $ref: "#/components/responses/Problem"
+        "428":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/storage/driver-installations:
+    get:
+      tags: [Storage]
+      operationId: listStorageDriverInstallations
+      summary: List observed storage driver installations
+      description: Returns installation and health projections after storageDriverInstallation:list authorization.
+      x-hnb-authorization:
+        resourceKind: storageDriverInstallation
+        action: list
+        tenantScoped: true
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: Tenant-visible storage driver installation projections.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StorageDriverInstallationList"
+        "403":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/storage/driver-installations/{installationId}/intents/install:
+    post:
+      tags: [Storage]
+      operationId: installStorageDriver
+      summary: Install a storage driver through immutable planning and Operation
+      description: Returns references only; Portal never installs into the target synchronously.
+      x-hnb-authorization: { resourceKind: storageDriverInstallation, resourceIdPathParameter: installationId, action: create, tenantScoped: true }
+      parameters: [{ $ref: "#/components/parameters/CorrelationId" }, { $ref: "#/components/parameters/InstallationId" }, { $ref: "#/components/parameters/IdempotencyKey" }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/StorageDriverLifecycleIntent" } } } }
+      responses:
+        "202": { description: Immutable plan and Operation references were committed., content: { application/json: { schema: { $ref: "#/components/schemas/StorageIntentReceipt" } } } }
+        default: { $ref: "#/components/responses/Problem" }
+  /api/v1/storage/driver-installations/{installationId}/intents/upgrade:
+    post:
+      tags: [Storage]
+      operationId: upgradeStorageDriver
+      summary: Upgrade a storage driver through immutable planning and Operation
+      x-hnb-authorization: { resourceKind: storageDriverInstallation, resourceIdPathParameter: installationId, action: update, tenantScoped: true }
+      parameters: [{ $ref: "#/components/parameters/CorrelationId" }, { $ref: "#/components/parameters/InstallationId" }, { $ref: "#/components/parameters/IdempotencyKey" }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/StorageDriverLifecycleIntent" } } } }
+      responses:
+        "202": { description: Immutable plan and Operation references were committed., content: { application/json: { schema: { $ref: "#/components/schemas/StorageIntentReceipt" } } } }
+        default: { $ref: "#/components/responses/Problem" }
+  /api/v1/storage/driver-installations/{installationId}/intents/uninstall:
+    post:
+      tags: [Storage]
+      operationId: uninstallStorageDriver
+      summary: Uninstall a storage driver through immutable planning and Operation
+      x-hnb-authorization: { resourceKind: storageDriverInstallation, resourceIdPathParameter: installationId, action: delete, tenantScoped: true }
+      parameters: [{ $ref: "#/components/parameters/CorrelationId" }, { $ref: "#/components/parameters/InstallationId" }, { $ref: "#/components/parameters/IdempotencyKey" }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/StorageDriverLifecycleIntent" } } } }
+      responses:
+        "202": { description: Immutable plan and Operation references were committed., content: { application/json: { schema: { $ref: "#/components/schemas/StorageIntentReceipt" } } } }
+        default: { $ref: "#/components/responses/Problem" }
+  /api/v1/storage/targets/{targetId}/inventory:
+    get:
+      tags: [Storage]
+      operationId: getTargetStorageInventory
+      summary: Get projected storage inventory for one target
+      description: Inaccessible targets return a non-enumerating 404; the request requires storageInventory:read scoped to targetId.
+      x-hnb-authorization:
+        resourceKind: storageInventory
+        resourceIdPathParameter: targetId
+        action: read
+        tenantScoped: true
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+        - $ref: "#/components/parameters/TargetId"
+      responses:
+        "200":
+          description: Last projected target storage inventory with source and freshness.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StorageInventory"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/storage/targets/{targetId}/metrics:
+    get:
+      tags: [Storage]
+      operationId: listTargetStorageMetrics
+      summary: List normalized Provider storage metric snapshots for one target
+      description: Returns projected snapshots without target fan-out. Unavailable metrics have no value; stable resource references are never Prometheus labels.
+      x-hnb-authorization:
+        resourceKind: storageInventory
+        resourceIdPathParameter: targetId
+        action: read
+        tenantScoped: true
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+        - $ref: "#/components/parameters/TargetId"
+      responses:
+        "200":
+          description: Tenant-bound normalized storage metric snapshots.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StorageMetricSnapshotList"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/storage/offerings/{offeringId}/bindings:
+    get:
+      tags: [Storage]
+      operationId: listStorageOfferingBindings
+      summary: List target StorageClass bindings for one offering
+      description: Inaccessible offerings return a non-enumerating 404; the request requires storageClassBinding:list scoped to offeringId.
+      x-hnb-authorization:
+        resourceKind: storageClassBinding
+        resourceIdPathParameter: offeringId
+        action: list
+        tenantScoped: true
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+        - $ref: "#/components/parameters/OfferingId"
+      responses:
+        "200":
+          description: Authorized target-local StorageClass bindings for the offering.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StorageClassBindingList"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+    post:
+      tags: [Storage]
+      operationId: createStorageClassBinding
+      summary: Create a tenant StorageClass binding desired-state record
+      x-hnb-authorization:
+        resourceKind: storageClassBinding
+        resourceIdPathParameter: offeringId
+        action: create
+        tenantScoped: true
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+        - $ref: "#/components/parameters/OfferingId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StorageClassBindingInput"
+      responses:
+        "201":
+          description: StorageClass binding desired-state record created; no target mutation is performed.
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StorageClassBinding"
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/storage/bindings/{bindingId}:
+    parameters:
+      - $ref: "#/components/parameters/CorrelationId"
+      - $ref: "#/components/parameters/BindingId"
+    get:
+      tags: [Storage]
+      operationId: getStorageClassBinding
+      summary: Get one tenant StorageClass binding desired-state record
+      x-hnb-authorization:
+        resourceKind: storageClassBinding
+        resourceIdPathParameter: bindingId
+        action: read
+        tenantScoped: true
+      responses:
+        "200":
+          description: Tenant-owned StorageClass binding.
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StorageClassBinding"
+        default:
+          $ref: "#/components/responses/Problem"
+    put:
+      tags: [Storage]
+      operationId: updateStorageClassBinding
+      summary: Replace one StorageClass binding desired-state record
+      x-hnb-authorization:
+        resourceKind: storageClassBinding
+        resourceIdPathParameter: bindingId
+        action: update
+        tenantScoped: true
+      parameters:
+        - $ref: "#/components/parameters/IfMatch"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StorageClassBindingInput"
+      responses:
+        "200":
+          description: Updated StorageClass binding desired-state record.
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StorageClassBinding"
+        "412":
+          $ref: "#/components/responses/Problem"
+        "428":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+    delete:
+      tags: [Storage]
+      operationId: deleteStorageClassBinding
+      summary: Delete one StorageClass binding desired-state record
+      x-hnb-authorization:
+        resourceKind: storageClassBinding
+        resourceIdPathParameter: bindingId
+        action: delete
+        tenantScoped: true
+      parameters:
+        - $ref: "#/components/parameters/IfMatch"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "204":
+          description: StorageClass binding desired-state record deleted.
+        "412":
+          $ref: "#/components/responses/Problem"
+        "428":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/storage/offerings/{offeringId}/bindings/intents/import:
+    post:
+      tags: [Storage]
+      operationId: importStorageClassBinding
+      summary: Import an observed StorageClass through immutable planning
+      description: Creates an ExecutionPlan and Operation reference only; it does not synchronously mutate the target or report target success.
+      x-hnb-authorization:
+        resourceKind: storageClassBinding
+        resourceIdPathParameter: offeringId
+        action: create
+        tenantScoped: true
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+        - $ref: "#/components/parameters/OfferingId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StorageClassBindingImportIntent"
+      responses:
+        "202":
+          description: Immutable plan and operation references were committed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StorageIntentReceipt"
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/storage/bindings/{bindingId}/intents/reconcile:
+    post:
+      tags: [Storage]
+      operationId: reconcileStorageClassBinding
+      summary: Reconcile a pinned StorageClass binding through immutable planning
+      description: Creates an ExecutionPlan and Operation reference only; completion is confirmed by later observation.
+      x-hnb-authorization:
+        resourceKind: storageClassBinding
+        resourceIdPathParameter: bindingId
+        action: update
+        tenantScoped: true
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+        - $ref: "#/components/parameters/BindingId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/IfMatch"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StorageClassBindingReconcileIntent"
+      responses:
+        "202":
+          description: Immutable plan and operation references were committed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StorageIntentReceipt"
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/storage/retained-volumes/{volumeId}/intents/release:
+    post:
+      tags: [Storage]
+      operationId: releaseRetainedVolume
+      summary: Enter a Provider-specific manual release workflow for a retained volume
+      description: Requires a fresh Released PV/PVC/dependency snapshot and explicit Operation approval. The workflow preserves data-retained state and never deletes claimRef as sanitization.
+      x-hnb-authorization: { resourceKind: retainedVolume, resourceIdPathParameter: volumeId, action: execute, tenantScoped: true }
+      parameters: [{ $ref: "#/components/parameters/CorrelationId" }, { $ref: "#/components/parameters/VolumeId" }, { $ref: "#/components/parameters/IdempotencyKey" }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/RetainedVolumeIntent" } } } }
+      responses:
+        "202": { description: Immutable approval-gated plan and Operation references were committed., content: { application/json: { schema: { $ref: "#/components/schemas/StorageIntentReceipt" } } } }
+        default: { $ref: "#/components/responses/Problem" }
+  /api/v1/storage/retained-volumes/{volumeId}/intents/sanitize:
+    post:
+      tags: [Storage]
+      operationId: sanitizeRetainedVolume
+      summary: Request Provider-specific sanitization of a retained volume
+      description: Fails closed unless the Provider has current action-specific conformance evidence. Sanitized state requires conformant Provider evidence matching the fenced Operation.
+      x-hnb-authorization: { resourceKind: retainedVolume, resourceIdPathParameter: volumeId, action: execute, tenantScoped: true }
+      parameters: [{ $ref: "#/components/parameters/CorrelationId" }, { $ref: "#/components/parameters/VolumeId" }, { $ref: "#/components/parameters/IdempotencyKey" }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/RetainedVolumeIntent" } } } }
+      responses:
+        "202": { description: Immutable approval-gated plan and Operation references were committed., content: { application/json: { schema: { $ref: "#/components/schemas/StorageIntentReceipt" } } } }
+        default: { $ref: "#/components/responses/Problem" }
+  /api/v1/storage/alert-rules:
+    get:
+      tags: [Storage]
+      operationId: listStorageAlertRules
+      summary: List tenant storage metric alert rules
+      x-hnb-authorization: { resourceKind: storageAlertRule, action: list, tenantScoped: true }
+      parameters: [{ $ref: "#/components/parameters/CorrelationId" }]
+      responses:
+        "200":
+          description: Tenant-owned storage alert rules.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [schemaVersion, items]
+                properties:
+                  schemaVersion: { const: 1.0.0 }
+                  items: { type: array, maxItems: 1000, items: { $ref: "#/components/schemas/StorageAlertRule" } }
+        default: { $ref: "#/components/responses/Problem" }
+    post:
+      tags: [Storage]
+      operationId: createStorageAlertRule
+      summary: Create a tenant storage metric alert rule
+      description: Validates metric applicability, status, freshness and tenant-owned notification SecretReferences before saving.
+      x-hnb-authorization: { resourceKind: storageAlertRule, action: create, tenantScoped: true }
+      parameters: [{ $ref: "#/components/parameters/CorrelationId" }, { $ref: "#/components/parameters/IdempotencyKey" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/StorageAlertRuleInput" }
+      responses:
+        "201":
+          description: Storage alert rule created.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StorageAlertRule" }
+        "422": { $ref: "#/components/responses/Problem" }
+        default: { $ref: "#/components/responses/Problem" }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    CorrelationId:
+      name: X-Correlation-ID
+      in: header
+      required: true
+      schema:
+        type: string
+        format: uuid
+    TargetId:
+      name: targetId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    InstallationId:
+      name: installationId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    OfferingId:
+      name: offeringId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    BackendId:
+      name: backendId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    BindingId:
+      name: bindingId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    VolumeId:
+      name: volumeId
+      in: path
+      required: true
+      schema: { type: string, minLength: 1, maxLength: 128 }
+    IfMatch:
+      name: If-Match
+      in: header
+      required: true
+      description: Quoted integer version from the latest ETag, for example `"3"`.
+      schema:
+        type: string
+        pattern: '^"[1-9][0-9]*"$'
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 128
+  headers:
+    ETag:
+      description: Quoted optimistic concurrency version.
+      required: true
+      schema:
+        type: string
+        pattern: '^"[1-9][0-9]*"$'
+  responses:
+    Problem:
+      description: RFC 9457 problem response.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetails"
+  schemas:
+
+    RetainedVolumeIntent:
+      type: object
+      additionalProperties: false
+      required: [targetId, targetVersion, workflowProviderRef, persistentVolume, persistentVolumeClaim, podDependencies, statefulSetDependencies, approvalAcknowledged]
+      properties:
+        targetId: { type: string, format: uuid }
+        targetVersion: { type: integer, minimum: 1 }
+        workflowProviderRef: { type: string, minLength: 1, maxLength: 256 }
+        persistentVolume: { $ref: "../../../schema/storage/v1/retained-volume-workflow-step-input.schema.json#/$defs/resource" }
+        persistentVolumeClaim: { type: object }
+        podDependencies: { type: array, maxItems: 0 }
+        statefulSetDependencies: { type: array, maxItems: 0 }
+        approvalAcknowledged: { const: true }
+    RetainedVolumeWorkflowResult:
+      $ref: "../../../schema/storage/v1/retained-volume-workflow-result.schema.json"
+    StorageInventory:
+      $ref: "../../../schema/storage/v1/storage-inventory.schema.json"
+    StorageBackend:
+      $ref: "../../../schema/storage/v1/storage-backend.schema.json"
+    WorkloadStorageOffering:
+      $ref: "../../../schema/storage/v1/workload-storage-offering.schema.json"
+    StorageClassBinding:
+      $ref: "../../../schema/storage/v1/storage-class-binding.schema.json"
+    StorageCondition:
+      $ref: "../../../schema/storage/v1/storage-condition.schema.json"
+    StorageMetricSnapshot:
+      $ref: "../../../schema/storage/v1/storage-metric-snapshot.schema.json"
+    StorageMetricSnapshotList:
+      type: object
+      additionalProperties: false
+      required: [schemaVersion, items, total]
+      properties:
+        schemaVersion: { const: 1.0.0 }
+        items:
+          type: array
+          maxItems: 1000
+          items: { $ref: "#/components/schemas/StorageMetricSnapshot" }
+        total: { type: integer, minimum: 0 }
+    StorageAlertRuleInput:
+      $ref: "../../../schema/alert/v1/storage-alert-rule.schema.json"
+    StorageAlertRule:
+      type: object
+      required: [schemaVersion, id, name, severity, enabled, resource, metric, duration, channels, context, version]
+      properties:
+        schemaVersion: { const: 1.0.0 }
+        id: { type: string, format: uuid }
+        name: { type: string, minLength: 1, maxLength: 256 }
+        description: { type: string, maxLength: 2048 }
+        severity: { enum: [critical, warning, info] }
+        enabled: { type: boolean }
+        resource:
+          type: object
+          required: [tenantId, targetId, kind, uid]
+          properties:
+            tenantId: { type: string, minLength: 1, maxLength: 128 }
+            targetId: { type: string, format: uuid }
+            kind: { enum: [StorageBackend, WorkloadStorageOffering, StorageClassBinding, StorageClass, PersistentVolumeClaim, PersistentVolume] }
+            uid: { type: string, minLength: 1, maxLength: 128 }
+            namespace: { type: string, minLength: 1, maxLength: 253 }
+            name: { type: string, minLength: 1, maxLength: 253 }
+        metric:
+          type: object
+          required: [providerId, kind, unit, source, freshFor, operator, threshold]
+          properties:
+            providerId: { type: string, minLength: 1, maxLength: 128 }
+            kind: { enum: [capacity, usage, iops, throughput, latency, health] }
+            unit: { enum: [By, 1/s, By/s, s, 1] }
+            source: { type: string, minLength: 1, maxLength: 128 }
+            freshFor: { type: string, pattern: "^[1-9][0-9]*[smh]$" }
+            operator: { enum: [gt, gte, lt, lte] }
+            threshold: { type: number, minimum: 0 }
+        duration: { type: string, pattern: "^[1-9][0-9]*[smh]$" }
+        channels: { type: array, items: { type: object } }
+        context: { type: object }
+        version: { type: integer, minimum: 1 }
+    SecretReference:
+      $ref: "../../../schema/common/v1/secret-reference.schema.json"
+    ProviderBackendSchema:
+      $ref: "../../../schema/storage/v1/provider-backend-schema.schema.json"
+    StorageDriverPackage:
+      $ref: "../../../schema/storage/v1/storage-driver-package.schema.json"
+    ProviderBackendSchemaList:
+      type: object
+      additionalProperties: false
+      required: [schemaVersion, items]
+      properties:
+        schemaVersion: { const: 1.0.0 }
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/ProviderBackendSchema" }
+    StorageBackendInput:
+      type: object
+      additionalProperties: false
+      required: [providerType, providerSchemaVersion, backendId, displayName]
+      properties:
+        providerType: { type: string, minLength: 1, maxLength: 128 }
+        providerSchemaVersion: { type: string, pattern: "^[1-9][0-9]*\\.[0-9]+\\.[0-9]+$" }
+        backendId: { type: string, minLength: 1, maxLength: 256 }
+        displayName: { type: string, minLength: 1, maxLength: 256 }
+        description: { type: string, maxLength: 2048 }
+        secretReference:
+          $ref: "#/components/schemas/SecretReference"
+        attributes:
+          type: object
+          maxProperties: 32
+          additionalProperties:
+            oneOf:
+              - { type: string, maxLength: 512 }
+              - { type: number }
+              - { type: boolean }
+    WorkloadStorageOfferingInput:
+      type: object
+      additionalProperties: false
+      required: [name, consumptionModel, serviceMode, accessModes, volumeExpansion, snapshots, clones, protectionClass]
+      properties:
+        backendId: { type: string, format: uuid }
+        name: { type: string, minLength: 1, maxLength: 256 }
+        description: { type: string, maxLength: 2048 }
+        consumptionModel: { type: string, const: KubernetesPersistentVolume }
+        serviceMode: { enum: [Block, File] }
+        accessModes:
+          type: array
+          minItems: 1
+          maxItems: 4
+          uniqueItems: true
+          items: { enum: [ReadWriteOnce, ReadOnlyMany, ReadWriteMany, ReadWriteOncePod] }
+        volumeExpansion: { enum: [Supported, Unsupported, Unknown] }
+        snapshots: { enum: [Supported, Unsupported, Unknown] }
+        clones: { enum: [Supported, Unsupported, Unknown] }
+        topology:
+          type: object
+          maxProperties: 32
+          additionalProperties:
+            type: array
+            minItems: 1
+            maxItems: 64
+            uniqueItems: true
+            items: { type: string, minLength: 1, maxLength: 256 }
+        protectionClass: { type: string, minLength: 1, maxLength: 128 }
+    StorageClassBindingInput:
+      type: object
+      additionalProperties: false
+      required: [offeringVersion, targetId, bindingTarget, storageClassName, storageClassUid, storageClassResourceVersion, syncState, isDefault, source, observedAt, freshness]
+      properties:
+        offeringVersion: { type: integer, minimum: 1 }
+        targetId: { type: string, format: uuid }
+        bindingTarget: { type: string, const: KubernetesStorageClass }
+        storageClassName: { type: string, minLength: 1, maxLength: 253 }
+        storageClassUid: { type: string, minLength: 1, maxLength: 128 }
+        storageClassResourceVersion: { type: string, minLength: 1, maxLength: 128 }
+        syncState: { enum: [Discovered, Imported, Active, Drifted, Rejected, Retired] }
+        isDefault: { type: boolean }
+        source: { type: string, minLength: 1, maxLength: 256 }
+        observedAt: { type: string, format: date-time }
+        freshness: { enum: [Fresh, Stale, Unknown] }
+        topology:
+          type: object
+          maxProperties: 32
+          additionalProperties:
+            type: array
+            minItems: 1
+            maxItems: 64
+            uniqueItems: true
+            items: { type: string, minLength: 1, maxLength: 256 }
+    StorageClassBindingImportIntent:
+      type: object
+      additionalProperties: false
+      required: [targetId, targetVersion, storageClassName, storageClassUid, storageClassResourceVersion]
+      properties:
+        targetId: { type: string, format: uuid }
+        targetVersion: { type: integer, minimum: 1 }
+        storageClassName: { type: string, minLength: 1, maxLength: 253 }
+        storageClassUid: { type: string, minLength: 1, maxLength: 128 }
+        storageClassResourceVersion: { type: string, minLength: 1, maxLength: 128 }
+    StorageDriverLifecycleIntent:
+      type: object
+      additionalProperties: false
+      required: [targetId, targetVersion, packageId, packageVersion, kubernetesVersion]
+      properties:
+        targetId: { type: string, format: uuid }
+        targetVersion: { type: integer, minimum: 1 }
+        packageId: { type: string, minLength: 1, maxLength: 256 }
+        packageVersion: { type: string, pattern: "^\\d+\\.\\d+\\.\\d+$" }
+        currentVersion: { type: string, pattern: "^\\d+\\.\\d+\\.\\d+$" }
+        kubernetesVersion: { type: string, pattern: "^v?\\d+\\.\\d+\\.\\d+$" }
+        parameters: { type: object, maxProperties: 32 }
+        secretReferences:
+          type: array
+          maxItems: 32
+          uniqueItems: true
+          items: { $ref: "../../../schema/common/v1/secret-reference.schema.json" }
+    StorageClassBindingReconcileIntent:
+      type: object
+      additionalProperties: false
+      required: [targetVersion]
+      properties:
+        targetVersion: { type: integer, minimum: 1 }
+    StorageIntentReceipt:
+      type: object
+      additionalProperties: false
+      required: [intentId, executionPlanId, operationId, status, semanticDigest, createdAt, correlationId, replayed]
+      properties:
+        intentId: { type: string, minLength: 1, maxLength: 128 }
+        executionPlanId: { type: string, minLength: 1, maxLength: 128 }
+        operationId: { type: string, minLength: 1, maxLength: 128 }
+        status: { enum: [planned, operationCommitted, rejected] }
+        semanticDigest: { type: string, pattern: "^sha256:[0-9a-f]{64}$" }
+        createdAt: { type: string, format: date-time }
+        correlationId: { type: string, format: uuid }
+        replayed: { type: boolean }
+    ProblemDetails:
+      $ref: "../../../schema/platform/v1/problem-details.schema.json"
+    StorageOverview:
+      type: object
+      additionalProperties: false
+      required: [schemaVersion, source, observedAt, freshness, counts, capacityStates]
+      properties:
+        schemaVersion:
+          const: 1.0.0
+        source:
+          type: string
+          minLength: 1
+          maxLength: 256
+        observedAt:
+          type: string
+          format: date-time
+        freshness:
+          enum: [Fresh, Stale, Unknown]
+        counts:
+          type: object
+          additionalProperties: false
+          required: [backends, offerings, driverInstallations, targets, bindings]
+          properties:
+            backends: { type: integer, minimum: 0 }
+            offerings: { type: integer, minimum: 0 }
+            driverInstallations: { type: integer, minimum: 0 }
+            targets: { type: integer, minimum: 0 }
+            bindings: { type: integer, minimum: 0 }
+        capacityStates:
+          type: object
+          additionalProperties: false
+          required: [Known, Elastic, Unknown, NotReported]
+          properties:
+            Known: { type: integer, minimum: 0 }
+            Elastic: { type: integer, minimum: 0 }
+            Unknown: { type: integer, minimum: 0 }
+            NotReported: { type: integer, minimum: 0 }
+    StorageDriverInstallation:
+      type: object
+      additionalProperties: false
+      required: [schemaVersion, id, tenantId, targetId, packageId, packageVersion, lifecycleState, healthState, source, observedAt, freshness, conditions]
+      properties:
+        schemaVersion:
+          const: 1.0.0
+        id:
+          type: string
+          format: uuid
+        tenantId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        targetId:
+          type: string
+          format: uuid
+        packageId:
+          type: string
+          minLength: 1
+          maxLength: 256
+        packageVersion:
+          type: string
+          minLength: 1
+          maxLength: 128
+        operationId:
+          type: string
+          format: uuid
+        lifecycleState:
+          enum: [Pending, Installing, Ready, Upgrading, Degraded, Failed, Uninstalling, Removed]
+        healthState:
+          enum: [Unknown, Healthy, Degraded, Unhealthy]
+        source:
+          type: string
+          minLength: 1
+          maxLength: 256
+        observedAt:
+          type: string
+          format: date-time
+        freshness:
+          enum: [Fresh, Stale, Unknown]
+        conditions:
+          type: array
+          maxItems: 64
+          items:
+            $ref: "#/components/schemas/StorageCondition"
+    StorageBackendList:
+      type: object
+      additionalProperties: false
+      required: [schemaVersion, items, total]
+      properties:
+        schemaVersion: { const: 1.0.0 }
+        items:
+          type: array
+          maxItems: 1000
+          items:
+            $ref: "#/components/schemas/StorageBackend"
+        total: { type: integer, minimum: 0 }
+    WorkloadStorageOfferingList:
+      type: object
+      additionalProperties: false
+      required: [schemaVersion, items, total]
+      properties:
+        schemaVersion: { const: 1.0.0 }
+        items:
+          type: array
+          maxItems: 1000
+          items:
+            $ref: "#/components/schemas/WorkloadStorageOffering"
+        total: { type: integer, minimum: 0 }
+    StorageDriverInstallationList:
+      type: object
+      additionalProperties: false
+      required: [schemaVersion, items, total]
+      properties:
+        schemaVersion: { const: 1.0.0 }
+        items:
+          type: array
+          maxItems: 1000
+          items:
+            $ref: "#/components/schemas/StorageDriverInstallation"
+        total: { type: integer, minimum: 0 }
+    StorageClassBindingList:
+      type: object
+      additionalProperties: false
+      required: [schemaVersion, items, total]
+      properties:
+        schemaVersion: { const: 1.0.0 }
+        items:
+          type: array
+          maxItems: 5000
+          items:
+            $ref: "#/components/schemas/StorageClassBinding"
+        total: { type: integer, minimum: 0 }

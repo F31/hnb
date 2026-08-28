@@ -1,0 +1,140 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.hnb.cloud/storage/v1/storage-inventory.schema.json",
+  "title": "StorageInventory",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "tenantId", "targetId", "source", "observedAt", "freshness", "storageClasses", "csiDrivers", "csiNodes", "csiStorageCapacities", "volumeAttachments", "snapshotApi"],
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "tenantId": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "targetId": { "type": "string", "format": "uuid" },
+    "source": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "observedAt": { "type": "string", "format": "date-time" },
+    "freshness": { "enum": ["Fresh", "Stale", "Unknown"] },
+    "storageClasses": {
+      "type": "array",
+      "maxItems": 512,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["uid", "resourceVersion", "name", "provisioner", "reclaimPolicy", "volumeBindingMode", "allowVolumeExpansion", "isDefault", "source", "observedAt", "freshness", "conditions"],
+        "properties": {
+          "uid": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "resourceVersion": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "name": { "type": "string", "minLength": 1, "maxLength": 253 },
+          "provisioner": { "type": "string", "minLength": 1, "maxLength": 253 },
+          "reclaimPolicy": { "enum": ["Delete", "Retain"] },
+          "volumeBindingMode": { "enum": ["Immediate", "WaitForFirstConsumer"] },
+          "allowVolumeExpansion": { "type": "boolean" },
+          "isDefault": { "type": "boolean" },
+          "source": { "type": "string", "minLength": 1, "maxLength": 256 },
+          "observedAt": { "type": "string", "format": "date-time" },
+          "freshness": { "enum": ["Fresh", "Stale", "Unknown"] },
+          "conditions": { "type": "array", "maxItems": 64, "items": { "$ref": "storage-condition.schema.json" } }
+        }
+      }
+    },
+    "csiDrivers": {
+      "type": "array",
+      "maxItems": 128,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["uid", "resourceVersion", "name", "attachRequired", "podInfoOnMount", "storageCapacity", "source", "observedAt", "freshness", "conditions"],
+        "properties": {
+          "uid": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "resourceVersion": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "name": { "type": "string", "minLength": 1, "maxLength": 253 },
+          "attachRequired": { "type": "boolean" },
+          "podInfoOnMount": { "type": "boolean" },
+          "storageCapacity": { "type": "boolean" },
+          "source": { "type": "string", "minLength": 1, "maxLength": 256 },
+          "observedAt": { "type": "string", "format": "date-time" },
+          "freshness": { "enum": ["Fresh", "Stale", "Unknown"] },
+          "conditions": { "type": "array", "maxItems": 64, "items": { "$ref": "storage-condition.schema.json" } }
+        }
+      }
+    },
+    "csiNodes": {
+      "type": "array",
+      "maxItems": 5000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["uid", "resourceVersion", "name", "drivers", "source", "observedAt", "freshness"],
+        "properties": {
+          "uid": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "resourceVersion": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "name": { "type": "string", "minLength": 1, "maxLength": 253 },
+          "drivers": { "type": "array", "maxItems": 64, "uniqueItems": true, "items": { "type": "string", "minLength": 1, "maxLength": 253 } },
+          "source": { "type": "string", "minLength": 1, "maxLength": 256 },
+          "observedAt": { "type": "string", "format": "date-time" },
+          "freshness": { "enum": ["Fresh", "Stale", "Unknown"] }
+        }
+      }
+    },
+    "csiStorageCapacities": {
+      "type": "array",
+      "maxItems": 4096,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["uid", "resourceVersion", "name", "namespace", "storageClassName", "status", "unit", "source", "observedAt", "freshness"],
+        "properties": {
+          "uid": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "resourceVersion": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "name": { "type": "string", "minLength": 1, "maxLength": 253 },
+          "namespace": { "type": "string", "minLength": 1, "maxLength": 63 },
+          "storageClassName": { "type": "string", "minLength": 1, "maxLength": 253 },
+          "status": { "enum": ["Known", "Elastic", "Unknown", "NotReported"] },
+          "value": { "type": "integer", "minimum": 0 },
+          "unit": { "enum": ["By"] },
+          "source": { "type": "string", "minLength": 1, "maxLength": 256 },
+          "observedAt": { "type": "string", "format": "date-time" },
+          "freshness": { "enum": ["Fresh", "Stale", "Unknown"] }
+        },
+        "allOf": [
+          {
+            "if": { "properties": { "status": { "const": "Known" } }, "required": ["status"] },
+            "then": { "required": ["value"] },
+            "else": { "not": { "required": ["value"] } }
+          }
+        ]
+      }
+    },
+    "volumeAttachments": {
+      "type": "array",
+      "maxItems": 10000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["uid", "resourceVersion", "name", "driverName", "nodeName", "persistentVolumeName", "attached", "source", "observedAt", "freshness"],
+        "properties": {
+          "uid": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "resourceVersion": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "name": { "type": "string", "minLength": 1, "maxLength": 253 },
+          "driverName": { "type": "string", "minLength": 1, "maxLength": 253 },
+          "nodeName": { "type": "string", "minLength": 1, "maxLength": 253 },
+          "persistentVolumeName": { "type": "string", "minLength": 1, "maxLength": 253 },
+          "attached": { "type": "boolean" },
+          "source": { "type": "string", "minLength": 1, "maxLength": 256 },
+          "observedAt": { "type": "string", "format": "date-time" },
+          "freshness": { "enum": ["Fresh", "Stale", "Unknown"] }
+        }
+      }
+    },
+    "snapshotApi": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "source", "observedAt", "freshness"],
+      "properties": {
+        "status": { "enum": ["Supported", "Unsupported", "NotInstalled", "Unknown"] },
+        "apiVersion": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "source": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "observedAt": { "type": "string", "format": "date-time" },
+        "freshness": { "enum": ["Fresh", "Stale", "Unknown"] }
+      }
+    }
+  }
+}

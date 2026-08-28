@@ -1,0 +1,13 @@
+{
+  "apiVersion": "gslb.hnb.io/v1",
+  "kind": "gslb.failover",
+  "serviceId": "00000000-0000-4000-8000-0000000000a1",
+  "tenantId": "tenant-a",
+  "targetPoolId": "00000000-0000-4000-8000-0000000000b2",
+  "providerId": "external-dns-provider",
+  "command": "apply",
+  "metadata": {
+    "idempotencyKey": "gslb-failover-evil",
+    "correlationId": "00000000-0000-4000-8000-0000000000c1"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.hnb.cloud/identity/v1/rbac-role.schema.json",
+  "title": "RbacRole",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "tenantId", "name", "permissions", "version"],
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "tenantId": { "type": "string", "minLength": 1 },
+    "name": { "type": "string", "enum": ["platform_admin", "tenant_admin", "project_admin", "operator", "publisher", "readonly"] },
+    "permissions": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "inheritsFrom": { "type": "string", "enum": ["platform_admin", "tenant_admin", "project_admin", "operator", "publisher", "readonly"] },
+    "version": { "type": "integer", "minimum": 1 }
+  }
+}

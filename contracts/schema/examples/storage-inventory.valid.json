@@ -1,0 +1,47 @@
+{
+  "schemaVersion": "1.0.0",
+  "tenantId": "tenant-a",
+  "targetId": "018f6c2a-4a64-7b58-9cc3-9f70462f4001",
+  "source": "runtime-target-agent",
+  "observedAt": "2026-08-09T12:00:00Z",
+  "freshness": "Fresh",
+  "storageClasses": [
+    {
+      "uid": "018f6c2a-4a64-7b58-9cc3-9f70462f4401",
+      "resourceVersion": "12901",
+      "name": "shared-file",
+      "provisioner": "nfs.csi.k8s.io",
+      "reclaimPolicy": "Retain",
+      "volumeBindingMode": "Immediate",
+      "allowVolumeExpansion": true,
+      "isDefault": false,
+      "source": "runtime-target-agent",
+      "observedAt": "2026-08-09T12:00:00Z",
+      "freshness": "Fresh",
+      "conditions": []
+    }
+  ],
+  "csiDrivers": [],
+  "csiNodes": [],
+  "csiStorageCapacities": [
+    {
+      "uid": "018f6c2a-4a64-7b58-9cc3-9f70462f4402",
+      "resourceVersion": "12902",
+      "name": "shared-file-zone-a",
+      "namespace": "kube-system",
+      "storageClassName": "shared-file",
+      "status": "Unknown",
+      "unit": "By",
+      "source": "runtime-target-agent",
+      "observedAt": "2026-08-09T12:00:00Z",
+      "freshness": "Fresh"
+    }
+  ],
+  "volumeAttachments": [],
+  "snapshotApi": {
+    "status": "NotInstalled",
+    "source": "runtime-target-agent",
+    "observedAt": "2026-08-09T12:00:00Z",
+    "freshness": "Fresh"
+  }
+}

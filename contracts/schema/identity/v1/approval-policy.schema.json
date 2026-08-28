@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.hnb.cloud/identity/v1/approval-policy.schema.json",
+  "title": "ApprovalPolicy",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "tenantId", "operationType", "requiredRoles", "maxPendingDuration", "version"],
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "tenantId": { "type": "string", "minLength": 1 },
+    "operationType": { "type": "string", "minLength": 1 },
+    "requiredRoles": {
+      "type": "array",
+      "items": { "type": "string", "enum": ["platform_admin", "tenant_admin", "project_admin", "operator", "publisher", "readonly"] },
+      "minItems": 1
+    },
+    "maxPendingDuration": { "type": "string", "pattern": "^[0-9]+[smhd]$" },
+    "version": { "type": "integer", "minimum": 1 }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.hnb.cloud/gslb/v1/gslb-pool-member.schema.json",
+  "title": "GSLBPoolMember",
+  "description": "GSLB 池成员：集群目标、权重与健康（GSLB-001/003/011）。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["clusterId", "weight", "enabled", "healthy"],
+  "properties": {
+    "clusterId": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "weight": { "type": "integer", "minimum": 0, "maximum": 100 },
+    "enabled": { "type": "boolean" },
+    "healthy": { "type": "boolean" },
+    "lastHealthAt": { "type": "string", "format": "date-time" }
+  }
+}

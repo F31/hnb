@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "1.0.0",
+  "eventId": "018f6c2a-4a64-7b58-9cc3-9f70462f3711",
+  "tenantId": "tenant-b",
+  "targetId": "018f6c2a-4a64-7b58-9cc3-9f70462f3712",
+  "targetKind": "KubernetesTarget",
+  "observerId": "cloudcore-epoch-1",
+  "observerKind": "CloudCore",
+  "observerGeneration": 1,
+  "sequence": 0,
+  "observedAt": "2099-08-01T12:00:00Z",
+  "inventoryMode": "Full",
+  "nodes": []
+}

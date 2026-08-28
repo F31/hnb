@@ -1,0 +1,10 @@
+{
+  "snapshotId": "018f6c2a-4a64-7b58-9cc3-9f70462f3741",
+  "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "kubeEdgeVersion": "v1.20.0",
+  "runtimeVersion": "containerd://2.0.4",
+  "architectures": ["arm64", "amd64"],
+  "resources": { "cpuMillis": 64000, "memoryBytes": 274877906944, "gpuCount": 4 },
+  "cniPlugins": ["calico"],
+  "csiDrivers": ["csi.example.io"]
+}

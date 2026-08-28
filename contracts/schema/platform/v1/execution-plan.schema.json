@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.hnb.cloud/platform/v1/execution-plan.schema.json",
+  "title": "ExecutionPlan",
+  "description": "Immutable, server-authored execution snapshot. Published instances must never be mutated.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["planId", "intentId", "semanticDigest", "releaseRef", "artifactDigests", "targetRef", "capabilitySnapshotDigest", "providerVersions", "policyDecisionRefs", "approvedParameters", "secretReferences", "steps", "createdAt"],
+  "properties": {
+    "planId": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "intentId": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "semanticDigest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "releaseRef": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "artifactDigests": { "type": "array", "minItems": 1, "maxItems": 64, "uniqueItems": true, "items": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" } },
+    "targetRef": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "capabilitySnapshotDigest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "providerVersions": { "type": "object", "minProperties": 1, "maxProperties": 32, "additionalProperties": { "type": "string", "minLength": 1, "maxLength": 128 } },
+    "policyDecisionRefs": { "type": "array", "maxItems": 32, "uniqueItems": true, "items": { "type": "string", "minLength": 1, "maxLength": 256 } },
+    "approvedParameters": {
+      "type": "object",
+      "maxProperties": 64,
+      "additionalProperties": {
+        "oneOf": [
+          { "type": "string", "maxLength": 4096 },
+          { "type": "number" },
+          { "type": "boolean" },
+          { "type": "null" }
+        ]
+      }
+    },
+    "secretReferences": { "type": "array", "maxItems": 32, "uniqueItems": true, "items": { "$ref": "../../common/v1/secret-reference.schema.json" } },
+    "compatibilityDecision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["matrixVersion", "providerProtocolVersion", "targetKind", "action", "status", "providerId", "observationSource", "effectiveAt", "expiresAt"],
+      "properties": {
+        "matrixVersion": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+        "providerProtocolVersion": { "type": "string", "const": "2.0.0" },
+        "targetKind": { "type": "string", "enum": ["KubernetesTarget", "EdgeRuntimeTarget"] },
+        "action": { "type": "string", "enum": ["create", "import", "upgrade", "unmanage"] },
+        "status": { "type": "string", "const": "REQUIRED" },
+        "providerId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "observationSource": { "type": "string", "enum": ["Agent", "CloudCore"] },
+        "effectiveAt": { "type": "string", "format": "date-time" },
+        "expiresAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "targetSnapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["targetId", "targetKind", "projectionVersion", "observationSource"],
+      "properties": {
+        "targetId": { "type": "string", "format": "uuid" },
+        "targetKind": { "type": "string", "enum": ["KubernetesTarget", "EdgeRuntimeTarget"] },
+        "projectionVersion": { "type": "integer", "minimum": 0 },
+        "observationSource": { "type": "string", "enum": ["Agent", "CloudCore"] }
+      }
+    },
+    "steps": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 256,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["stepId", "stepType", "dependsOn"],
+        "properties": {
+          "stepId": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "stepType": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "providerId": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "providerVersion": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "providerDigest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+          "providerProtocolVersion": { "type": "string", "const": "2.0.0" },
+          "dependsOn": { "type": "array", "maxItems": 64, "uniqueItems": true, "items": { "type": "string", "minLength": 1, "maxLength": 128 } },
+          "targetRef": { "type": "string", "format": "uuid" },
+          "targetKind": { "type": "string", "enum": ["KubernetesTarget", "EdgeRuntimeTarget"] },
+          "inputSchema": { "type": "string", "format": "uri" },
+          "inputs": { "type": "object" },
+          "secretReferences": { "type": "array", "maxItems": 32, "uniqueItems": true, "items": { "$ref": "../../common/v1/secret-reference.schema.json" } },
+          "idempotencyKey": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[!-~]+$" },
+          "fencingPolicy": { "type": "string", "enum": ["monotonic-worker-lease-v2", "target-projection-and-storageclass-resource-version"] },
+          "retryPolicy": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["maxAttempts", "backoff"],
+            "properties": {
+              "maxAttempts": { "type": "integer", "minimum": 1, "maximum": 10 },
+              "backoff": { "type": "string", "enum": ["none", "exponential"] }
+            }
+          },
+          "timeoutSeconds": { "type": "integer", "minimum": 1, "maximum": 86400 },
+          "compensation": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type", "ownershipScope"],
+            "properties": {
+              "type": { "type": "string", "enum": ["none", "unregister", "rollback"] },
+              "ownershipScope": { "type": "string", "enum": ["none", "operation-owned-only", "management-relation-only"] }
+            }
+          }
+        },
+        "allOf": [{
+          "if": { "properties": { "stepType": { "type": "string", "pattern": "^(runtime_target\\.(kubernetes|edge)|storage\\.(binding|driver))\\." } }, "required": ["stepType"] },
+          "then": { "required": ["providerId", "providerVersion", "providerDigest", "providerProtocolVersion", "targetRef", "targetKind", "inputSchema", "inputs", "secretReferences", "idempotencyKey", "fencingPolicy", "retryPolicy", "timeoutSeconds", "compensation"] }
+        }]
+      }
+    },
+    "createdAt": { "type": "string", "format": "date-time" }
+  }
+}

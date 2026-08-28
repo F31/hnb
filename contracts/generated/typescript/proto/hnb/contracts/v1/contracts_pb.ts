@@ -2,17 +2,17 @@
 // @generated from file hnb/contracts/v1/contracts.proto (package hnb.contracts.v1, syntax proto3)
 /* eslint-disable */
 
-import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv2";
-import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv2";
+import type { GenEnum, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv2";
+import { enumDesc, fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv2";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
-import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
-import type { Message } from "@bufbuild/protobuf";
+import { file_google_protobuf_struct, file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
+import type { JsonObject, Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file hnb/contracts/v1/contracts.proto.
  */
 export const file_hnb_contracts_v1_contracts: GenFile = /*@__PURE__*/
-  fileDesc("CiBobmIvY29udHJhY3RzL3YxL2NvbnRyYWN0cy5wcm90bxIQaG5iLmNvbnRyYWN0cy52MSLPAQoOUmVxdWVzdENvbnRleHQSEQoJdGVuYW50X2lkGAEgASgJEhcKCnByb2plY3RfaWQYAiABKAlIAIgBARIbCg5lbnZpcm9ubWVudF9pZBgDIAEoCUgBiAEBEhAKCGFjdG9yX2lkGAQgASgJEhYKDmNvcnJlbGF0aW9uX2lkGAUgASgJEhgKC3RyYWNlcGFyZW50GAYgASgJSAKIAQFCDQoLX3Byb2plY3RfaWRCEQoPX2Vudmlyb25tZW50X2lkQg4KDF90cmFjZXBhcmVudCKXAQoRUmVzb3VyY2VSZWZlcmVuY2USEwoLYXBpX3ZlcnNpb24YASABKAkSDAoEa2luZBgCIAEoCRIKCgJpZBgDIAEoCRIRCgl0ZW5hbnRfaWQYBCABKAkSEwoGZGlnZXN0GAUgASgJSACIAQESFAoHdmVyc2lvbhgGIAEoCUgBiAEBQgkKB19kaWdlc3RCCgoIX3ZlcnNpb24iowEKDkNvbnRyYWN0RWNob2VkEjEKB2NvbnRleHQYASABKAsyIC5obmIuY29udHJhY3RzLnYxLlJlcXVlc3RDb250ZXh0Ej4KDHJlc291cmNlX3JlZhgCIAEoCzIjLmhuYi5jb250cmFjdHMudjEuUmVzb3VyY2VSZWZlcmVuY2VIAIgBARINCgV2YWx1ZRgDIAEoCUIPCg1fcmVzb3VyY2VfcmVmIsIECg1FdmVudEVudmVsb3BlEhIKCm1lc3NhZ2VfaWQYASABKAkSFAoMbWVzc2FnZV90eXBlGAIgASgJEhYKDnNjaGVtYV92ZXJzaW9uGAMgASgJEi8KC29jY3VycmVkX2F0GAQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIRCgl0ZW5hbnRfaWQYBSABKAkSFwoKcHJvamVjdF9pZBgGIAEoCUgBiAEBEhsKDmVudmlyb25tZW50X2lkGAcgASgJSAKIAQESFQoIYWN0b3JfaWQYCCABKAlIA4gBARIWCg5jb3JyZWxhdGlvbl9pZBgJIAEoCRIZCgxjYXVzYXRpb25faWQYCiABKAlIBIgBARIXCg9pZGVtcG90ZW5jeV9rZXkYCyABKAkSGQoMYWdncmVnYXRlX2lkGAwgASgJSAWIAQESHgoRYWdncmVnYXRlX3ZlcnNpb24YDSABKANIBogBARIYCgtwYXlsb2FkX3JlZhgOIAEoCUgHiAEBEjsKD2NvbnRyYWN0X2VjaG9lZBgUIAEoCzIgLmhuYi5jb250cmFjdHMudjEuQ29udHJhY3RFY2hvZWRIAEIJCgdwYXlsb2FkQg0KC19wcm9qZWN0X2lkQhEKD19lbnZpcm9ubWVudF9pZEILCglfYWN0b3JfaWRCDwoNX2NhdXNhdGlvbl9pZEIPCg1fYWdncmVnYXRlX2lkQhQKEl9hZ2dyZWdhdGVfdmVyc2lvbkIOCgxfcGF5bG9hZF9yZWZCTlpMZ2l0aHViLmNvbS9GMzEvaG5iL2NvbnRyYWN0cy9nZW5lcmF0ZWQvZ28vcHJvdG8vaG5iL2NvbnRyYWN0cy92MTtjb250cmFjdHN2MWIGcHJvdG8z", [file_google_protobuf_timestamp]);
+  fileDesc("CiBobmIvY29udHJhY3RzL3YxL2NvbnRyYWN0cy5wcm90bxIQaG5iLmNvbnRyYWN0cy52MSKKAgoOUmVxdWVzdENvbnRleHQSEQoJdGVuYW50X2lkGAEgASgJEhcKCnByb2plY3RfaWQYAiABKAlIAIgBARIbCg5lbnZpcm9ubWVudF9pZBgDIAEoCUgBiAEBEhAKCGFjdG9yX2lkGAQgASgJEhYKDmNvcnJlbGF0aW9uX2lkGAUgASgJEhgKC3RyYWNlcGFyZW50GAYgASgJSAKIAQESGQoMbmFtZXNwYWNlX2lkGAcgASgJSAOIAQESDQoFcm9sZXMYCCADKAlCDQoLX3Byb2plY3RfaWRCEQoPX2Vudmlyb25tZW50X2lkQg4KDF90cmFjZXBhcmVudEIPCg1fbmFtZXNwYWNlX2lkIrMBCg1UZW5hbnRDb250ZXh0EhEKCXRlbmFudF9pZBgBIAEoCRISCgpwcm9qZWN0X2lkGAIgASgJEhYKDmVudmlyb25tZW50X2lkGAMgASgJEhkKDG5hbWVzcGFjZV9pZBgEIAEoCUgAiAEBEhAKCGFjdG9yX2lkGAUgASgJEhYKDmNvcnJlbGF0aW9uX2lkGAYgASgJEg0KBXJvbGVzGAcgAygJQg8KDV9uYW1lc3BhY2VfaWQi/AEKFEF1dGhvcml6YXRpb25SZXF1ZXN0EhEKCXRlbmFudF9pZBgBIAEoCRISCgpwcm9qZWN0X2lkGAIgASgJEhYKDmVudmlyb25tZW50X2lkGAMgASgJEhkKDG5hbWVzcGFjZV9pZBgEIAEoCUgAiAEBEhAKCGFjdG9yX2lkGAUgASgJEg4KBmFjdGlvbhgGIAEoCRIVCg1yZXNvdXJjZV90eXBlGAcgASgJEhgKC3Jlc291cmNlX2lkGAggASgJSAGIAQESFgoOcmVxdWlyZWRfcm9sZXMYCSADKAlCDwoNX25hbWVzcGFjZV9pZEIOCgxfcmVzb3VyY2VfaWQidgoVQXV0aG9yaXphdGlvblJlc3BvbnNlEg8KB2FsbG93ZWQYASABKAgSEwoGcmVhc29uGAIgASgJSACIAQESGgoNcmVxdWlyZWRfcm9sZRgDIAEoCUgBiAEBQgkKB19yZWFzb25CEAoOX3JlcXVpcmVkX3JvbGUilwEKEVJlc291cmNlUmVmZXJlbmNlEhMKC2FwaV92ZXJzaW9uGAEgASgJEgwKBGtpbmQYAiABKAkSCgoCaWQYAyABKAkSEQoJdGVuYW50X2lkGAQgASgJEhMKBmRpZ2VzdBgFIAEoCUgAiAEBEhQKB3ZlcnNpb24YBiABKAlIAYgBAUIJCgdfZGlnZXN0QgoKCF92ZXJzaW9uIqMBCg5Db250cmFjdEVjaG9lZBIxCgdjb250ZXh0GAEgASgLMiAuaG5iLmNvbnRyYWN0cy52MS5SZXF1ZXN0Q29udGV4dBI+CgxyZXNvdXJjZV9yZWYYAiABKAsyIy5obmIuY29udHJhY3RzLnYxLlJlc291cmNlUmVmZXJlbmNlSACIAQESDQoFdmFsdWUYAyABKAlCDwoNX3Jlc291cmNlX3JlZiKvCgoNRXZlbnRFbnZlbG9wZRISCgptZXNzYWdlX2lkGAEgASgJEhQKDG1lc3NhZ2VfdHlwZRgCIAEoCRIWCg5zY2hlbWFfdmVyc2lvbhgDIAEoCRIvCgtvY2N1cnJlZF9hdBgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASEQoJdGVuYW50X2lkGAUgASgJEhcKCnByb2plY3RfaWQYBiABKAlIAYgBARIbCg5lbnZpcm9ubWVudF9pZBgHIAEoCUgCiAEBEhUKCGFjdG9yX2lkGAggASgJSAOIAQESFgoOY29ycmVsYXRpb25faWQYCSABKAkSGQoMY2F1c2F0aW9uX2lkGAogASgJSASIAQESFwoPaWRlbXBvdGVuY3lfa2V5GAsgASgJEhkKDGFnZ3JlZ2F0ZV9pZBgMIAEoCUgFiAEBEh4KEWFnZ3JlZ2F0ZV92ZXJzaW9uGA0gASgDSAaIAQESGAoLcGF5bG9hZF9yZWYYDiABKAlIB4gBARIZCgxvcGVyYXRpb25faWQYDyABKAlICIgBARIUCgdzdGVwX2lkGBAgASgJSAmIAQESGAoLcmVzb3VyY2VfaWQYESABKAlICogBARIdChBleHBlY3RlZF92ZXJzaW9uGBIgASgDSAuIAQESOwoPY29udHJhY3RfZWNob2VkGBQgASgLMiAuaG5iLmNvbnRyYWN0cy52MS5Db250cmFjdEVjaG9lZEgAEjUKDGFsZXJ0X2ZpcmluZxgVIAEoCzIdLmhuYi5jb250cmFjdHMudjEuQWxlcnRGaXJpbmdIABI5Cg5hbGVydF9yZXNvbHZlZBgWIAEoCzIfLmhuYi5jb250cmFjdHMudjEuQWxlcnRSZXNvbHZlZEgAEkcKFW5vdGlmaWNhdGlvbl9kaXNwYXRjaBgXIAEoCzImLmhuYi5jb250cmFjdHMudjEuTm90aWZpY2F0aW9uRGlzcGF0Y2hIABI9ChBkZWxpdmVyeV9jaGFuZ2VkGBggASgLMiEuaG5iLmNvbnRyYWN0cy52MS5EZWxpdmVyeUNoYW5nZWRIABJAChBzZWNyZXRfcmVmZXJlbmNlGBkgASgLMiQuaG5iLmNvbnRyYWN0cy52MS5TZWNyZXRSZWZlcmVuY2VNc2dIABI5Cg5zdGVwX3JlcXVlc3RlZBgaIAEoCzIfLmhuYi5jb250cmFjdHMudjEuU3RlcFJlcXVlc3RlZEgAEjkKDnN0ZXBfY29tcGxldGVkGBsgASgLMh8uaG5iLmNvbnRyYWN0cy52MS5TdGVwQ29tcGxldGVkSAASSgoXb3BlcmF0aW9uX3N0YXRlX2NoYW5nZWQYHCABKAsyJy5obmIuY29udHJhY3RzLnYxLk9wZXJhdGlvblN0YXRlQ2hhbmdlZEgAEkEKEm9wZXJhdGlvbl9wcm9ncmVzcxgdIAEoCzIjLmhuYi5jb250cmFjdHMudjEuT3BlcmF0aW9uUHJvZ3Jlc3NIAEIJCgdwYXlsb2FkQg0KC19wcm9qZWN0X2lkQhEKD19lbnZpcm9ubWVudF9pZEILCglfYWN0b3JfaWRCDwoNX2NhdXNhdGlvbl9pZEIPCg1fYWdncmVnYXRlX2lkQhQKEl9hZ2dyZWdhdGVfdmVyc2lvbkIOCgxfcGF5bG9hZF9yZWZCDwoNX29wZXJhdGlvbl9pZEIKCghfc3RlcF9pZEIOCgxfcmVzb3VyY2VfaWRCEwoRX2V4cGVjdGVkX3ZlcnNpb24ilwEKDVN0ZXBSZXF1ZXN0ZWQSFAoMb3BlcmF0aW9uX2lkGAEgASgJEg8KB3N0ZXBfaWQYAiABKAkSEQoJc3RlcF90eXBlGAMgASgJEhcKD2lkZW1wb3RlbmN5X2tleRgEIAEoCRIYChBleHBlY3RlZF92ZXJzaW9uGAUgASgDEhkKEWV4ZWN1dGlvbl9jb250ZXh0GAYgASgMIowBCg1TdGVwQ29tcGxldGVkEhQKDG9wZXJhdGlvbl9pZBgBIAEoCRIPCgdzdGVwX2lkGAIgASgJEg4KBnN0YXR1cxgDIAEoCRIXCgpjaGVja3BvaW50GAQgASgJSACIAQESEgoFZXJyb3IYBSABKAlIAYgBAUINCgtfY2hlY2twb2ludEIICgZfZXJyb3IieAoVT3BlcmF0aW9uU3RhdGVDaGFuZ2VkEhQKDG9wZXJhdGlvbl9pZBgBIAEoCRIWCg5wcmV2aW91c19zdGF0ZRgCIAEoCRIRCgluZXdfc3RhdGUYAyABKAkSEwoGcmVhc29uGAQgASgJSACIAQFCCQoHX3JlYXNvbiKfAQoRT3BlcmF0aW9uUHJvZ3Jlc3MSFAoMb3BlcmF0aW9uX2lkGAEgASgJEhMKC3RvdGFsX3N0ZXBzGAIgASgFEhcKD2NvbXBsZXRlZF9zdGVwcxgDIAEoBRIUCgxmYWlsZWRfc3RlcHMYBCABKAUSDgoGc3RhdHVzGAUgASgJEhQKB21lc3NhZ2UYBiABKAlIAIgBAUIKCghfbWVzc2FnZSKRBAoLQWxlcnRGaXJpbmcSEAoIYWxlcnRfaWQYASABKAkSEQoJdGVuYW50X2lkGAIgASgJEhcKCnByb2plY3RfaWQYAyABKAlIAIgBARIbCg5lbnZpcm9ubWVudF9pZBgEIAEoCUgBiAEBEg4KBnNvdXJjZRgFIAEoCRIQCghzZXZlcml0eRgGIAEoCRITCgtmaW5nZXJwcmludBgHIAEoCRIPCgdzdW1tYXJ5GAggASgJEhkKDHJlc291cmNlX3JlZhgJIAEoCUgCiAEBEhkKDG9wZXJhdGlvbl9pZBgKIAEoCUgDiAEBEhsKDmNvcnJlbGF0aW9uX2lkGAsgASgJSASIAQESOQoGbGFiZWxzGAwgAygLMikuaG5iLmNvbnRyYWN0cy52MS5BbGVydEZpcmluZy5MYWJlbHNFbnRyeRIxCg1maXJzdF9zZWVuX2F0GA0gASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIYChBvY2N1cnJlbmNlX2NvdW50GA4gASgFGi0KC0xhYmVsc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAFCDQoLX3Byb2plY3RfaWRCEQoPX2Vudmlyb25tZW50X2lkQg8KDV9yZXNvdXJjZV9yZWZCDwoNX29wZXJhdGlvbl9pZEIRCg9fY29ycmVsYXRpb25faWQiegoNQWxlcnRSZXNvbHZlZBIQCghhbGVydF9pZBgBIAEoCRIRCgl0ZW5hbnRfaWQYAiABKAkSEwoLZmluZ2VycHJpbnQYAyABKAkSLwoLcmVzb2x2ZWRfYXQYBCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIrMBChROb3RpZmljYXRpb25EaXNwYXRjaBIOCgZqb2JfaWQYASABKAkSEAoIYWxlcnRfaWQYAiABKAkSFAoMY2hhbm5lbF90eXBlGAMgASgJEhcKD2lkZW1wb3RlbmN5X2tleRgEIAEoCRIXCg9wb2xpY3lfc25hcHNob3QYBSABKAwSFQoNdGVtcGxhdGVfZGF0YRgGIAEoDBIaChJkZXN0aW5hdGlvbl9tYXNrZWQYByABKAki7gEKD0RlbGl2ZXJ5Q2hhbmdlZBITCgtkZWxpdmVyeV9pZBgBIAEoCRIOCgZqb2JfaWQYAiABKAkSEAoIYWxlcnRfaWQYAyABKAkSFgoOcHJldmlvdXNfc3RhdGUYBCABKAkSEQoJbmV3X3N0YXRlGAUgASgJEiAKE3Byb3ZpZGVyX21lc3NhZ2VfaWQYBiABKAlIAIgBARIYCgtlcnJvcl9jbGFzcxgHIAEoCUgBiAEBEhUKDWF0dGVtcHRfY291bnQYCCABKAVCFgoUX3Byb3ZpZGVyX21lc3NhZ2VfaWRCDgoMX2Vycm9yX2NsYXNzItABChJTZWNyZXRSZWZlcmVuY2VNc2cSCgoCaWQYASABKAkSEQoJdGVuYW50X2lkGAIgASgJEgwKBG5hbWUYAyABKAkSEgoKc2VjcmV0X3JlZhgEIAEoCRIPCgd2ZXJzaW9uGAUgASgFEhYKCWFsZ29yaXRobRgGIAEoCUgAiAEBEjMKCmV4cGlyZXNfYXQYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wSAGIAQFCDAoKX2FsZ29yaXRobUINCgtfZXhwaXJlc19hdCK8AgoMTmFtZXNwYWNlUmVmEgoKAmlkGAEgASgJEhEKCXRlbmFudF9pZBgCIAEoCRISCgpwcm9qZWN0X2lkGAMgASgJEhYKDmVudmlyb25tZW50X2lkGAQgASgJEgwKBG5hbWUYBSABKAkSDgoGc3RhdHVzGAYgASgJEhgKC2Rlc2NyaXB0aW9uGAcgASgJSACIAQESOgoGbGFiZWxzGAggAygLMiouaG5iLmNvbnRyYWN0cy52MS5OYW1lc3BhY2VSZWYuTGFiZWxzRW50cnkSLgoKY3JlYXRlZF9hdBgJIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAaLQoLTGFiZWxzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4AUIOCgxfZGVzY3JpcHRpb24i/wQKEUFjY2Vzc1Rva2VuQ2xhaW1zEhcKD3Byb2ZpbGVfdmVyc2lvbhgBIAEoCRIOCgZpc3N1ZXIYAiABKAkSEQoJYXVkaWVuY2VzGAMgAygJEhIKCnN1YmplY3RfaWQYBCABKAkSMwoMc3ViamVjdF90eXBlGAUgASgOMh0uaG5iLmNvbnRyYWN0cy52MS5TdWJqZWN0VHlwZRIdChV0ZW5hbnRfbWVtYmVyc2hpcF9pZHMYBiADKAkSLQoJaXNzdWVkX2F0GAcgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIuCgpleHBpcmVzX2F0GAggASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIuCgpub3RfYmVmb3JlGAkgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIyCglhdXRoX3RpbWUYCiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wSACIAQESEAoIdG9rZW5faWQYCyABKAkSDgoGa2V5X2lkGAwgASgJEhEKCWFsZ29yaXRobRgNIAEoCRIRCgl0ZW5hbnRfaWQYDiABKAkSFQoNbWVtYmVyc2hpcF9pZBgPIAEoCRIWCg5wb2xpY3lfdmVyc2lvbhgQIAEoCRI+ChJzY29wZWRfcGVybWlzc2lvbnMYESADKAsyIi5obmIuY29udHJhY3RzLnYxLlNjb3BlZFBlcm1pc3Npb24SPgoPYWxsb3dlZF9hY3Rpb25zGBIgAygOMiUuaG5iLmNvbnRyYWN0cy52MS5BdXRob3JpemF0aW9uQWN0aW9uQgwKCl9hdXRoX3RpbWUi6QMKFVRydXN0ZWRSZXF1ZXN0Q29udGV4dBISCgpzdWJqZWN0X2lkGAEgASgJEjMKDHN1YmplY3RfdHlwZRgCIAEoDjIdLmhuYi5jb250cmFjdHMudjEuU3ViamVjdFR5cGUSEQoJdGVuYW50X2lkGAMgASgJEhUKDW1lbWJlcnNoaXBfaWQYBCABKAkSFwoKcHJvamVjdF9pZBgFIAEoCUgAiAEBEhsKDmVudmlyb25tZW50X2lkGAYgASgJSAGIAQESGQoMbmFtZXNwYWNlX2lkGAcgASgJSAKIAQESFgoOY29ycmVsYXRpb25faWQYCCABKAkSGAoLdHJhY2VwYXJlbnQYCSABKAlIA4gBARIQCgh0b2tlbl9pZBgKIAEoCRItCglhdXRoX3RpbWUYCyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhYKDnBvbGljeV92ZXJzaW9uGAwgASgJEj4KEnNjb3BlZF9wZXJtaXNzaW9ucxgNIAMoCzIiLmhuYi5jb250cmFjdHMudjEuU2NvcGVkUGVybWlzc2lvbkINCgtfcHJvamVjdF9pZEIRCg9fZW52aXJvbm1lbnRfaWRCDwoNX25hbWVzcGFjZV9pZEIOCgxfdHJhY2VwYXJlbnQi2AEKEkF1dGhvcml6YXRpb25TY29wZRIrCgVsZXZlbBgBIAEoDjIcLmhuYi5jb250cmFjdHMudjEuU2NvcGVMZXZlbBIRCgl0ZW5hbnRfaWQYAiABKAkSFwoKcHJvamVjdF9pZBgDIAEoCUgAiAEBEhsKDmVudmlyb25tZW50X2lkGAQgASgJSAGIAQESGQoMbmFtZXNwYWNlX2lkGAUgASgJSAKIAQFCDQoLX3Byb2plY3RfaWRCEQoPX2Vudmlyb25tZW50X2lkQg8KDV9uYW1lc3BhY2VfaWQiqAIKFUF1dGhvcml6YXRpb25EZWNpc2lvbhI1CgZlZmZlY3QYASABKA4yJS5obmIuY29udHJhY3RzLnYxLkF1dGhvcml6YXRpb25FZmZlY3QSEwoLcmVhc29uX2NvZGUYAiABKAkSFgoOcG9saWN5X3ZlcnNpb24YAyABKAkSFQoNcmVzb3VyY2Vfa2luZBgEIAEoCRIYCgtyZXNvdXJjZV9pZBgFIAEoCUgAiAEBEjUKBmFjdGlvbhgGIAEoDjIlLmhuYi5jb250cmFjdHMudjEuQXV0aG9yaXphdGlvbkFjdGlvbhIzCgVzY29wZRgHIAEoCzIkLmhuYi5jb250cmFjdHMudjEuQXV0aG9yaXphdGlvblNjb3BlQg4KDF9yZXNvdXJjZV9pZCKBAgoPU2VydmljZUlkZW50aXR5EhIKCnN1YmplY3RfaWQYASABKAkSMwoMc3ViamVjdF90eXBlGAIgASgOMh0uaG5iLmNvbnRyYWN0cy52MS5TdWJqZWN0VHlwZRIRCglhdWRpZW5jZXMYAyADKAkSPgoPYWxsb3dlZF9hY3Rpb25zGAQgAygOMiUuaG5iLmNvbnRyYWN0cy52MS5BdXRob3JpemF0aW9uQWN0aW9uEhIKCnRlbmFudF9pZHMYBSADKAkSPgoSc2NvcGVkX3Blcm1pc3Npb25zGAYgAygLMiIuaG5iLmNvbnRyYWN0cy52MS5TY29wZWRQZXJtaXNzaW9uImoKF0NvbnRyYWN0U2VjcmV0UmVmZXJlbmNlEhAKCHByb3ZpZGVyGAEgASgJEg0KBXNjb3BlGAIgASgJEgwKBG5hbWUYAyABKAkSFAoHdmVyc2lvbhgEIAEoCUgAiAEBQgoKCF92ZXJzaW9uIkgKFVJ1bnRpbWVJbnRlbnRNZXRhZGF0YRIXCg9pZGVtcG90ZW5jeV9rZXkYASABKAkSFgoOY29ycmVsYXRpb25faWQYAiABKAkiwQEKEVJ1bnRpbWVJbnRlbnRTcGVjEhIKCnJlbGVhc2VfaWQYASABKAkSEgoKdGFyZ2V0X3JlZhgCIAEoCRIRCglzY29wZV9yZWYYAyABKAkSKwoKcGFyYW1ldGVycxgEIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSRAoRc2VjcmV0X3JlZmVyZW5jZXMYBSADKAsyKS5obmIuY29udHJhY3RzLnYxLkNvbnRyYWN0U2VjcmV0UmVmZXJlbmNlIsUBCg1SdW50aW1lSW50ZW50EhMKC2FwaV92ZXJzaW9uGAEgASgJEjEKBGtpbmQYAiABKA4yIy5obmIuY29udHJhY3RzLnYxLlJ1bnRpbWVJbnRlbnRLaW5kEjkKCG1ldGFkYXRhGAMgASgLMicuaG5iLmNvbnRyYWN0cy52MS5SdW50aW1lSW50ZW50TWV0YWRhdGESMQoEc3BlYxgEIAEoCzIjLmhuYi5jb250cmFjdHMudjEuUnVudGltZUludGVudFNwZWMiSwoRRXhlY3V0aW9uUGxhblN0ZXASDwoHc3RlcF9pZBgBIAEoCRIRCglzdGVwX3R5cGUYAiABKAkSEgoKZGVwZW5kc19vbhgDIAMoCSK8BAoNRXhlY3V0aW9uUGxhbhIPCgdwbGFuX2lkGAEgASgJEhEKCWludGVudF9pZBgCIAEoCRIXCg9zZW1hbnRpY19kaWdlc3QYAyABKAkSEwoLcmVsZWFzZV9yZWYYBCABKAkSGAoQYXJ0aWZhY3RfZGlnZXN0cxgFIAMoCRISCgp0YXJnZXRfcmVmGAYgASgJEiIKGmNhcGFiaWxpdHlfc25hcHNob3RfZGlnZXN0GAcgASgJElAKEXByb3ZpZGVyX3ZlcnNpb25zGAggAygLMjUuaG5iLmNvbnRyYWN0cy52MS5FeGVjdXRpb25QbGFuLlByb3ZpZGVyVmVyc2lvbnNFbnRyeRIcChRwb2xpY3lfZGVjaXNpb25fcmVmcxgJIAMoCRI0ChNhcHByb3ZlZF9wYXJhbWV0ZXJzGAogASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdBJEChFzZWNyZXRfcmVmZXJlbmNlcxgLIAMoCzIpLmhuYi5jb250cmFjdHMudjEuQ29udHJhY3RTZWNyZXRSZWZlcmVuY2USMgoFc3RlcHMYDCADKAsyIy5obmIuY29udHJhY3RzLnYxLkV4ZWN1dGlvblBsYW5TdGVwEi4KCmNyZWF0ZWRfYXQYDSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wGjcKFVByb3ZpZGVyVmVyc2lvbnNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIl8KDkNvbnNvbGVTdWJqZWN0EgoKAmlkGAEgASgJEisKBHR5cGUYAiABKA4yHS5obmIuY29udHJhY3RzLnYxLlN1YmplY3RUeXBlEhQKDGRpc3BsYXlfbmFtZRgDIAEoCSJRChBUZW5hbnRNZW1iZXJzaGlwEhUKDW1lbWJlcnNoaXBfaWQYASABKAkSEQoJdGVuYW50X2lkGAIgASgJEhMKC3RlbmFudF9uYW1lGAMgASgJIj4KCkNhcGFiaWxpdHkSDAoEbmFtZRgBIAEoCRIRCglhdmFpbGFibGUYAiABKAgSDwoHdmVyc2lvbhgDIAEoCSKhAgoQU2NvcGVkUGVybWlzc2lvbhIVCg1yZXNvdXJjZV9raW5kGAEgASgJEhgKC3Jlc291cmNlX2lkGAIgASgJSACIAQESNQoGYWN0aW9uGAMgASgOMiUuaG5iLmNvbnRyYWN0cy52MS5BdXRob3JpemF0aW9uQWN0aW9uEhEKCXRlbmFudF9pZBgEIAEoCRIXCgpwcm9qZWN0X2lkGAUgASgJSAGIAQESGwoOZW52aXJvbm1lbnRfaWQYBiABKAlIAogBARIZCgxuYW1lc3BhY2VfaWQYByABKAlIA4gBAUIOCgxfcmVzb3VyY2VfaWRCDQoLX3Byb2plY3RfaWRCEQoPX2Vudmlyb25tZW50X2lkQg8KDV9uYW1lc3BhY2VfaWQiuwIKEENvbnNvbGVCb290c3RyYXASMQoHc3ViamVjdBgBIAEoCzIgLmhuYi5jb250cmFjdHMudjEuQ29uc29sZVN1YmplY3QSGgoSc2VsZWN0ZWRfdGVuYW50X2lkGAIgASgJEjcKC21lbWJlcnNoaXBzGAMgAygLMiIuaG5iLmNvbnRyYWN0cy52MS5UZW5hbnRNZW1iZXJzaGlwEjIKDGNhcGFiaWxpdGllcxgEIAMoCzIcLmhuYi5jb250cmFjdHMudjEuQ2FwYWJpbGl0eRI3CgtwZXJtaXNzaW9ucxgFIAMoCzIiLmhuYi5jb250cmFjdHMudjEuU2NvcGVkUGVybWlzc2lvbhIWCg5wb2xpY3lfdmVyc2lvbhgGIAEoCRIaChJwZXJtaXNzaW9uX3ZlcnNpb24YByABKAkiIQoMVGVuYW50U3dpdGNoEhEKCXRlbmFudF9pZBgBIAEoCSJRChBQcm9ibGVtVmlvbGF0aW9uEg0KBWZpZWxkGAEgASgJEgwKBGNvZGUYAiABKAkSFAoHbWVzc2FnZRgDIAEoCUgAiAEBQgoKCF9tZXNzYWdlIt8BCg5Qcm9ibGVtRGV0YWlscxIMCgR0eXBlGAEgASgJEg0KBXRpdGxlGAIgASgJEg4KBnN0YXR1cxgDIAEoBRITCgZkZXRhaWwYBCABKAlIAIgBARIVCghpbnN0YW5jZRgFIAEoCUgBiAEBEgwKBGNvZGUYBiABKAkSFgoOY29ycmVsYXRpb25faWQYByABKAkSNgoKdmlvbGF0aW9ucxgIIAMoCzIiLmhuYi5jb250cmFjdHMudjEuUHJvYmxlbVZpb2xhdGlvbkIJCgdfZGV0YWlsQgsKCV9pbnN0YW5jZSp3CgtTdWJqZWN0VHlwZRIcChhTVUJKRUNUX1RZUEVfVU5TUEVDSUZJRUQQABIVChFTVUJKRUNUX1RZUEVfVVNFUhABEhkKFVNVQkpFQ1RfVFlQRV9XT1JLTE9BRBACEhgKFFNVQkpFQ1RfVFlQRV9TRVJWSUNFEAMqigMKE0F1dGhvcml6YXRpb25BY3Rpb24SJAogQVVUSE9SSVpBVElPTl9BQ1RJT05fVU5TUEVDSUZJRUQQABIdChlBVVRIT1JJWkFUSU9OX0FDVElPTl9SRUFEEAESHQoZQVVUSE9SSVpBVElPTl9BQ1RJT05fTElTVBACEh8KG0FVVEhPUklaQVRJT05fQUNUSU9OX0NSRUFURRADEh8KG0FVVEhPUklaQVRJT05fQUNUSU9OX1VQREFURRAEEh8KG0FVVEhPUklaQVRJT05fQUNUSU9OX0RFTEVURRAFEiAKHEFVVEhPUklaQVRJT05fQUNUSU9OX0VYRUNVVEUQBhIgChxBVVRIT1JJWkFUSU9OX0FDVElPTl9BUFBST1ZFEAcSHwobQVVUSE9SSVpBVElPTl9BQ1RJT05fUkVKRUNUEAgSHwobQVVUSE9SSVpBVElPTl9BQ1RJT05fQ0FOQ0VMEAkSJgoiQVVUSE9SSVpBVElPTl9BQ1RJT05fU1dJVENIX1RFTkFOVBAKKqwBCgpTY29wZUxldmVsEhsKF1NDT1BFX0xFVkVMX1VOU1BFQ0lGSUVEEAASFgoSU0NPUEVfTEVWRUxfVEVOQU5UEAESFwoTU0NPUEVfTEVWRUxfUFJPSkVDVBACEhsKF1NDT1BFX0xFVkVMX0VOVklST05NRU5UEAMSGQoVU0NPUEVfTEVWRUxfTkFNRVNQQUNFEAQSGAoUU0NPUEVfTEVWRUxfUkVTT1VSQ0UQBSp6ChNBdXRob3JpemF0aW9uRWZmZWN0EiQKIEFVVEhPUklaQVRJT05fRUZGRUNUX1VOU1BFQ0lGSUVEEAASHgoaQVVUSE9SSVpBVElPTl9FRkZFQ1RfQUxMT1cQARIdChlBVVRIT1JJWkFUSU9OX0VGRkVDVF9ERU5ZEAIqjQIKEVJ1bnRpbWVJbnRlbnRLaW5kEiMKH1JVTlRJTUVfSU5URU5UX0tJTkRfVU5TUEVDSUZJRUQQABInCiNSVU5USU1FX0lOVEVOVF9LSU5EX0lOU1RBTExfUkVMRUFTRRABEikKJVJVTlRJTUVfSU5URU5UX0tJTkRfVU5JTlNUQUxMX1JFTEVBU0UQAhInCiNSVU5USU1FX0lOVEVOVF9LSU5EX1VQR1JBREVfUkVMRUFTRRADEigKJFJVTlRJTUVfSU5URU5UX0tJTkRfUk9MTEJBQ0tfUkVMRUFTRRAEEiwKKFJVTlRJTUVfSU5URU5UX0tJTkRfQ0hBTkdFX0NPTkZJR1VSQVRJT04QBUJOWkxnaXRodWIuY29tL0YzMS9obmIvY29udHJhY3RzL2dlbmVyYXRlZC9nby9wcm90by9obmIvY29udHJhY3RzL3YxO2NvbnRyYWN0c3YxYgZwcm90bzM", [file_google_protobuf_timestamp, file_google_protobuf_struct]);
 
 /**
  * @generated from message hnb.contracts.v1.RequestContext
@@ -47,6 +47,16 @@ export type RequestContext = Message<"hnb.contracts.v1.RequestContext"> & {
    * @generated from field: optional string traceparent = 6;
    */
   traceparent?: string | undefined;
+
+  /**
+   * @generated from field: optional string namespace_id = 7;
+   */
+  namespaceId?: string | undefined;
+
+  /**
+   * @generated from field: repeated string roles = 8;
+   */
+  roles: string[];
 };
 
 /**
@@ -55,6 +65,137 @@ export type RequestContext = Message<"hnb.contracts.v1.RequestContext"> & {
  */
 export const RequestContextSchema: GenMessage<RequestContext> = /*@__PURE__*/
   messageDesc(file_hnb_contracts_v1_contracts, 0);
+
+/**
+ * @generated from message hnb.contracts.v1.TenantContext
+ */
+export type TenantContext = Message<"hnb.contracts.v1.TenantContext"> & {
+  /**
+   * @generated from field: string tenant_id = 1;
+   */
+  tenantId: string;
+
+  /**
+   * @generated from field: string project_id = 2;
+   */
+  projectId: string;
+
+  /**
+   * @generated from field: string environment_id = 3;
+   */
+  environmentId: string;
+
+  /**
+   * @generated from field: optional string namespace_id = 4;
+   */
+  namespaceId?: string | undefined;
+
+  /**
+   * @generated from field: string actor_id = 5;
+   */
+  actorId: string;
+
+  /**
+   * @generated from field: string correlation_id = 6;
+   */
+  correlationId: string;
+
+  /**
+   * @generated from field: repeated string roles = 7;
+   */
+  roles: string[];
+};
+
+/**
+ * Describes the message hnb.contracts.v1.TenantContext.
+ * Use `create(TenantContextSchema)` to create a new message.
+ */
+export const TenantContextSchema: GenMessage<TenantContext> = /*@__PURE__*/
+  messageDesc(file_hnb_contracts_v1_contracts, 1);
+
+/**
+ * @generated from message hnb.contracts.v1.AuthorizationRequest
+ */
+export type AuthorizationRequest = Message<"hnb.contracts.v1.AuthorizationRequest"> & {
+  /**
+   * @generated from field: string tenant_id = 1;
+   */
+  tenantId: string;
+
+  /**
+   * @generated from field: string project_id = 2;
+   */
+  projectId: string;
+
+  /**
+   * @generated from field: string environment_id = 3;
+   */
+  environmentId: string;
+
+  /**
+   * @generated from field: optional string namespace_id = 4;
+   */
+  namespaceId?: string | undefined;
+
+  /**
+   * @generated from field: string actor_id = 5;
+   */
+  actorId: string;
+
+  /**
+   * @generated from field: string action = 6;
+   */
+  action: string;
+
+  /**
+   * @generated from field: string resource_type = 7;
+   */
+  resourceType: string;
+
+  /**
+   * @generated from field: optional string resource_id = 8;
+   */
+  resourceId?: string | undefined;
+
+  /**
+   * @generated from field: repeated string required_roles = 9;
+   */
+  requiredRoles: string[];
+};
+
+/**
+ * Describes the message hnb.contracts.v1.AuthorizationRequest.
+ * Use `create(AuthorizationRequestSchema)` to create a new message.
+ */
+export const AuthorizationRequestSchema: GenMessage<AuthorizationRequest> = /*@__PURE__*/
+  messageDesc(file_hnb_contracts_v1_contracts, 2);
+
+/**
+ * @generated from message hnb.contracts.v1.AuthorizationResponse
+ */
+export type AuthorizationResponse = Message<"hnb.contracts.v1.AuthorizationResponse"> & {
+  /**
+   * @generated from field: bool allowed = 1;
+   */
+  allowed: boolean;
+
+  /**
+   * @generated from field: optional string reason = 2;
+   */
+  reason?: string | undefined;
+
+  /**
+   * @generated from field: optional string required_role = 3;
+   */
+  requiredRole?: string | undefined;
+};
+
+/**
+ * Describes the message hnb.contracts.v1.AuthorizationResponse.
+ * Use `create(AuthorizationResponseSchema)` to create a new message.
+ */
+export const AuthorizationResponseSchema: GenMessage<AuthorizationResponse> = /*@__PURE__*/
+  messageDesc(file_hnb_contracts_v1_contracts, 3);
 
 /**
  * @generated from message hnb.contracts.v1.ResourceReference
@@ -96,7 +237,7 @@ export type ResourceReference = Message<"hnb.contracts.v1.ResourceReference"> & 
  * Use `create(ResourceReferenceSchema)` to create a new message.
  */
 export const ResourceReferenceSchema: GenMessage<ResourceReference> = /*@__PURE__*/
-  messageDesc(file_hnb_contracts_v1_contracts, 1);
+  messageDesc(file_hnb_contracts_v1_contracts, 4);
 
 /**
  * @generated from message hnb.contracts.v1.ContractEchoed
@@ -123,7 +264,7 @@ export type ContractEchoed = Message<"hnb.contracts.v1.ContractEchoed"> & {
  * Use `create(ContractEchoedSchema)` to create a new message.
  */
 export const ContractEchoedSchema: GenMessage<ContractEchoed> = /*@__PURE__*/
-  messageDesc(file_hnb_contracts_v1_contracts, 2);
+  messageDesc(file_hnb_contracts_v1_contracts, 5);
 
 /**
  * @generated from message hnb.contracts.v1.EventEnvelope
@@ -200,6 +341,26 @@ export type EventEnvelope = Message<"hnb.contracts.v1.EventEnvelope"> & {
   payloadRef?: string | undefined;
 
   /**
+   * @generated from field: optional string operation_id = 15;
+   */
+  operationId?: string | undefined;
+
+  /**
+   * @generated from field: optional string step_id = 16;
+   */
+  stepId?: string | undefined;
+
+  /**
+   * @generated from field: optional string resource_id = 17;
+   */
+  resourceId?: string | undefined;
+
+  /**
+   * @generated from field: optional int64 expected_version = 18;
+   */
+  expectedVersion?: bigint | undefined;
+
+  /**
    * @generated from oneof hnb.contracts.v1.EventEnvelope.payload
    */
   payload: {
@@ -208,6 +369,60 @@ export type EventEnvelope = Message<"hnb.contracts.v1.EventEnvelope"> & {
      */
     value: ContractEchoed;
     case: "contractEchoed";
+  } | {
+    /**
+     * @generated from field: hnb.contracts.v1.AlertFiring alert_firing = 21;
+     */
+    value: AlertFiring;
+    case: "alertFiring";
+  } | {
+    /**
+     * @generated from field: hnb.contracts.v1.AlertResolved alert_resolved = 22;
+     */
+    value: AlertResolved;
+    case: "alertResolved";
+  } | {
+    /**
+     * @generated from field: hnb.contracts.v1.NotificationDispatch notification_dispatch = 23;
+     */
+    value: NotificationDispatch;
+    case: "notificationDispatch";
+  } | {
+    /**
+     * @generated from field: hnb.contracts.v1.DeliveryChanged delivery_changed = 24;
+     */
+    value: DeliveryChanged;
+    case: "deliveryChanged";
+  } | {
+    /**
+     * @generated from field: hnb.contracts.v1.SecretReferenceMsg secret_reference = 25;
+     */
+    value: SecretReferenceMsg;
+    case: "secretReference";
+  } | {
+    /**
+     * @generated from field: hnb.contracts.v1.StepRequested step_requested = 26;
+     */
+    value: StepRequested;
+    case: "stepRequested";
+  } | {
+    /**
+     * @generated from field: hnb.contracts.v1.StepCompleted step_completed = 27;
+     */
+    value: StepCompleted;
+    case: "stepCompleted";
+  } | {
+    /**
+     * @generated from field: hnb.contracts.v1.OperationStateChanged operation_state_changed = 28;
+     */
+    value: OperationStateChanged;
+    case: "operationStateChanged";
+  } | {
+    /**
+     * @generated from field: hnb.contracts.v1.OperationProgress operation_progress = 29;
+     */
+    value: OperationProgress;
+    case: "operationProgress";
   } | { case: undefined; value?: undefined };
 };
 
@@ -216,4 +431,1482 @@ export type EventEnvelope = Message<"hnb.contracts.v1.EventEnvelope"> & {
  * Use `create(EventEnvelopeSchema)` to create a new message.
  */
 export const EventEnvelopeSchema: GenMessage<EventEnvelope> = /*@__PURE__*/
-  messageDesc(file_hnb_contracts_v1_contracts, 3);
+  messageDesc(file_hnb_contracts_v1_contracts, 6);
+
+/**
+ * @generated from message hnb.contracts.v1.StepRequested
+ */
+export type StepRequested = Message<"hnb.contracts.v1.StepRequested"> & {
+  /**
+   * @generated from field: string operation_id = 1;
+   */
+  operationId: string;
+
+  /**
+   * @generated from field: string step_id = 2;
+   */
+  stepId: string;
+
+  /**
+   * @generated from field: string step_type = 3;
+   */
+  stepType: string;
+
+  /**
+   * @generated from field: string idempotency_key = 4;
+   */
+  idempotencyKey: string;
+
+  /**
+   * @generated from field: int64 expected_version = 5;
+   */
+  expectedVersion: bigint;
+
+  /**
+   * @generated from field: bytes execution_context = 6;
+   */
+  executionContext: Uint8Array;
+};
+
+/**
+ * Describes the message hnb.contracts.v1.StepRequested.
+ * Use `create(StepRequestedSchema)` to create a new message.
+ */
+export const StepRequestedSchema: GenMessage<StepRequested> = /*@__PURE__*/
+  messageDesc(file_hnb_contracts_v1_contracts, 7);
+
+/**
+ * @generated from message hnb.contracts.v1.StepCompleted
+ */
+export type StepCompleted = Message<"hnb.contracts.v1.StepCompleted"> & {
+  /**
+   * @generated from field: string operation_id = 1;
+   */
+  operationId: string;
+
+  /**
+   * @generated from field: string step_id = 2;
+   */
+  stepId: string;
+
+  /**
+   * @generated from field: string status = 3;
+   */
+  status: string;
+
+  /**
+   * @generated from field: optional string checkpoint = 4;
+   */
+  checkpoint?: string | undefined;
+
+  /**
+   * @generated from field: optional string error = 5;
+   */
+  error?: string | undefined;
+};
+
+/**
+ * Describes the message hnb.contracts.v1.StepCompleted.
+ * Use `create(StepCompletedSchema)` to create a new message.
+ */
+export const StepCompletedSchema: GenMessage<StepCompleted> = /*@__PURE__*/
+  messageDesc(file_hnb_contracts_v1_contracts, 8);
+
+/**
+ * @generated from message hnb.contracts.v1.OperationStateChanged
+ */
+export type OperationStateChanged = Message<"hnb.contracts.v1.OperationStateChanged"> & {
+  /**
+   * @generated from field: string operation_id = 1;
+   */
+  operationId: string;
+
+  /**
+   * @generated from field: string previous_state = 2;
+   */
+  previousState: string;
+
+  /**
+   * @generated from field: string new_state = 3;
+   */
+  newState: string;
+
+  /**
+   * @generated from field: optional string reason = 4;
+   */
+  reason?: string | undefined;
+};
+
+/**
+ * Describes the message hnb.contracts.v1.OperationStateChanged.
+ * Use `create(OperationStateChangedSchema)` to create a new message.
+ */
+export const OperationStateChangedSchema: GenMessage<OperationStateChanged> = /*@__PURE__*/
+  messageDesc(file_hnb_contracts_v1_contracts, 9);
+
+/**
+ * @generated from message hnb.contracts.v1.OperationProgress
+ */
+export type OperationProgress = Message<"hnb.contracts.v1.OperationProgress"> & {
+  /**
+   * @generated from field: string operation_id = 1;
+   */
+  operationId: string;
+
+  /**
+   * @generated from field: int32 total_steps = 2;
+   */
+  totalSteps: number;
+
+  /**
+   * @generated from field: int32 completed_steps = 3;
+   */
+  completedSteps: number;
+
+  /**
+   * @generated from field: int32 failed_steps = 4;
+   */
+  failedSteps: number;
+
+  /**
+   * @generated from field: string status = 5;
+   */
+  status: string;
+
+  /**
+   * @generated from field: optional string message = 6;
+   */
+  message?: string | undefined;
+};
+
+/**
+ * Describes the message hnb.contracts.v1.OperationProgress.
+ * Use `create(OperationProgressSchema)` to create a new message.
+ */
+export const OperationProgressSchema: GenMessage<OperationProgress> = /*@__PURE__*/
+  messageDesc(file_hnb_contracts_v1_contracts, 10);
+
+/**
+ * @generated from message hnb.contracts.v1.AlertFiring
+ */
+export type AlertFiring = Message<"hnb.contracts.v1.AlertFiring"> & {
+  /**
+   * @generated from field: string alert_id = 1;
+   */
+  alertId: string;
+
+  /**
+   * @generated from field: string tenant_id = 2;
+   */
+  tenantId: string;
+
+  /**
+   * @generated from field: optional string project_id = 3;
+   */
+  projectId?: string | undefined;
+
+  /**
+   * @generated from field: optional string environment_id = 4;
+   */
+  environmentId?: string | undefined;
+
+  /**
+   * @generated from field: string source = 5;
+   */
+  source: string;
+
+  /**
+   * @generated from field: string severity = 6;
+   */
+  severity: string;
+
+  /**
+   * @generated from field: string fingerprint = 7;
+   */
+  fingerprint: string;
+
+  /**
+   * @generated from field: string summary = 8;
+   */
+  summary: string;
+
+  /**
+   * @generated from field: optional string resource_ref = 9;
+   */
+  resourceRef?: string | undefined;
+
+  /**
+   * @generated from field: optional string operation_id = 10;
+   */
+  operationId?: string | undefined;
+
+  /**
+   * @generated from field: optional string correlation_id = 11;
+   */
+  correlationId?: string | undefined;
+
+  /**
+   * @generated from field: map<string, string> labels = 12;
+   */
+  labels: { [key: string]: string };
+
+  /**
+   * @generated from field: google.protobuf.Timestamp first_seen_at = 13;
+   */
+  firstSeenAt?: Timestamp | undefined;
+
+  /**
+   * @generated from field: int32 occurrence_count = 14;
+   */
+  occurrenceCount: number;
+};
+
+/**
+ * Describes the message hnb.contracts.v1.AlertFiring.
+ * Use `create(AlertFiringSchema)` to create a new message.
+ */
+export const AlertFiringSchema: GenMessage<AlertFiring> = /*@__PURE__*/
+  messageDesc(file_hnb_contracts_v1_contracts, 11);
+
+/**
+ * @generated from message hnb.contracts.v1.AlertResolved
+ */
+export type AlertResolved = Message<"hnb.contracts.v1.AlertResolved"> & {
+  /**
+   * @generated from field: string alert_id = 1;
+   */
+  alertId: string;
+
+  /**
+   * @generated from field: string tenant_id = 2;
+   */
+  tenantId: string;
+
+  /**
+   * @generated from field: string fingerprint = 3;
+   */
+  fingerprint: string;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp resolved_at = 4;
+   */
+  resolvedAt?: Timestamp | undefined;
+};
+
+/**
+ * Describes the message hnb.contracts.v1.AlertResolved.
+ * Use `create(AlertResolvedSchema)` to create a new message.
+ */
+export const AlertResolvedSchema: GenMessage<AlertResolved> = /*@__PURE__*/
+  messageDesc(file_hnb_contracts_v1_contracts, 12);
+
+/**
+ * @generated from message hnb.contracts.v1.NotificationDispatch
+ */
+export type NotificationDispatch = Message<"hnb.contracts.v1.NotificationDispatch"> & {
+  /**
+   * @generated from field: string job_id = 1;
+   */
+  jobId: string;
+
+  /**
+   * @generated from field: string alert_id = 2;
+   */
+  alertId: string;
+
+  /**
+   * @generated from field: string channel_type = 3;
+   */
+  channelType: string;
+
+  /**
+   * @generated from field: string idempotency_key = 4;
+   */
+  idempotencyKey: string;
+
+  /**
+   * @generated from field: bytes policy_snapshot = 5;
+   */
+  policySnapshot: Uint8Array;
+
+  /**
+   * @generated from field: bytes template_data = 6;
+   */
+  templateData: Uint8Array;
+
+  /**
+   * @generated from field: string destination_masked = 7;
+   */
+  destinationMasked: string;
+};
+
+/**
+ * Describes the message hnb.contracts.v1.NotificationDispatch.
+ * Use `create(NotificationDispatchSchema)` to create a new message.
+ */
+export const NotificationDispatchSchema: GenMessage<NotificationDispatch> = /*@__PURE__*/
+  messageDesc(file_hnb_contracts_v1_contracts, 13);
+
+/**
+ * @generated from message hnb.contracts.v1.DeliveryChanged
+ */
+export type DeliveryChanged = Message<"hnb.contracts.v1.DeliveryChanged"> & {
+  /**
+   * @generated from field: string delivery_id = 1;
+   */
+  deliveryId: string;
+
+  /**
+   * @generated from field: string job_id = 2;
+   */
+  jobId: string;
+
+  /**
+   * @generated from field: string alert_id = 3;
+   */
+  alertId: string;
+
+  /**
+   * @generated from field: string previous_state = 4;
+   */
+  previousState: string;
+
+  /**
+   * @generated from field: string new_state = 5;
+   */
+  newState: string;
+
+  /**
+   * @generated from field: optional string provider_message_id = 6;
+   */
+  providerMessageId?: string | undefined;
+
+  /**
+   * @generated from field: optional string error_class = 7;
+   */
+  errorClass?: string | undefined;
+
+  /**
+   * @generated from field: int32 attempt_count = 8;
+   */
+  attemptCount: number;
+};
+
+/**
+ * Describes the message hnb.contracts.v1.DeliveryChanged.
+ * Use `create(DeliveryChangedSchema)` to create a new message.
+ */
+export const DeliveryChangedSchema: GenMessage<DeliveryChanged> = /*@__PURE__*/
+  messageDesc(file_hnb_contracts_v1_contracts, 14);
+
+/**
+ * @generated from message hnb.contracts.v1.SecretReferenceMsg
+ */
+export type SecretReferenceMsg = Message<"hnb.contracts.v1.SecretReferenceMsg"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string tenant_id = 2;
+   */
+  tenantId: string;
+
+  /**
+   * @generated from field: string name = 3;
+   */
+  name: string;
+
+  /**
+   * @generated from field: string secret_ref = 4;
+   */
+  secretRef: string;
+
+  /**
+   * @generated from field: int32 version = 5;
+   */
+  version: number;
+
+  /**
+   * @generated from field: optional string algorithm = 6;
+   */
+  algorithm?: string | undefined;
+
+  /**
+   * @generated from field: optional google.protobuf.Timestamp expires_at = 7;
+   */
+  expiresAt?: Timestamp | undefined;
+};
+
+/**
+ * Describes the message hnb.contracts.v1.SecretReferenceMsg.
+ * Use `create(SecretReferenceMsgSchema)` to create a new message.
+ */
+export const SecretReferenceMsgSchema: GenMessage<SecretReferenceMsg> = /*@__PURE__*/
+  messageDesc(file_hnb_contracts_v1_contracts, 15);
+
+/**
+ * @generated from message hnb.contracts.v1.NamespaceRef
+ */
+export type NamespaceRef = Message<"hnb.contracts.v1.NamespaceRef"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string tenant_id = 2;
+   */
+  tenantId: string;
+
+  /**
+   * @generated from field: string project_id = 3;
+   */
+  projectId: string;
+
+  /**
+   * @generated from field: string environment_id = 4;
+   */
+  environmentId: string;
+
+  /**
+   * @generated from field: string name = 5;
+   */
+  name: string;
+
+  /**
+   * @generated from field: string status = 6;
+   */
+  status: string;
+
+  /**
+   * @generated from field: optional string description = 7;
+   */
+  description?: string | undefined;
+
+  /**
+   * @generated from field: map<string, string> labels = 8;
+   */
+  labels: { [key: string]: string };
+
+  /**
+   * @generated from field: google.protobuf.Timestamp created_at = 9;
+   */
+  createdAt?: Timestamp | undefined;
+};
+
+/**
+ * Describes the message hnb.contracts.v1.NamespaceRef.
+ * Use `create(NamespaceRefSchema)` to create a new message.
+ */
+export const NamespaceRefSchema: GenMessage<NamespaceRef> = /*@__PURE__*/
+  messageDesc(file_hnb_contracts_v1_contracts, 16);
+
+/**
+ * @generated from message hnb.contracts.v1.AccessTokenClaims
+ */
+export type AccessTokenClaims = Message<"hnb.contracts.v1.AccessTokenClaims"> & {
+  /**
+   * @generated from field: string profile_version = 1;
+   */
+  profileVersion: string;
+
+  /**
+   * @generated from field: string issuer = 2;
+   */
+  issuer: string;
+
+  /**
+   * @generated from field: repeated string audiences = 3;
+   */
+  audiences: string[];
+
+  /**
+   * @generated from field: string subject_id = 4;
+   */
+  subjectId: string;
+
+  /**
+   * @generated from field: hnb.contracts.v1.SubjectType subject_type = 5;
+   */
+  subjectType: SubjectType;
+
+  /**
+   * @generated from field: repeated string tenant_membership_ids = 6;
+   */
+  tenantMembershipIds: string[];
+
+  /**
+   * @generated from field: google.protobuf.Timestamp issued_at = 7;
+   */
+  issuedAt?: Timestamp | undefined;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp expires_at = 8;
+   */
+  expiresAt?: Timestamp | undefined;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp not_before = 9;
+   */
+  notBefore?: Timestamp | undefined;
+
+  /**
+   * @generated from field: optional google.protobuf.Timestamp auth_time = 10;
+   */
+  authTime?: Timestamp | undefined;
+
+  /**
+   * @generated from field: string token_id = 11;
+   */
+  tokenId: string;
+
+  /**
+   * @generated from field: string key_id = 12;
+   */
+  keyId: string;
+
+  /**
+   * @generated from field: string algorithm = 13;
+   */
+  algorithm: string;
+
+  /**
+   * @generated from field: string tenant_id = 14;
+   */
+  tenantId: string;
+
+  /**
+   * @generated from field: string membership_id = 15;
+   */
+  membershipId: string;
+
+  /**
+   * @generated from field: string policy_version = 16;
+   */
+  policyVersion: string;
+
+  /**
+   * @generated from field: repeated hnb.contracts.v1.ScopedPermission scoped_permissions = 17;
+   */
+  scopedPermissions: ScopedPermission[];
+
+  /**
+   * @generated from field: repeated hnb.contracts.v1.AuthorizationAction allowed_actions = 18;
+   */
+  allowedActions: AuthorizationAction[];
+};
+
+/**
+ * Describes the message hnb.contracts.v1.AccessTokenClaims.
+ * Use `create(AccessTokenClaimsSchema)` to create a new message.
+ */
+export const AccessTokenClaimsSchema: GenMessage<AccessTokenClaims> = /*@__PURE__*/
+  messageDesc(file_hnb_contracts_v1_contracts, 17);
+
+/**
+ * @generated from message hnb.contracts.v1.TrustedRequestContext
+ */
+export type TrustedRequestContext = Message<"hnb.contracts.v1.TrustedRequestContext"> & {
+  /**
+   * @generated from field: string subject_id = 1;
+   */
+  subjectId: string;
+
+  /**
+   * @generated from field: hnb.contracts.v1.SubjectType subject_type = 2;
+   */
+  subjectType: SubjectType;
+
+  /**
+   * @generated from field: string tenant_id = 3;
+   */
+  tenantId: string;
+
+  /**
+   * @generated from field: string membership_id = 4;
+   */
+  membershipId: string;
+
+  /**
+   * @generated from field: optional string project_id = 5;
+   */
+  projectId?: string | undefined;
+
+  /**
+   * @generated from field: optional string environment_id = 6;
+   */
+  environmentId?: string | undefined;
+
+  /**
+   * @generated from field: optional string namespace_id = 7;
+   */
+  namespaceId?: string | undefined;
+
+  /**
+   * @generated from field: string correlation_id = 8;
+   */
+  correlationId: string;
+
+  /**
+   * @generated from field: optional string traceparent = 9;
+   */
+  traceparent?: string | undefined;
+
+  /**
+   * @generated from field: string token_id = 10;
+   */
+  tokenId: string;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp auth_time = 11;
+   */
+  authTime?: Timestamp | undefined;
+
+  /**
+   * @generated from field: string policy_version = 12;
+   */
+  policyVersion: string;
+
+  /**
+   * @generated from field: repeated hnb.contracts.v1.ScopedPermission scoped_permissions = 13;
+   */
+  scopedPermissions: ScopedPermission[];
+};
+
+/**
+ * Describes the message hnb.contracts.v1.TrustedRequestContext.
+ * Use `create(TrustedRequestContextSchema)` to create a new message.
+ */
+export const TrustedRequestContextSchema: GenMessage<TrustedRequestContext> = /*@__PURE__*/
+  messageDesc(file_hnb_contracts_v1_contracts, 18);
+
+/**
+ * @generated from message hnb.contracts.v1.AuthorizationScope
+ */
+export type AuthorizationScope = Message<"hnb.contracts.v1.AuthorizationScope"> & {
+  /**
+   * @generated from field: hnb.contracts.v1.ScopeLevel level = 1;
+   */
+  level: ScopeLevel;
+
+  /**
+   * @generated from field: string tenant_id = 2;
+   */
+  tenantId: string;
+
+  /**
+   * @generated from field: optional string project_id = 3;
+   */
+  projectId?: string | undefined;
+
+  /**
+   * @generated from field: optional string environment_id = 4;
+   */
+  environmentId?: string | undefined;
+
+  /**
+   * @generated from field: optional string namespace_id = 5;
+   */
+  namespaceId?: string | undefined;
+};
+
+/**
+ * Describes the message hnb.contracts.v1.AuthorizationScope.
+ * Use `create(AuthorizationScopeSchema)` to create a new message.
+ */
+export const AuthorizationScopeSchema: GenMessage<AuthorizationScope> = /*@__PURE__*/
+  messageDesc(file_hnb_contracts_v1_contracts, 19);
+
+/**
+ * @generated from message hnb.contracts.v1.AuthorizationDecision
+ */
+export type AuthorizationDecision = Message<"hnb.contracts.v1.AuthorizationDecision"> & {
+  /**
+   * @generated from field: hnb.contracts.v1.AuthorizationEffect effect = 1;
+   */
+  effect: AuthorizationEffect;
+
+  /**
+   * @generated from field: string reason_code = 2;
+   */
+  reasonCode: string;
+
+  /**
+   * @generated from field: string policy_version = 3;
+   */
+  policyVersion: string;
+
+  /**
+   * @generated from field: string resource_kind = 4;
+   */
+  resourceKind: string;
+
+  /**
+   * @generated from field: optional string resource_id = 5;
+   */
+  resourceId?: string | undefined;
+
+  /**
+   * @generated from field: hnb.contracts.v1.AuthorizationAction action = 6;
+   */
+  action: AuthorizationAction;
+
+  /**
+   * @generated from field: hnb.contracts.v1.AuthorizationScope scope = 7;
+   */
+  scope?: AuthorizationScope | undefined;
+};
+
+/**
+ * Describes the message hnb.contracts.v1.AuthorizationDecision.
+ * Use `create(AuthorizationDecisionSchema)` to create a new message.
+ */
+export const AuthorizationDecisionSchema: GenMessage<AuthorizationDecision> = /*@__PURE__*/
+  messageDesc(file_hnb_contracts_v1_contracts, 20);
+
+/**
+ * @generated from message hnb.contracts.v1.ServiceIdentity
+ */
+export type ServiceIdentity = Message<"hnb.contracts.v1.ServiceIdentity"> & {
+  /**
+   * @generated from field: string subject_id = 1;
+   */
+  subjectId: string;
+
+  /**
+   * @generated from field: hnb.contracts.v1.SubjectType subject_type = 2;
+   */
+  subjectType: SubjectType;
+
+  /**
+   * @generated from field: repeated string audiences = 3;
+   */
+  audiences: string[];
+
+  /**
+   * @generated from field: repeated hnb.contracts.v1.AuthorizationAction allowed_actions = 4;
+   */
+  allowedActions: AuthorizationAction[];
+
+  /**
+   * @generated from field: repeated string tenant_ids = 5;
+   */
+  tenantIds: string[];
+
+  /**
+   * @generated from field: repeated hnb.contracts.v1.ScopedPermission scoped_permissions = 6;
+   */
+  scopedPermissions: ScopedPermission[];
+};
+
+/**
+ * Describes the message hnb.contracts.v1.ServiceIdentity.
+ * Use `create(ServiceIdentitySchema)` to create a new message.
+ */
+export const ServiceIdentitySchema: GenMessage<ServiceIdentity> = /*@__PURE__*/
+  messageDesc(file_hnb_contracts_v1_contracts, 21);
+
+/**
+ * @generated from message hnb.contracts.v1.ContractSecretReference
+ */
+export type ContractSecretReference = Message<"hnb.contracts.v1.ContractSecretReference"> & {
+  /**
+   * @generated from field: string provider = 1;
+   */
+  provider: string;
+
+  /**
+   * @generated from field: string scope = 2;
+   */
+  scope: string;
+
+  /**
+   * @generated from field: string name = 3;
+   */
+  name: string;
+
+  /**
+   * @generated from field: optional string version = 4;
+   */
+  version?: string | undefined;
+};
+
+/**
+ * Describes the message hnb.contracts.v1.ContractSecretReference.
+ * Use `create(ContractSecretReferenceSchema)` to create a new message.
+ */
+export const ContractSecretReferenceSchema: GenMessage<ContractSecretReference> = /*@__PURE__*/
+  messageDesc(file_hnb_contracts_v1_contracts, 22);
+
+/**
+ * @generated from message hnb.contracts.v1.RuntimeIntentMetadata
+ */
+export type RuntimeIntentMetadata = Message<"hnb.contracts.v1.RuntimeIntentMetadata"> & {
+  /**
+   * @generated from field: string idempotency_key = 1;
+   */
+  idempotencyKey: string;
+
+  /**
+   * @generated from field: string correlation_id = 2;
+   */
+  correlationId: string;
+};
+
+/**
+ * Describes the message hnb.contracts.v1.RuntimeIntentMetadata.
+ * Use `create(RuntimeIntentMetadataSchema)` to create a new message.
+ */
+export const RuntimeIntentMetadataSchema: GenMessage<RuntimeIntentMetadata> = /*@__PURE__*/
+  messageDesc(file_hnb_contracts_v1_contracts, 23);
+
+/**
+ * @generated from message hnb.contracts.v1.RuntimeIntentSpec
+ */
+export type RuntimeIntentSpec = Message<"hnb.contracts.v1.RuntimeIntentSpec"> & {
+  /**
+   * @generated from field: string release_id = 1;
+   */
+  releaseId: string;
+
+  /**
+   * @generated from field: string target_ref = 2;
+   */
+  targetRef: string;
+
+  /**
+   * @generated from field: string scope_ref = 3;
+   */
+  scopeRef: string;
+
+  /**
+   * @generated from field: google.protobuf.Struct parameters = 4;
+   */
+  parameters?: JsonObject | undefined;
+
+  /**
+   * @generated from field: repeated hnb.contracts.v1.ContractSecretReference secret_references = 5;
+   */
+  secretReferences: ContractSecretReference[];
+};
+
+/**
+ * Describes the message hnb.contracts.v1.RuntimeIntentSpec.
+ * Use `create(RuntimeIntentSpecSchema)` to create a new message.
+ */
+export const RuntimeIntentSpecSchema: GenMessage<RuntimeIntentSpec> = /*@__PURE__*/
+  messageDesc(file_hnb_contracts_v1_contracts, 24);
+
+/**
+ * @generated from message hnb.contracts.v1.RuntimeIntent
+ */
+export type RuntimeIntent = Message<"hnb.contracts.v1.RuntimeIntent"> & {
+  /**
+   * @generated from field: string api_version = 1;
+   */
+  apiVersion: string;
+
+  /**
+   * @generated from field: hnb.contracts.v1.RuntimeIntentKind kind = 2;
+   */
+  kind: RuntimeIntentKind;
+
+  /**
+   * @generated from field: hnb.contracts.v1.RuntimeIntentMetadata metadata = 3;
+   */
+  metadata?: RuntimeIntentMetadata | undefined;
+
+  /**
+   * @generated from field: hnb.contracts.v1.RuntimeIntentSpec spec = 4;
+   */
+  spec?: RuntimeIntentSpec | undefined;
+};
+
+/**
+ * Describes the message hnb.contracts.v1.RuntimeIntent.
+ * Use `create(RuntimeIntentSchema)` to create a new message.
+ */
+export const RuntimeIntentSchema: GenMessage<RuntimeIntent> = /*@__PURE__*/
+  messageDesc(file_hnb_contracts_v1_contracts, 25);
+
+/**
+ * @generated from message hnb.contracts.v1.ExecutionPlanStep
+ */
+export type ExecutionPlanStep = Message<"hnb.contracts.v1.ExecutionPlanStep"> & {
+  /**
+   * @generated from field: string step_id = 1;
+   */
+  stepId: string;
+
+  /**
+   * @generated from field: string step_type = 2;
+   */
+  stepType: string;
+
+  /**
+   * @generated from field: repeated string depends_on = 3;
+   */
+  dependsOn: string[];
+};
+
+/**
+ * Describes the message hnb.contracts.v1.ExecutionPlanStep.
+ * Use `create(ExecutionPlanStepSchema)` to create a new message.
+ */
+export const ExecutionPlanStepSchema: GenMessage<ExecutionPlanStep> = /*@__PURE__*/
+  messageDesc(file_hnb_contracts_v1_contracts, 26);
+
+/**
+ * @generated from message hnb.contracts.v1.ExecutionPlan
+ */
+export type ExecutionPlan = Message<"hnb.contracts.v1.ExecutionPlan"> & {
+  /**
+   * @generated from field: string plan_id = 1;
+   */
+  planId: string;
+
+  /**
+   * @generated from field: string intent_id = 2;
+   */
+  intentId: string;
+
+  /**
+   * @generated from field: string semantic_digest = 3;
+   */
+  semanticDigest: string;
+
+  /**
+   * @generated from field: string release_ref = 4;
+   */
+  releaseRef: string;
+
+  /**
+   * @generated from field: repeated string artifact_digests = 5;
+   */
+  artifactDigests: string[];
+
+  /**
+   * @generated from field: string target_ref = 6;
+   */
+  targetRef: string;
+
+  /**
+   * @generated from field: string capability_snapshot_digest = 7;
+   */
+  capabilitySnapshotDigest: string;
+
+  /**
+   * @generated from field: map<string, string> provider_versions = 8;
+   */
+  providerVersions: { [key: string]: string };
+
+  /**
+   * @generated from field: repeated string policy_decision_refs = 9;
+   */
+  policyDecisionRefs: string[];
+
+  /**
+   * @generated from field: google.protobuf.Struct approved_parameters = 10;
+   */
+  approvedParameters?: JsonObject | undefined;
+
+  /**
+   * @generated from field: repeated hnb.contracts.v1.ContractSecretReference secret_references = 11;
+   */
+  secretReferences: ContractSecretReference[];
+
+  /**
+   * @generated from field: repeated hnb.contracts.v1.ExecutionPlanStep steps = 12;
+   */
+  steps: ExecutionPlanStep[];
+
+  /**
+   * @generated from field: google.protobuf.Timestamp created_at = 13;
+   */
+  createdAt?: Timestamp | undefined;
+};
+
+/**
+ * Describes the message hnb.contracts.v1.ExecutionPlan.
+ * Use `create(ExecutionPlanSchema)` to create a new message.
+ */
+export const ExecutionPlanSchema: GenMessage<ExecutionPlan> = /*@__PURE__*/
+  messageDesc(file_hnb_contracts_v1_contracts, 27);
+
+/**
+ * @generated from message hnb.contracts.v1.ConsoleSubject
+ */
+export type ConsoleSubject = Message<"hnb.contracts.v1.ConsoleSubject"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: hnb.contracts.v1.SubjectType type = 2;
+   */
+  type: SubjectType;
+
+  /**
+   * @generated from field: string display_name = 3;
+   */
+  displayName: string;
+};
+
+/**
+ * Describes the message hnb.contracts.v1.ConsoleSubject.
+ * Use `create(ConsoleSubjectSchema)` to create a new message.
+ */
+export const ConsoleSubjectSchema: GenMessage<ConsoleSubject> = /*@__PURE__*/
+  messageDesc(file_hnb_contracts_v1_contracts, 28);
+
+/**
+ * @generated from message hnb.contracts.v1.TenantMembership
+ */
+export type TenantMembership = Message<"hnb.contracts.v1.TenantMembership"> & {
+  /**
+   * @generated from field: string membership_id = 1;
+   */
+  membershipId: string;
+
+  /**
+   * @generated from field: string tenant_id = 2;
+   */
+  tenantId: string;
+
+  /**
+   * @generated from field: string tenant_name = 3;
+   */
+  tenantName: string;
+};
+
+/**
+ * Describes the message hnb.contracts.v1.TenantMembership.
+ * Use `create(TenantMembershipSchema)` to create a new message.
+ */
+export const TenantMembershipSchema: GenMessage<TenantMembership> = /*@__PURE__*/
+  messageDesc(file_hnb_contracts_v1_contracts, 29);
+
+/**
+ * @generated from message hnb.contracts.v1.Capability
+ */
+export type Capability = Message<"hnb.contracts.v1.Capability"> & {
+  /**
+   * @generated from field: string name = 1;
+   */
+  name: string;
+
+  /**
+   * @generated from field: bool available = 2;
+   */
+  available: boolean;
+
+  /**
+   * @generated from field: string version = 3;
+   */
+  version: string;
+};
+
+/**
+ * Describes the message hnb.contracts.v1.Capability.
+ * Use `create(CapabilitySchema)` to create a new message.
+ */
+export const CapabilitySchema: GenMessage<Capability> = /*@__PURE__*/
+  messageDesc(file_hnb_contracts_v1_contracts, 30);
+
+/**
+ * @generated from message hnb.contracts.v1.ScopedPermission
+ */
+export type ScopedPermission = Message<"hnb.contracts.v1.ScopedPermission"> & {
+  /**
+   * @generated from field: string resource_kind = 1;
+   */
+  resourceKind: string;
+
+  /**
+   * @generated from field: optional string resource_id = 2;
+   */
+  resourceId?: string | undefined;
+
+  /**
+   * @generated from field: hnb.contracts.v1.AuthorizationAction action = 3;
+   */
+  action: AuthorizationAction;
+
+  /**
+   * @generated from field: string tenant_id = 4;
+   */
+  tenantId: string;
+
+  /**
+   * @generated from field: optional string project_id = 5;
+   */
+  projectId?: string | undefined;
+
+  /**
+   * @generated from field: optional string environment_id = 6;
+   */
+  environmentId?: string | undefined;
+
+  /**
+   * @generated from field: optional string namespace_id = 7;
+   */
+  namespaceId?: string | undefined;
+};
+
+/**
+ * Describes the message hnb.contracts.v1.ScopedPermission.
+ * Use `create(ScopedPermissionSchema)` to create a new message.
+ */
+export const ScopedPermissionSchema: GenMessage<ScopedPermission> = /*@__PURE__*/
+  messageDesc(file_hnb_contracts_v1_contracts, 31);
+
+/**
+ * @generated from message hnb.contracts.v1.ConsoleBootstrap
+ */
+export type ConsoleBootstrap = Message<"hnb.contracts.v1.ConsoleBootstrap"> & {
+  /**
+   * @generated from field: hnb.contracts.v1.ConsoleSubject subject = 1;
+   */
+  subject?: ConsoleSubject | undefined;
+
+  /**
+   * @generated from field: string selected_tenant_id = 2;
+   */
+  selectedTenantId: string;
+
+  /**
+   * @generated from field: repeated hnb.contracts.v1.TenantMembership memberships = 3;
+   */
+  memberships: TenantMembership[];
+
+  /**
+   * @generated from field: repeated hnb.contracts.v1.Capability capabilities = 4;
+   */
+  capabilities: Capability[];
+
+  /**
+   * @generated from field: repeated hnb.contracts.v1.ScopedPermission permissions = 5;
+   */
+  permissions: ScopedPermission[];
+
+  /**
+   * @generated from field: string policy_version = 6;
+   */
+  policyVersion: string;
+
+  /**
+   * @generated from field: string permission_version = 7;
+   */
+  permissionVersion: string;
+};
+
+/**
+ * Describes the message hnb.contracts.v1.ConsoleBootstrap.
+ * Use `create(ConsoleBootstrapSchema)` to create a new message.
+ */
+export const ConsoleBootstrapSchema: GenMessage<ConsoleBootstrap> = /*@__PURE__*/
+  messageDesc(file_hnb_contracts_v1_contracts, 32);
+
+/**
+ * @generated from message hnb.contracts.v1.TenantSwitch
+ */
+export type TenantSwitch = Message<"hnb.contracts.v1.TenantSwitch"> & {
+  /**
+   * @generated from field: string tenant_id = 1;
+   */
+  tenantId: string;
+};
+
+/**
+ * Describes the message hnb.contracts.v1.TenantSwitch.
+ * Use `create(TenantSwitchSchema)` to create a new message.
+ */
+export const TenantSwitchSchema: GenMessage<TenantSwitch> = /*@__PURE__*/
+  messageDesc(file_hnb_contracts_v1_contracts, 33);
+
+/**
+ * @generated from message hnb.contracts.v1.ProblemViolation
+ */
+export type ProblemViolation = Message<"hnb.contracts.v1.ProblemViolation"> & {
+  /**
+   * @generated from field: string field = 1;
+   */
+  field: string;
+
+  /**
+   * @generated from field: string code = 2;
+   */
+  code: string;
+
+  /**
+   * @generated from field: optional string message = 3;
+   */
+  message?: string | undefined;
+};
+
+/**
+ * Describes the message hnb.contracts.v1.ProblemViolation.
+ * Use `create(ProblemViolationSchema)` to create a new message.
+ */
+export const ProblemViolationSchema: GenMessage<ProblemViolation> = /*@__PURE__*/
+  messageDesc(file_hnb_contracts_v1_contracts, 34);
+
+/**
+ * @generated from message hnb.contracts.v1.ProblemDetails
+ */
+export type ProblemDetails = Message<"hnb.contracts.v1.ProblemDetails"> & {
+  /**
+   * @generated from field: string type = 1;
+   */
+  type: string;
+
+  /**
+   * @generated from field: string title = 2;
+   */
+  title: string;
+
+  /**
+   * @generated from field: int32 status = 3;
+   */
+  status: number;
+
+  /**
+   * @generated from field: optional string detail = 4;
+   */
+  detail?: string | undefined;
+
+  /**
+   * @generated from field: optional string instance = 5;
+   */
+  instance?: string | undefined;
+
+  /**
+   * @generated from field: string code = 6;
+   */
+  code: string;
+
+  /**
+   * @generated from field: string correlation_id = 7;
+   */
+  correlationId: string;
+
+  /**
+   * @generated from field: repeated hnb.contracts.v1.ProblemViolation violations = 8;
+   */
+  violations: ProblemViolation[];
+};
+
+/**
+ * Describes the message hnb.contracts.v1.ProblemDetails.
+ * Use `create(ProblemDetailsSchema)` to create a new message.
+ */
+export const ProblemDetailsSchema: GenMessage<ProblemDetails> = /*@__PURE__*/
+  messageDesc(file_hnb_contracts_v1_contracts, 35);
+
+/**
+ * @generated from enum hnb.contracts.v1.SubjectType
+ */
+export enum SubjectType {
+  /**
+   * @generated from enum value: SUBJECT_TYPE_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: SUBJECT_TYPE_USER = 1;
+   */
+  USER = 1,
+
+  /**
+   * @generated from enum value: SUBJECT_TYPE_WORKLOAD = 2;
+   */
+  WORKLOAD = 2,
+
+  /**
+   * @generated from enum value: SUBJECT_TYPE_SERVICE = 3;
+   */
+  SERVICE = 3,
+}
+
+/**
+ * Describes the enum hnb.contracts.v1.SubjectType.
+ */
+export const SubjectTypeSchema: GenEnum<SubjectType> = /*@__PURE__*/
+  enumDesc(file_hnb_contracts_v1_contracts, 0);
+
+/**
+ * @generated from enum hnb.contracts.v1.AuthorizationAction
+ */
+export enum AuthorizationAction {
+  /**
+   * @generated from enum value: AUTHORIZATION_ACTION_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: AUTHORIZATION_ACTION_READ = 1;
+   */
+  READ = 1,
+
+  /**
+   * @generated from enum value: AUTHORIZATION_ACTION_LIST = 2;
+   */
+  LIST = 2,
+
+  /**
+   * @generated from enum value: AUTHORIZATION_ACTION_CREATE = 3;
+   */
+  CREATE = 3,
+
+  /**
+   * @generated from enum value: AUTHORIZATION_ACTION_UPDATE = 4;
+   */
+  UPDATE = 4,
+
+  /**
+   * @generated from enum value: AUTHORIZATION_ACTION_DELETE = 5;
+   */
+  DELETE = 5,
+
+  /**
+   * @generated from enum value: AUTHORIZATION_ACTION_EXECUTE = 6;
+   */
+  EXECUTE = 6,
+
+  /**
+   * @generated from enum value: AUTHORIZATION_ACTION_APPROVE = 7;
+   */
+  APPROVE = 7,
+
+  /**
+   * @generated from enum value: AUTHORIZATION_ACTION_REJECT = 8;
+   */
+  REJECT = 8,
+
+  /**
+   * @generated from enum value: AUTHORIZATION_ACTION_CANCEL = 9;
+   */
+  CANCEL = 9,
+
+  /**
+   * @generated from enum value: AUTHORIZATION_ACTION_SWITCH_TENANT = 10;
+   */
+  SWITCH_TENANT = 10,
+}
+
+/**
+ * Describes the enum hnb.contracts.v1.AuthorizationAction.
+ */
+export const AuthorizationActionSchema: GenEnum<AuthorizationAction> = /*@__PURE__*/
+  enumDesc(file_hnb_contracts_v1_contracts, 1);
+
+/**
+ * @generated from enum hnb.contracts.v1.ScopeLevel
+ */
+export enum ScopeLevel {
+  /**
+   * @generated from enum value: SCOPE_LEVEL_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: SCOPE_LEVEL_TENANT = 1;
+   */
+  TENANT = 1,
+
+  /**
+   * @generated from enum value: SCOPE_LEVEL_PROJECT = 2;
+   */
+  PROJECT = 2,
+
+  /**
+   * @generated from enum value: SCOPE_LEVEL_ENVIRONMENT = 3;
+   */
+  ENVIRONMENT = 3,
+
+  /**
+   * @generated from enum value: SCOPE_LEVEL_NAMESPACE = 4;
+   */
+  NAMESPACE = 4,
+
+  /**
+   * @generated from enum value: SCOPE_LEVEL_RESOURCE = 5;
+   */
+  RESOURCE = 5,
+}
+
+/**
+ * Describes the enum hnb.contracts.v1.ScopeLevel.
+ */
+export const ScopeLevelSchema: GenEnum<ScopeLevel> = /*@__PURE__*/
+  enumDesc(file_hnb_contracts_v1_contracts, 2);
+
+/**
+ * @generated from enum hnb.contracts.v1.AuthorizationEffect
+ */
+export enum AuthorizationEffect {
+  /**
+   * @generated from enum value: AUTHORIZATION_EFFECT_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: AUTHORIZATION_EFFECT_ALLOW = 1;
+   */
+  ALLOW = 1,
+
+  /**
+   * @generated from enum value: AUTHORIZATION_EFFECT_DENY = 2;
+   */
+  DENY = 2,
+}
+
+/**
+ * Describes the enum hnb.contracts.v1.AuthorizationEffect.
+ */
+export const AuthorizationEffectSchema: GenEnum<AuthorizationEffect> = /*@__PURE__*/
+  enumDesc(file_hnb_contracts_v1_contracts, 3);
+
+/**
+ * @generated from enum hnb.contracts.v1.RuntimeIntentKind
+ */
+export enum RuntimeIntentKind {
+  /**
+   * @generated from enum value: RUNTIME_INTENT_KIND_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: RUNTIME_INTENT_KIND_INSTALL_RELEASE = 1;
+   */
+  INSTALL_RELEASE = 1,
+
+  /**
+   * @generated from enum value: RUNTIME_INTENT_KIND_UNINSTALL_RELEASE = 2;
+   */
+  UNINSTALL_RELEASE = 2,
+
+  /**
+   * @generated from enum value: RUNTIME_INTENT_KIND_UPGRADE_RELEASE = 3;
+   */
+  UPGRADE_RELEASE = 3,
+
+  /**
+   * @generated from enum value: RUNTIME_INTENT_KIND_ROLLBACK_RELEASE = 4;
+   */
+  ROLLBACK_RELEASE = 4,
+
+  /**
+   * @generated from enum value: RUNTIME_INTENT_KIND_CHANGE_CONFIGURATION = 5;
+   */
+  CHANGE_CONFIGURATION = 5,
+}
+
+/**
+ * Describes the enum hnb.contracts.v1.RuntimeIntentKind.
+ */
+export const RuntimeIntentKindSchema: GenEnum<RuntimeIntentKind> = /*@__PURE__*/
+  enumDesc(file_hnb_contracts_v1_contracts, 4);

@@ -1,0 +1,12 @@
+{
+  "apiVersion": "gslb.hnb.io/v1",
+  "kind": "gslb.failover",
+  "serviceId": "00000000-0000-4000-8000-0000000000a1",
+  "tenantId": "tenant-a",
+  "targetPoolId": "00000000-0000-4000-8000-0000000000b2",
+  "reason": "maintenance window failover",
+  "metadata": {
+    "idempotencyKey": "gslb-failover-20260819-01",
+    "correlationId": "00000000-0000-4000-8000-0000000000c1"
+  }
+}

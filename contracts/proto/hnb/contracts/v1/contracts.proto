@@ -3,6 +3,7 @@ syntax = "proto3";
 package hnb.contracts.v1;
 
 import "google/protobuf/timestamp.proto";
+import "google/protobuf/struct.proto";
 
 option go_package = "github.com/F31/hnb/contracts/generated/go/proto/hnb/contracts/v1;contractsv1";
 
@@ -13,6 +14,36 @@ message RequestContext {
   string actor_id = 4;
   string correlation_id = 5;
   optional string traceparent = 6;
+  optional string namespace_id = 7;
+  repeated string roles = 8;
+}
+
+message TenantContext {
+  string tenant_id = 1;
+  string project_id = 2;
+  string environment_id = 3;
+  optional string namespace_id = 4;
+  string actor_id = 5;
+  string correlation_id = 6;
+  repeated string roles = 7;
+}
+
+message AuthorizationRequest {
+  string tenant_id = 1;
+  string project_id = 2;
+  string environment_id = 3;
+  optional string namespace_id = 4;
+  string actor_id = 5;
+  string action = 6;
+  string resource_type = 7;
+  optional string resource_id = 8;
+  repeated string required_roles = 9;
+}
+
+message AuthorizationResponse {
+  bool allowed = 1;
+  optional string reason = 2;
+  optional string required_role = 3;
 }
 
 message ResourceReference {
@@ -45,8 +76,338 @@ message EventEnvelope {
   optional string aggregate_id = 12;
   optional int64 aggregate_version = 13;
   optional string payload_ref = 14;
+  optional string operation_id = 15;
+  optional string step_id = 16;
+  optional string resource_id = 17;
+  optional int64 expected_version = 18;
 
   oneof payload {
     ContractEchoed contract_echoed = 20;
+    AlertFiring alert_firing = 21;
+    AlertResolved alert_resolved = 22;
+    NotificationDispatch notification_dispatch = 23;
+    DeliveryChanged delivery_changed = 24;
+    SecretReferenceMsg secret_reference = 25;
+    StepRequested step_requested = 26;
+    StepCompleted step_completed = 27;
+    OperationStateChanged operation_state_changed = 28;
+    OperationProgress operation_progress = 29;
   }
+}
+
+message StepRequested {
+  string operation_id = 1;
+  string step_id = 2;
+  string step_type = 3;
+  string idempotency_key = 4;
+  int64 expected_version = 5;
+  bytes execution_context = 6;
+}
+
+message StepCompleted {
+  string operation_id = 1;
+  string step_id = 2;
+  string status = 3;
+  optional string checkpoint = 4;
+  optional string error = 5;
+}
+
+message OperationStateChanged {
+  string operation_id = 1;
+  string previous_state = 2;
+  string new_state = 3;
+  optional string reason = 4;
+}
+
+message OperationProgress {
+  string operation_id = 1;
+  int32 total_steps = 2;
+  int32 completed_steps = 3;
+  int32 failed_steps = 4;
+  string status = 5;
+  optional string message = 6;
+}
+
+message AlertFiring {
+  string alert_id = 1;
+  string tenant_id = 2;
+  optional string project_id = 3;
+  optional string environment_id = 4;
+  string source = 5;
+  string severity = 6;
+  string fingerprint = 7;
+  string summary = 8;
+  optional string resource_ref = 9;
+  optional string operation_id = 10;
+  optional string correlation_id = 11;
+  map<string, string> labels = 12;
+  google.protobuf.Timestamp first_seen_at = 13;
+  int32 occurrence_count = 14;
+}
+
+message AlertResolved {
+  string alert_id = 1;
+  string tenant_id = 2;
+  string fingerprint = 3;
+  google.protobuf.Timestamp resolved_at = 4;
+}
+
+message NotificationDispatch {
+  string job_id = 1;
+  string alert_id = 2;
+  string channel_type = 3;
+  string idempotency_key = 4;
+  bytes policy_snapshot = 5;
+  bytes template_data = 6;
+  string destination_masked = 7;
+}
+
+message DeliveryChanged {
+  string delivery_id = 1;
+  string job_id = 2;
+  string alert_id = 3;
+  string previous_state = 4;
+  string new_state = 5;
+  optional string provider_message_id = 6;
+  optional string error_class = 7;
+  int32 attempt_count = 8;
+}
+
+message SecretReferenceMsg {
+  string id = 1;
+  string tenant_id = 2;
+  string name = 3;
+  string secret_ref = 4;
+  int32 version = 5;
+  optional string algorithm = 6;
+  optional google.protobuf.Timestamp expires_at = 7;
+}
+
+message NamespaceRef {
+  string id = 1;
+  string tenant_id = 2;
+  string project_id = 3;
+  string environment_id = 4;
+  string name = 5;
+  string status = 6;
+  optional string description = 7;
+  map<string, string> labels = 8;
+  google.protobuf.Timestamp created_at = 9;
+}
+
+enum SubjectType {
+  SUBJECT_TYPE_UNSPECIFIED = 0;
+  SUBJECT_TYPE_USER = 1;
+  SUBJECT_TYPE_WORKLOAD = 2;
+  SUBJECT_TYPE_SERVICE = 3;
+}
+
+enum AuthorizationAction {
+  AUTHORIZATION_ACTION_UNSPECIFIED = 0;
+  AUTHORIZATION_ACTION_READ = 1;
+  AUTHORIZATION_ACTION_LIST = 2;
+  AUTHORIZATION_ACTION_CREATE = 3;
+  AUTHORIZATION_ACTION_UPDATE = 4;
+  AUTHORIZATION_ACTION_DELETE = 5;
+  AUTHORIZATION_ACTION_EXECUTE = 6;
+  AUTHORIZATION_ACTION_APPROVE = 7;
+  AUTHORIZATION_ACTION_REJECT = 8;
+  AUTHORIZATION_ACTION_CANCEL = 9;
+  AUTHORIZATION_ACTION_SWITCH_TENANT = 10;
+}
+
+enum ScopeLevel {
+  SCOPE_LEVEL_UNSPECIFIED = 0;
+  SCOPE_LEVEL_TENANT = 1;
+  SCOPE_LEVEL_PROJECT = 2;
+  SCOPE_LEVEL_ENVIRONMENT = 3;
+  SCOPE_LEVEL_NAMESPACE = 4;
+  SCOPE_LEVEL_RESOURCE = 5;
+}
+
+enum AuthorizationEffect {
+  AUTHORIZATION_EFFECT_UNSPECIFIED = 0;
+  AUTHORIZATION_EFFECT_ALLOW = 1;
+  AUTHORIZATION_EFFECT_DENY = 2;
+}
+
+enum RuntimeIntentKind {
+  RUNTIME_INTENT_KIND_UNSPECIFIED = 0;
+  RUNTIME_INTENT_KIND_INSTALL_RELEASE = 1;
+  RUNTIME_INTENT_KIND_UNINSTALL_RELEASE = 2;
+  RUNTIME_INTENT_KIND_UPGRADE_RELEASE = 3;
+  RUNTIME_INTENT_KIND_ROLLBACK_RELEASE = 4;
+  RUNTIME_INTENT_KIND_CHANGE_CONFIGURATION = 5;
+}
+
+message AccessTokenClaims {
+  string profile_version = 1;
+  string issuer = 2;
+  repeated string audiences = 3;
+  string subject_id = 4;
+  SubjectType subject_type = 5;
+  repeated string tenant_membership_ids = 6;
+  google.protobuf.Timestamp issued_at = 7;
+  google.protobuf.Timestamp expires_at = 8;
+  google.protobuf.Timestamp not_before = 9;
+  optional google.protobuf.Timestamp auth_time = 10;
+  string token_id = 11;
+  string key_id = 12;
+  string algorithm = 13;
+  string tenant_id = 14;
+  string membership_id = 15;
+  string policy_version = 16;
+  repeated ScopedPermission scoped_permissions = 17;
+  repeated AuthorizationAction allowed_actions = 18;
+}
+
+message TrustedRequestContext {
+  string subject_id = 1;
+  SubjectType subject_type = 2;
+  string tenant_id = 3;
+  string membership_id = 4;
+  optional string project_id = 5;
+  optional string environment_id = 6;
+  optional string namespace_id = 7;
+  string correlation_id = 8;
+  optional string traceparent = 9;
+  string token_id = 10;
+  google.protobuf.Timestamp auth_time = 11;
+  string policy_version = 12;
+  repeated ScopedPermission scoped_permissions = 13;
+}
+
+message AuthorizationScope {
+  ScopeLevel level = 1;
+  string tenant_id = 2;
+  optional string project_id = 3;
+  optional string environment_id = 4;
+  optional string namespace_id = 5;
+}
+
+message AuthorizationDecision {
+  AuthorizationEffect effect = 1;
+  string reason_code = 2;
+  string policy_version = 3;
+  string resource_kind = 4;
+  optional string resource_id = 5;
+  AuthorizationAction action = 6;
+  AuthorizationScope scope = 7;
+}
+
+message ServiceIdentity {
+  string subject_id = 1;
+  SubjectType subject_type = 2;
+  repeated string audiences = 3;
+  repeated AuthorizationAction allowed_actions = 4;
+  repeated string tenant_ids = 5;
+  repeated ScopedPermission scoped_permissions = 6;
+}
+
+message ContractSecretReference {
+  string provider = 1;
+  string scope = 2;
+  string name = 3;
+  optional string version = 4;
+}
+
+message RuntimeIntentMetadata {
+  string idempotency_key = 1;
+  string correlation_id = 2;
+}
+
+message RuntimeIntentSpec {
+  string release_id = 1;
+  string target_ref = 2;
+  string scope_ref = 3;
+  google.protobuf.Struct parameters = 4;
+  repeated ContractSecretReference secret_references = 5;
+}
+
+message RuntimeIntent {
+  string api_version = 1;
+  RuntimeIntentKind kind = 2;
+  RuntimeIntentMetadata metadata = 3;
+  RuntimeIntentSpec spec = 4;
+}
+
+message ExecutionPlanStep {
+  string step_id = 1;
+  string step_type = 2;
+  repeated string depends_on = 3;
+}
+
+message ExecutionPlan {
+  string plan_id = 1;
+  string intent_id = 2;
+  string semantic_digest = 3;
+  string release_ref = 4;
+  repeated string artifact_digests = 5;
+  string target_ref = 6;
+  string capability_snapshot_digest = 7;
+  map<string, string> provider_versions = 8;
+  repeated string policy_decision_refs = 9;
+  google.protobuf.Struct approved_parameters = 10;
+  repeated ContractSecretReference secret_references = 11;
+  repeated ExecutionPlanStep steps = 12;
+  google.protobuf.Timestamp created_at = 13;
+}
+
+message ConsoleSubject {
+  string id = 1;
+  SubjectType type = 2;
+  string display_name = 3;
+}
+
+message TenantMembership {
+  string membership_id = 1;
+  string tenant_id = 2;
+  string tenant_name = 3;
+}
+
+message Capability {
+  string name = 1;
+  bool available = 2;
+  string version = 3;
+}
+
+message ScopedPermission {
+  string resource_kind = 1;
+  optional string resource_id = 2;
+  AuthorizationAction action = 3;
+  string tenant_id = 4;
+  optional string project_id = 5;
+  optional string environment_id = 6;
+  optional string namespace_id = 7;
+}
+
+message ConsoleBootstrap {
+  ConsoleSubject subject = 1;
+  string selected_tenant_id = 2;
+  repeated TenantMembership memberships = 3;
+  repeated Capability capabilities = 4;
+  repeated ScopedPermission permissions = 5;
+  string policy_version = 6;
+  string permission_version = 7;
+}
+
+message TenantSwitch {
+  string tenant_id = 1;
+}
+
+message ProblemViolation {
+  string field = 1;
+  string code = 2;
+  optional string message = 3;
+}
+
+message ProblemDetails {
+  string type = 1;
+  string title = 2;
+  int32 status = 3;
+  optional string detail = 4;
+  optional string instance = 5;
+  string code = 6;
+  string correlation_id = 7;
+  repeated ProblemViolation violations = 8;
 }

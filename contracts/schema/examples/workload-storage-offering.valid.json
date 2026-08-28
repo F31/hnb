@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "018f6c2a-4a64-7b58-9cc3-9f70462f4201",
+  "scope": "Tenant",
+  "tenantId": "tenant-a",
+  "backendId": "018f6c2a-4a64-7b58-9cc3-9f70462f4101",
+  "name": "Shared file storage",
+  "consumptionModel": "KubernetesPersistentVolume",
+  "serviceMode": "File",
+  "accessModes": ["ReadWriteMany"],
+  "volumeExpansion": "Unknown",
+  "snapshots": "Unsupported",
+  "clones": "Unsupported",
+  "protectionClass": "standard",
+  "conditions": [],
+  "version": 1,
+  "createdAt": "2026-08-09T11:00:00Z",
+  "updatedAt": "2026-08-09T12:00:00Z"
+}

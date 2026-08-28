@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.hnb.cloud/storage/v1/workload-storage-offering.schema.json",
+  "title": "WorkloadStorageOffering",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "id", "scope", "name", "consumptionModel", "serviceMode", "accessModes", "volumeExpansion", "snapshots", "clones", "protectionClass", "conditions", "version", "createdAt", "updatedAt"],
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "id": { "type": "string", "format": "uuid" },
+    "scope": { "enum": ["Tenant", "Global"] },
+    "tenantId": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "backendId": { "type": "string", "format": "uuid" },
+    "name": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "description": { "type": "string", "maxLength": 2048 },
+    "consumptionModel": { "const": "KubernetesPersistentVolume" },
+    "serviceMode": { "enum": ["Block", "File"] },
+    "accessModes": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 4,
+      "uniqueItems": true,
+      "items": { "enum": ["ReadWriteOnce", "ReadOnlyMany", "ReadWriteMany", "ReadWriteOncePod"] }
+    },
+    "volumeExpansion": { "enum": ["Supported", "Unsupported", "Unknown"] },
+    "snapshots": { "enum": ["Supported", "Unsupported", "Unknown"] },
+    "clones": { "enum": ["Supported", "Unsupported", "Unknown"] },
+    "topology": {
+      "type": "object",
+      "maxProperties": 32,
+      "propertyNames": { "minLength": 1, "maxLength": 128 },
+      "additionalProperties": {
+        "type": "array",
+        "minItems": 1,
+        "maxItems": 64,
+        "uniqueItems": true,
+        "items": { "type": "string", "minLength": 1, "maxLength": 256 }
+      }
+    },
+    "protectionClass": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "conditions": { "type": "array", "maxItems": 64, "items": { "$ref": "storage-condition.schema.json" } },
+    "version": { "type": "integer", "minimum": 1 },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "updatedAt": { "type": "string", "format": "date-time" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "scope": { "const": "Tenant" } }, "required": ["scope"] },
+      "then": { "required": ["tenantId"] },
+      "else": { "not": { "required": ["tenantId"] } }
+    }
+  ]
+}

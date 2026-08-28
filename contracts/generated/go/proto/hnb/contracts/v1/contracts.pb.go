@@ -9,6 +9,7 @@ package contractsv1
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	structpb "google.golang.org/protobuf/types/known/structpb"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
@@ -22,6 +23,296 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type SubjectType int32
+
+const (
+	SubjectType_SUBJECT_TYPE_UNSPECIFIED SubjectType = 0
+	SubjectType_SUBJECT_TYPE_USER        SubjectType = 1
+	SubjectType_SUBJECT_TYPE_WORKLOAD    SubjectType = 2
+	SubjectType_SUBJECT_TYPE_SERVICE     SubjectType = 3
+)
+
+// Enum value maps for SubjectType.
+var (
+	SubjectType_name = map[int32]string{
+		0: "SUBJECT_TYPE_UNSPECIFIED",
+		1: "SUBJECT_TYPE_USER",
+		2: "SUBJECT_TYPE_WORKLOAD",
+		3: "SUBJECT_TYPE_SERVICE",
+	}
+	SubjectType_value = map[string]int32{
+		"SUBJECT_TYPE_UNSPECIFIED": 0,
+		"SUBJECT_TYPE_USER":        1,
+		"SUBJECT_TYPE_WORKLOAD":    2,
+		"SUBJECT_TYPE_SERVICE":     3,
+	}
+)
+
+func (x SubjectType) Enum() *SubjectType {
+	p := new(SubjectType)
+	*p = x
+	return p
+}
+
+func (x SubjectType) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (SubjectType) Descriptor() protoreflect.EnumDescriptor {
+	return file_hnb_contracts_v1_contracts_proto_enumTypes[0].Descriptor()
+}
+
+func (SubjectType) Type() protoreflect.EnumType {
+	return &file_hnb_contracts_v1_contracts_proto_enumTypes[0]
+}
+
+func (x SubjectType) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use SubjectType.Descriptor instead.
+func (SubjectType) EnumDescriptor() ([]byte, []int) {
+	return file_hnb_contracts_v1_contracts_proto_rawDescGZIP(), []int{0}
+}
+
+type AuthorizationAction int32
+
+const (
+	AuthorizationAction_AUTHORIZATION_ACTION_UNSPECIFIED   AuthorizationAction = 0
+	AuthorizationAction_AUTHORIZATION_ACTION_READ          AuthorizationAction = 1
+	AuthorizationAction_AUTHORIZATION_ACTION_LIST          AuthorizationAction = 2
+	AuthorizationAction_AUTHORIZATION_ACTION_CREATE        AuthorizationAction = 3
+	AuthorizationAction_AUTHORIZATION_ACTION_UPDATE        AuthorizationAction = 4
+	AuthorizationAction_AUTHORIZATION_ACTION_DELETE        AuthorizationAction = 5
+	AuthorizationAction_AUTHORIZATION_ACTION_EXECUTE       AuthorizationAction = 6
+	AuthorizationAction_AUTHORIZATION_ACTION_APPROVE       AuthorizationAction = 7
+	AuthorizationAction_AUTHORIZATION_ACTION_REJECT        AuthorizationAction = 8
+	AuthorizationAction_AUTHORIZATION_ACTION_CANCEL        AuthorizationAction = 9
+	AuthorizationAction_AUTHORIZATION_ACTION_SWITCH_TENANT AuthorizationAction = 10
+)
+
+// Enum value maps for AuthorizationAction.
+var (
+	AuthorizationAction_name = map[int32]string{
+		0:  "AUTHORIZATION_ACTION_UNSPECIFIED",
+		1:  "AUTHORIZATION_ACTION_READ",
+		2:  "AUTHORIZATION_ACTION_LIST",
+		3:  "AUTHORIZATION_ACTION_CREATE",
+		4:  "AUTHORIZATION_ACTION_UPDATE",
+		5:  "AUTHORIZATION_ACTION_DELETE",
+		6:  "AUTHORIZATION_ACTION_EXECUTE",
+		7:  "AUTHORIZATION_ACTION_APPROVE",
+		8:  "AUTHORIZATION_ACTION_REJECT",
+		9:  "AUTHORIZATION_ACTION_CANCEL",
+		10: "AUTHORIZATION_ACTION_SWITCH_TENANT",
+	}
+	AuthorizationAction_value = map[string]int32{
+		"AUTHORIZATION_ACTION_UNSPECIFIED":   0,
+		"AUTHORIZATION_ACTION_READ":          1,
+		"AUTHORIZATION_ACTION_LIST":          2,
+		"AUTHORIZATION_ACTION_CREATE":        3,
+		"AUTHORIZATION_ACTION_UPDATE":        4,
+		"AUTHORIZATION_ACTION_DELETE":        5,
+		"AUTHORIZATION_ACTION_EXECUTE":       6,
+		"AUTHORIZATION_ACTION_APPROVE":       7,
+		"AUTHORIZATION_ACTION_REJECT":        8,
+		"AUTHORIZATION_ACTION_CANCEL":        9,
+		"AUTHORIZATION_ACTION_SWITCH_TENANT": 10,
+	}
+)
+
+func (x AuthorizationAction) Enum() *AuthorizationAction {
+	p := new(AuthorizationAction)
+	*p = x
+	return p
+}
+
+func (x AuthorizationAction) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (AuthorizationAction) Descriptor() protoreflect.EnumDescriptor {
+	return file_hnb_contracts_v1_contracts_proto_enumTypes[1].Descriptor()
+}
+
+func (AuthorizationAction) Type() protoreflect.EnumType {
+	return &file_hnb_contracts_v1_contracts_proto_enumTypes[1]
+}
+
+func (x AuthorizationAction) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use AuthorizationAction.Descriptor instead.
+func (AuthorizationAction) EnumDescriptor() ([]byte, []int) {
+	return file_hnb_contracts_v1_contracts_proto_rawDescGZIP(), []int{1}
+}
+
+type ScopeLevel int32
+
+const (
+	ScopeLevel_SCOPE_LEVEL_UNSPECIFIED ScopeLevel = 0
+	ScopeLevel_SCOPE_LEVEL_TENANT      ScopeLevel = 1
+	ScopeLevel_SCOPE_LEVEL_PROJECT     ScopeLevel = 2
+	ScopeLevel_SCOPE_LEVEL_ENVIRONMENT ScopeLevel = 3
+	ScopeLevel_SCOPE_LEVEL_NAMESPACE   ScopeLevel = 4
+	ScopeLevel_SCOPE_LEVEL_RESOURCE    ScopeLevel = 5
+)
+
+// Enum value maps for ScopeLevel.
+var (
+	ScopeLevel_name = map[int32]string{
+		0: "SCOPE_LEVEL_UNSPECIFIED",
+		1: "SCOPE_LEVEL_TENANT",
+		2: "SCOPE_LEVEL_PROJECT",
+		3: "SCOPE_LEVEL_ENVIRONMENT",
+		4: "SCOPE_LEVEL_NAMESPACE",
+		5: "SCOPE_LEVEL_RESOURCE",
+	}
+	ScopeLevel_value = map[string]int32{
+		"SCOPE_LEVEL_UNSPECIFIED": 0,
+		"SCOPE_LEVEL_TENANT":      1,
+		"SCOPE_LEVEL_PROJECT":     2,
+		"SCOPE_LEVEL_ENVIRONMENT": 3,
+		"SCOPE_LEVEL_NAMESPACE":   4,
+		"SCOPE_LEVEL_RESOURCE":    5,
+	}
+)
+
+func (x ScopeLevel) Enum() *ScopeLevel {
+	p := new(ScopeLevel)
+	*p = x
+	return p
+}
+
+func (x ScopeLevel) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ScopeLevel) Descriptor() protoreflect.EnumDescriptor {
+	return file_hnb_contracts_v1_contracts_proto_enumTypes[2].Descriptor()
+}
+
+func (ScopeLevel) Type() protoreflect.EnumType {
+	return &file_hnb_contracts_v1_contracts_proto_enumTypes[2]
+}
+
+func (x ScopeLevel) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ScopeLevel.Descriptor instead.
+func (ScopeLevel) EnumDescriptor() ([]byte, []int) {
+	return file_hnb_contracts_v1_contracts_proto_rawDescGZIP(), []int{2}
+}
+
+type AuthorizationEffect int32
+
+const (
+	AuthorizationEffect_AUTHORIZATION_EFFECT_UNSPECIFIED AuthorizationEffect = 0
+	AuthorizationEffect_AUTHORIZATION_EFFECT_ALLOW       AuthorizationEffect = 1
+	AuthorizationEffect_AUTHORIZATION_EFFECT_DENY        AuthorizationEffect = 2
+)
+
+// Enum value maps for AuthorizationEffect.
+var (
+	AuthorizationEffect_name = map[int32]string{
+		0: "AUTHORIZATION_EFFECT_UNSPECIFIED",
+		1: "AUTHORIZATION_EFFECT_ALLOW",
+		2: "AUTHORIZATION_EFFECT_DENY",
+	}
+	AuthorizationEffect_value = map[string]int32{
+		"AUTHORIZATION_EFFECT_UNSPECIFIED": 0,
+		"AUTHORIZATION_EFFECT_ALLOW":       1,
+		"AUTHORIZATION_EFFECT_DENY":        2,
+	}
+)
+
+func (x AuthorizationEffect) Enum() *AuthorizationEffect {
+	p := new(AuthorizationEffect)
+	*p = x
+	return p
+}
+
+func (x AuthorizationEffect) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (AuthorizationEffect) Descriptor() protoreflect.EnumDescriptor {
+	return file_hnb_contracts_v1_contracts_proto_enumTypes[3].Descriptor()
+}
+
+func (AuthorizationEffect) Type() protoreflect.EnumType {
+	return &file_hnb_contracts_v1_contracts_proto_enumTypes[3]
+}
+
+func (x AuthorizationEffect) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use AuthorizationEffect.Descriptor instead.
+func (AuthorizationEffect) EnumDescriptor() ([]byte, []int) {
+	return file_hnb_contracts_v1_contracts_proto_rawDescGZIP(), []int{3}
+}
+
+type RuntimeIntentKind int32
+
+const (
+	RuntimeIntentKind_RUNTIME_INTENT_KIND_UNSPECIFIED          RuntimeIntentKind = 0
+	RuntimeIntentKind_RUNTIME_INTENT_KIND_INSTALL_RELEASE      RuntimeIntentKind = 1
+	RuntimeIntentKind_RUNTIME_INTENT_KIND_UNINSTALL_RELEASE    RuntimeIntentKind = 2
+	RuntimeIntentKind_RUNTIME_INTENT_KIND_UPGRADE_RELEASE      RuntimeIntentKind = 3
+	RuntimeIntentKind_RUNTIME_INTENT_KIND_ROLLBACK_RELEASE     RuntimeIntentKind = 4
+	RuntimeIntentKind_RUNTIME_INTENT_KIND_CHANGE_CONFIGURATION RuntimeIntentKind = 5
+)
+
+// Enum value maps for RuntimeIntentKind.
+var (
+	RuntimeIntentKind_name = map[int32]string{
+		0: "RUNTIME_INTENT_KIND_UNSPECIFIED",
+		1: "RUNTIME_INTENT_KIND_INSTALL_RELEASE",
+		2: "RUNTIME_INTENT_KIND_UNINSTALL_RELEASE",
+		3: "RUNTIME_INTENT_KIND_UPGRADE_RELEASE",
+		4: "RUNTIME_INTENT_KIND_ROLLBACK_RELEASE",
+		5: "RUNTIME_INTENT_KIND_CHANGE_CONFIGURATION",
+	}
+	RuntimeIntentKind_value = map[string]int32{
+		"RUNTIME_INTENT_KIND_UNSPECIFIED":          0,
+		"RUNTIME_INTENT_KIND_INSTALL_RELEASE":      1,
+		"RUNTIME_INTENT_KIND_UNINSTALL_RELEASE":    2,
+		"RUNTIME_INTENT_KIND_UPGRADE_RELEASE":      3,
+		"RUNTIME_INTENT_KIND_ROLLBACK_RELEASE":     4,
+		"RUNTIME_INTENT_KIND_CHANGE_CONFIGURATION": 5,
+	}
+)
+
+func (x RuntimeIntentKind) Enum() *RuntimeIntentKind {
+	p := new(RuntimeIntentKind)
+	*p = x
+	return p
+}
+
+func (x RuntimeIntentKind) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (RuntimeIntentKind) Descriptor() protoreflect.EnumDescriptor {
+	return file_hnb_contracts_v1_contracts_proto_enumTypes[4].Descriptor()
+}
+
+func (RuntimeIntentKind) Type() protoreflect.EnumType {
+	return &file_hnb_contracts_v1_contracts_proto_enumTypes[4]
+}
+
+func (x RuntimeIntentKind) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use RuntimeIntentKind.Descriptor instead.
+func (RuntimeIntentKind) EnumDescriptor() ([]byte, []int) {
+	return file_hnb_contracts_v1_contracts_proto_rawDescGZIP(), []int{4}
+}
+
 type RequestContext struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	TenantId      string                 `protobuf:"bytes,1,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
@@ -30,6 +321,8 @@ type RequestContext struct {
 	ActorId       string                 `protobuf:"bytes,4,opt,name=actor_id,json=actorId,proto3" json:"actor_id,omitempty"`
 	CorrelationId string                 `protobuf:"bytes,5,opt,name=correlation_id,json=correlationId,proto3" json:"correlation_id,omitempty"`
 	Traceparent   *string                `protobuf:"bytes,6,opt,name=traceparent,proto3,oneof" json:"traceparent,omitempty"`
+	NamespaceId   *string                `protobuf:"bytes,7,opt,name=namespace_id,json=namespaceId,proto3,oneof" json:"namespace_id,omitempty"`
+	Roles         []string               `protobuf:"bytes,8,rep,name=roles,proto3" json:"roles,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -106,6 +399,280 @@ func (x *RequestContext) GetTraceparent() string {
 	return ""
 }
 
+func (x *RequestContext) GetNamespaceId() string {
+	if x != nil && x.NamespaceId != nil {
+		return *x.NamespaceId
+	}
+	return ""
+}
+
+func (x *RequestContext) GetRoles() []string {
+	if x != nil {
+		return x.Roles
+	}
+	return nil
+}
+
+type TenantContext struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TenantId      string                 `protobuf:"bytes,1,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
+	ProjectId     string                 `protobuf:"bytes,2,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
+	EnvironmentId string                 `protobuf:"bytes,3,opt,name=environment_id,json=environmentId,proto3" json:"environment_id,omitempty"`
+	NamespaceId   *string                `protobuf:"bytes,4,opt,name=namespace_id,json=namespaceId,proto3,oneof" json:"namespace_id,omitempty"`
+	ActorId       string                 `protobuf:"bytes,5,opt,name=actor_id,json=actorId,proto3" json:"actor_id,omitempty"`
+	CorrelationId string                 `protobuf:"bytes,6,opt,name=correlation_id,json=correlationId,proto3" json:"correlation_id,omitempty"`
+	Roles         []string               `protobuf:"bytes,7,rep,name=roles,proto3" json:"roles,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TenantContext) Reset() {
+	*x = TenantContext{}
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TenantContext) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TenantContext) ProtoMessage() {}
+
+func (x *TenantContext) ProtoReflect() protoreflect.Message {
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TenantContext.ProtoReflect.Descriptor instead.
+func (*TenantContext) Descriptor() ([]byte, []int) {
+	return file_hnb_contracts_v1_contracts_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *TenantContext) GetTenantId() string {
+	if x != nil {
+		return x.TenantId
+	}
+	return ""
+}
+
+func (x *TenantContext) GetProjectId() string {
+	if x != nil {
+		return x.ProjectId
+	}
+	return ""
+}
+
+func (x *TenantContext) GetEnvironmentId() string {
+	if x != nil {
+		return x.EnvironmentId
+	}
+	return ""
+}
+
+func (x *TenantContext) GetNamespaceId() string {
+	if x != nil && x.NamespaceId != nil {
+		return *x.NamespaceId
+	}
+	return ""
+}
+
+func (x *TenantContext) GetActorId() string {
+	if x != nil {
+		return x.ActorId
+	}
+	return ""
+}
+
+func (x *TenantContext) GetCorrelationId() string {
+	if x != nil {
+		return x.CorrelationId
+	}
+	return ""
+}
+
+func (x *TenantContext) GetRoles() []string {
+	if x != nil {
+		return x.Roles
+	}
+	return nil
+}
+
+type AuthorizationRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TenantId      string                 `protobuf:"bytes,1,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
+	ProjectId     string                 `protobuf:"bytes,2,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
+	EnvironmentId string                 `protobuf:"bytes,3,opt,name=environment_id,json=environmentId,proto3" json:"environment_id,omitempty"`
+	NamespaceId   *string                `protobuf:"bytes,4,opt,name=namespace_id,json=namespaceId,proto3,oneof" json:"namespace_id,omitempty"`
+	ActorId       string                 `protobuf:"bytes,5,opt,name=actor_id,json=actorId,proto3" json:"actor_id,omitempty"`
+	Action        string                 `protobuf:"bytes,6,opt,name=action,proto3" json:"action,omitempty"`
+	ResourceType  string                 `protobuf:"bytes,7,opt,name=resource_type,json=resourceType,proto3" json:"resource_type,omitempty"`
+	ResourceId    *string                `protobuf:"bytes,8,opt,name=resource_id,json=resourceId,proto3,oneof" json:"resource_id,omitempty"`
+	RequiredRoles []string               `protobuf:"bytes,9,rep,name=required_roles,json=requiredRoles,proto3" json:"required_roles,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AuthorizationRequest) Reset() {
+	*x = AuthorizationRequest{}
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AuthorizationRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AuthorizationRequest) ProtoMessage() {}
+
+func (x *AuthorizationRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AuthorizationRequest.ProtoReflect.Descriptor instead.
+func (*AuthorizationRequest) Descriptor() ([]byte, []int) {
+	return file_hnb_contracts_v1_contracts_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *AuthorizationRequest) GetTenantId() string {
+	if x != nil {
+		return x.TenantId
+	}
+	return ""
+}
+
+func (x *AuthorizationRequest) GetProjectId() string {
+	if x != nil {
+		return x.ProjectId
+	}
+	return ""
+}
+
+func (x *AuthorizationRequest) GetEnvironmentId() string {
+	if x != nil {
+		return x.EnvironmentId
+	}
+	return ""
+}
+
+func (x *AuthorizationRequest) GetNamespaceId() string {
+	if x != nil && x.NamespaceId != nil {
+		return *x.NamespaceId
+	}
+	return ""
+}
+
+func (x *AuthorizationRequest) GetActorId() string {
+	if x != nil {
+		return x.ActorId
+	}
+	return ""
+}
+
+func (x *AuthorizationRequest) GetAction() string {
+	if x != nil {
+		return x.Action
+	}
+	return ""
+}
+
+func (x *AuthorizationRequest) GetResourceType() string {
+	if x != nil {
+		return x.ResourceType
+	}
+	return ""
+}
+
+func (x *AuthorizationRequest) GetResourceId() string {
+	if x != nil && x.ResourceId != nil {
+		return *x.ResourceId
+	}
+	return ""
+}
+
+func (x *AuthorizationRequest) GetRequiredRoles() []string {
+	if x != nil {
+		return x.RequiredRoles
+	}
+	return nil
+}
+
+type AuthorizationResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Allowed       bool                   `protobuf:"varint,1,opt,name=allowed,proto3" json:"allowed,omitempty"`
+	Reason        *string                `protobuf:"bytes,2,opt,name=reason,proto3,oneof" json:"reason,omitempty"`
+	RequiredRole  *string                `protobuf:"bytes,3,opt,name=required_role,json=requiredRole,proto3,oneof" json:"required_role,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AuthorizationResponse) Reset() {
+	*x = AuthorizationResponse{}
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AuthorizationResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AuthorizationResponse) ProtoMessage() {}
+
+func (x *AuthorizationResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AuthorizationResponse.ProtoReflect.Descriptor instead.
+func (*AuthorizationResponse) Descriptor() ([]byte, []int) {
+	return file_hnb_contracts_v1_contracts_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *AuthorizationResponse) GetAllowed() bool {
+	if x != nil {
+		return x.Allowed
+	}
+	return false
+}
+
+func (x *AuthorizationResponse) GetReason() string {
+	if x != nil && x.Reason != nil {
+		return *x.Reason
+	}
+	return ""
+}
+
+func (x *AuthorizationResponse) GetRequiredRole() string {
+	if x != nil && x.RequiredRole != nil {
+		return *x.RequiredRole
+	}
+	return ""
+}
+
 type ResourceReference struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ApiVersion    string                 `protobuf:"bytes,1,opt,name=api_version,json=apiVersion,proto3" json:"api_version,omitempty"`
@@ -120,7 +687,7 @@ type ResourceReference struct {
 
 func (x *ResourceReference) Reset() {
 	*x = ResourceReference{}
-	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[1]
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -132,7 +699,7 @@ func (x *ResourceReference) String() string {
 func (*ResourceReference) ProtoMessage() {}
 
 func (x *ResourceReference) ProtoReflect() protoreflect.Message {
-	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[1]
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -145,7 +712,7 @@ func (x *ResourceReference) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResourceReference.ProtoReflect.Descriptor instead.
 func (*ResourceReference) Descriptor() ([]byte, []int) {
-	return file_hnb_contracts_v1_contracts_proto_rawDescGZIP(), []int{1}
+	return file_hnb_contracts_v1_contracts_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *ResourceReference) GetApiVersion() string {
@@ -201,7 +768,7 @@ type ContractEchoed struct {
 
 func (x *ContractEchoed) Reset() {
 	*x = ContractEchoed{}
-	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[2]
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -213,7 +780,7 @@ func (x *ContractEchoed) String() string {
 func (*ContractEchoed) ProtoMessage() {}
 
 func (x *ContractEchoed) ProtoReflect() protoreflect.Message {
-	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[2]
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -226,7 +793,7 @@ func (x *ContractEchoed) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ContractEchoed.ProtoReflect.Descriptor instead.
 func (*ContractEchoed) Descriptor() ([]byte, []int) {
-	return file_hnb_contracts_v1_contracts_proto_rawDescGZIP(), []int{2}
+	return file_hnb_contracts_v1_contracts_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *ContractEchoed) GetContext() *RequestContext {
@@ -266,9 +833,22 @@ type EventEnvelope struct {
 	AggregateId      *string                `protobuf:"bytes,12,opt,name=aggregate_id,json=aggregateId,proto3,oneof" json:"aggregate_id,omitempty"`
 	AggregateVersion *int64                 `protobuf:"varint,13,opt,name=aggregate_version,json=aggregateVersion,proto3,oneof" json:"aggregate_version,omitempty"`
 	PayloadRef       *string                `protobuf:"bytes,14,opt,name=payload_ref,json=payloadRef,proto3,oneof" json:"payload_ref,omitempty"`
+	OperationId      *string                `protobuf:"bytes,15,opt,name=operation_id,json=operationId,proto3,oneof" json:"operation_id,omitempty"`
+	StepId           *string                `protobuf:"bytes,16,opt,name=step_id,json=stepId,proto3,oneof" json:"step_id,omitempty"`
+	ResourceId       *string                `protobuf:"bytes,17,opt,name=resource_id,json=resourceId,proto3,oneof" json:"resource_id,omitempty"`
+	ExpectedVersion  *int64                 `protobuf:"varint,18,opt,name=expected_version,json=expectedVersion,proto3,oneof" json:"expected_version,omitempty"`
 	// Types that are valid to be assigned to Payload:
 	//
 	//	*EventEnvelope_ContractEchoed
+	//	*EventEnvelope_AlertFiring
+	//	*EventEnvelope_AlertResolved
+	//	*EventEnvelope_NotificationDispatch
+	//	*EventEnvelope_DeliveryChanged
+	//	*EventEnvelope_SecretReference
+	//	*EventEnvelope_StepRequested
+	//	*EventEnvelope_StepCompleted
+	//	*EventEnvelope_OperationStateChanged
+	//	*EventEnvelope_OperationProgress
 	Payload       isEventEnvelope_Payload `protobuf_oneof:"payload"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -276,7 +856,7 @@ type EventEnvelope struct {
 
 func (x *EventEnvelope) Reset() {
 	*x = EventEnvelope{}
-	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[3]
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -288,7 +868,7 @@ func (x *EventEnvelope) String() string {
 func (*EventEnvelope) ProtoMessage() {}
 
 func (x *EventEnvelope) ProtoReflect() protoreflect.Message {
-	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[3]
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -301,7 +881,7 @@ func (x *EventEnvelope) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EventEnvelope.ProtoReflect.Descriptor instead.
 func (*EventEnvelope) Descriptor() ([]byte, []int) {
-	return file_hnb_contracts_v1_contracts_proto_rawDescGZIP(), []int{3}
+	return file_hnb_contracts_v1_contracts_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *EventEnvelope) GetMessageId() string {
@@ -402,6 +982,34 @@ func (x *EventEnvelope) GetPayloadRef() string {
 	return ""
 }
 
+func (x *EventEnvelope) GetOperationId() string {
+	if x != nil && x.OperationId != nil {
+		return *x.OperationId
+	}
+	return ""
+}
+
+func (x *EventEnvelope) GetStepId() string {
+	if x != nil && x.StepId != nil {
+		return *x.StepId
+	}
+	return ""
+}
+
+func (x *EventEnvelope) GetResourceId() string {
+	if x != nil && x.ResourceId != nil {
+		return *x.ResourceId
+	}
+	return ""
+}
+
+func (x *EventEnvelope) GetExpectedVersion() int64 {
+	if x != nil && x.ExpectedVersion != nil {
+		return *x.ExpectedVersion
+	}
+	return 0
+}
+
 func (x *EventEnvelope) GetPayload() isEventEnvelope_Payload {
 	if x != nil {
 		return x.Payload
@@ -418,6 +1026,87 @@ func (x *EventEnvelope) GetContractEchoed() *ContractEchoed {
 	return nil
 }
 
+func (x *EventEnvelope) GetAlertFiring() *AlertFiring {
+	if x != nil {
+		if x, ok := x.Payload.(*EventEnvelope_AlertFiring); ok {
+			return x.AlertFiring
+		}
+	}
+	return nil
+}
+
+func (x *EventEnvelope) GetAlertResolved() *AlertResolved {
+	if x != nil {
+		if x, ok := x.Payload.(*EventEnvelope_AlertResolved); ok {
+			return x.AlertResolved
+		}
+	}
+	return nil
+}
+
+func (x *EventEnvelope) GetNotificationDispatch() *NotificationDispatch {
+	if x != nil {
+		if x, ok := x.Payload.(*EventEnvelope_NotificationDispatch); ok {
+			return x.NotificationDispatch
+		}
+	}
+	return nil
+}
+
+func (x *EventEnvelope) GetDeliveryChanged() *DeliveryChanged {
+	if x != nil {
+		if x, ok := x.Payload.(*EventEnvelope_DeliveryChanged); ok {
+			return x.DeliveryChanged
+		}
+	}
+	return nil
+}
+
+func (x *EventEnvelope) GetSecretReference() *SecretReferenceMsg {
+	if x != nil {
+		if x, ok := x.Payload.(*EventEnvelope_SecretReference); ok {
+			return x.SecretReference
+		}
+	}
+	return nil
+}
+
+func (x *EventEnvelope) GetStepRequested() *StepRequested {
+	if x != nil {
+		if x, ok := x.Payload.(*EventEnvelope_StepRequested); ok {
+			return x.StepRequested
+		}
+	}
+	return nil
+}
+
+func (x *EventEnvelope) GetStepCompleted() *StepCompleted {
+	if x != nil {
+		if x, ok := x.Payload.(*EventEnvelope_StepCompleted); ok {
+			return x.StepCompleted
+		}
+	}
+	return nil
+}
+
+func (x *EventEnvelope) GetOperationStateChanged() *OperationStateChanged {
+	if x != nil {
+		if x, ok := x.Payload.(*EventEnvelope_OperationStateChanged); ok {
+			return x.OperationStateChanged
+		}
+	}
+	return nil
+}
+
+func (x *EventEnvelope) GetOperationProgress() *OperationProgress {
+	if x != nil {
+		if x, ok := x.Payload.(*EventEnvelope_OperationProgress); ok {
+			return x.OperationProgress
+		}
+	}
+	return nil
+}
+
 type isEventEnvelope_Payload interface {
 	isEventEnvelope_Payload()
 }
@@ -426,13 +1115,2591 @@ type EventEnvelope_ContractEchoed struct {
 	ContractEchoed *ContractEchoed `protobuf:"bytes,20,opt,name=contract_echoed,json=contractEchoed,proto3,oneof"`
 }
 
+type EventEnvelope_AlertFiring struct {
+	AlertFiring *AlertFiring `protobuf:"bytes,21,opt,name=alert_firing,json=alertFiring,proto3,oneof"`
+}
+
+type EventEnvelope_AlertResolved struct {
+	AlertResolved *AlertResolved `protobuf:"bytes,22,opt,name=alert_resolved,json=alertResolved,proto3,oneof"`
+}
+
+type EventEnvelope_NotificationDispatch struct {
+	NotificationDispatch *NotificationDispatch `protobuf:"bytes,23,opt,name=notification_dispatch,json=notificationDispatch,proto3,oneof"`
+}
+
+type EventEnvelope_DeliveryChanged struct {
+	DeliveryChanged *DeliveryChanged `protobuf:"bytes,24,opt,name=delivery_changed,json=deliveryChanged,proto3,oneof"`
+}
+
+type EventEnvelope_SecretReference struct {
+	SecretReference *SecretReferenceMsg `protobuf:"bytes,25,opt,name=secret_reference,json=secretReference,proto3,oneof"`
+}
+
+type EventEnvelope_StepRequested struct {
+	StepRequested *StepRequested `protobuf:"bytes,26,opt,name=step_requested,json=stepRequested,proto3,oneof"`
+}
+
+type EventEnvelope_StepCompleted struct {
+	StepCompleted *StepCompleted `protobuf:"bytes,27,opt,name=step_completed,json=stepCompleted,proto3,oneof"`
+}
+
+type EventEnvelope_OperationStateChanged struct {
+	OperationStateChanged *OperationStateChanged `protobuf:"bytes,28,opt,name=operation_state_changed,json=operationStateChanged,proto3,oneof"`
+}
+
+type EventEnvelope_OperationProgress struct {
+	OperationProgress *OperationProgress `protobuf:"bytes,29,opt,name=operation_progress,json=operationProgress,proto3,oneof"`
+}
+
 func (*EventEnvelope_ContractEchoed) isEventEnvelope_Payload() {}
+
+func (*EventEnvelope_AlertFiring) isEventEnvelope_Payload() {}
+
+func (*EventEnvelope_AlertResolved) isEventEnvelope_Payload() {}
+
+func (*EventEnvelope_NotificationDispatch) isEventEnvelope_Payload() {}
+
+func (*EventEnvelope_DeliveryChanged) isEventEnvelope_Payload() {}
+
+func (*EventEnvelope_SecretReference) isEventEnvelope_Payload() {}
+
+func (*EventEnvelope_StepRequested) isEventEnvelope_Payload() {}
+
+func (*EventEnvelope_StepCompleted) isEventEnvelope_Payload() {}
+
+func (*EventEnvelope_OperationStateChanged) isEventEnvelope_Payload() {}
+
+func (*EventEnvelope_OperationProgress) isEventEnvelope_Payload() {}
+
+type StepRequested struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	OperationId      string                 `protobuf:"bytes,1,opt,name=operation_id,json=operationId,proto3" json:"operation_id,omitempty"`
+	StepId           string                 `protobuf:"bytes,2,opt,name=step_id,json=stepId,proto3" json:"step_id,omitempty"`
+	StepType         string                 `protobuf:"bytes,3,opt,name=step_type,json=stepType,proto3" json:"step_type,omitempty"`
+	IdempotencyKey   string                 `protobuf:"bytes,4,opt,name=idempotency_key,json=idempotencyKey,proto3" json:"idempotency_key,omitempty"`
+	ExpectedVersion  int64                  `protobuf:"varint,5,opt,name=expected_version,json=expectedVersion,proto3" json:"expected_version,omitempty"`
+	ExecutionContext []byte                 `protobuf:"bytes,6,opt,name=execution_context,json=executionContext,proto3" json:"execution_context,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *StepRequested) Reset() {
+	*x = StepRequested{}
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StepRequested) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StepRequested) ProtoMessage() {}
+
+func (x *StepRequested) ProtoReflect() protoreflect.Message {
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StepRequested.ProtoReflect.Descriptor instead.
+func (*StepRequested) Descriptor() ([]byte, []int) {
+	return file_hnb_contracts_v1_contracts_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *StepRequested) GetOperationId() string {
+	if x != nil {
+		return x.OperationId
+	}
+	return ""
+}
+
+func (x *StepRequested) GetStepId() string {
+	if x != nil {
+		return x.StepId
+	}
+	return ""
+}
+
+func (x *StepRequested) GetStepType() string {
+	if x != nil {
+		return x.StepType
+	}
+	return ""
+}
+
+func (x *StepRequested) GetIdempotencyKey() string {
+	if x != nil {
+		return x.IdempotencyKey
+	}
+	return ""
+}
+
+func (x *StepRequested) GetExpectedVersion() int64 {
+	if x != nil {
+		return x.ExpectedVersion
+	}
+	return 0
+}
+
+func (x *StepRequested) GetExecutionContext() []byte {
+	if x != nil {
+		return x.ExecutionContext
+	}
+	return nil
+}
+
+type StepCompleted struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	OperationId   string                 `protobuf:"bytes,1,opt,name=operation_id,json=operationId,proto3" json:"operation_id,omitempty"`
+	StepId        string                 `protobuf:"bytes,2,opt,name=step_id,json=stepId,proto3" json:"step_id,omitempty"`
+	Status        string                 `protobuf:"bytes,3,opt,name=status,proto3" json:"status,omitempty"`
+	Checkpoint    *string                `protobuf:"bytes,4,opt,name=checkpoint,proto3,oneof" json:"checkpoint,omitempty"`
+	Error         *string                `protobuf:"bytes,5,opt,name=error,proto3,oneof" json:"error,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StepCompleted) Reset() {
+	*x = StepCompleted{}
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StepCompleted) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StepCompleted) ProtoMessage() {}
+
+func (x *StepCompleted) ProtoReflect() protoreflect.Message {
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StepCompleted.ProtoReflect.Descriptor instead.
+func (*StepCompleted) Descriptor() ([]byte, []int) {
+	return file_hnb_contracts_v1_contracts_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *StepCompleted) GetOperationId() string {
+	if x != nil {
+		return x.OperationId
+	}
+	return ""
+}
+
+func (x *StepCompleted) GetStepId() string {
+	if x != nil {
+		return x.StepId
+	}
+	return ""
+}
+
+func (x *StepCompleted) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *StepCompleted) GetCheckpoint() string {
+	if x != nil && x.Checkpoint != nil {
+		return *x.Checkpoint
+	}
+	return ""
+}
+
+func (x *StepCompleted) GetError() string {
+	if x != nil && x.Error != nil {
+		return *x.Error
+	}
+	return ""
+}
+
+type OperationStateChanged struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	OperationId   string                 `protobuf:"bytes,1,opt,name=operation_id,json=operationId,proto3" json:"operation_id,omitempty"`
+	PreviousState string                 `protobuf:"bytes,2,opt,name=previous_state,json=previousState,proto3" json:"previous_state,omitempty"`
+	NewState      string                 `protobuf:"bytes,3,opt,name=new_state,json=newState,proto3" json:"new_state,omitempty"`
+	Reason        *string                `protobuf:"bytes,4,opt,name=reason,proto3,oneof" json:"reason,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *OperationStateChanged) Reset() {
+	*x = OperationStateChanged{}
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OperationStateChanged) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OperationStateChanged) ProtoMessage() {}
+
+func (x *OperationStateChanged) ProtoReflect() protoreflect.Message {
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OperationStateChanged.ProtoReflect.Descriptor instead.
+func (*OperationStateChanged) Descriptor() ([]byte, []int) {
+	return file_hnb_contracts_v1_contracts_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *OperationStateChanged) GetOperationId() string {
+	if x != nil {
+		return x.OperationId
+	}
+	return ""
+}
+
+func (x *OperationStateChanged) GetPreviousState() string {
+	if x != nil {
+		return x.PreviousState
+	}
+	return ""
+}
+
+func (x *OperationStateChanged) GetNewState() string {
+	if x != nil {
+		return x.NewState
+	}
+	return ""
+}
+
+func (x *OperationStateChanged) GetReason() string {
+	if x != nil && x.Reason != nil {
+		return *x.Reason
+	}
+	return ""
+}
+
+type OperationProgress struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	OperationId    string                 `protobuf:"bytes,1,opt,name=operation_id,json=operationId,proto3" json:"operation_id,omitempty"`
+	TotalSteps     int32                  `protobuf:"varint,2,opt,name=total_steps,json=totalSteps,proto3" json:"total_steps,omitempty"`
+	CompletedSteps int32                  `protobuf:"varint,3,opt,name=completed_steps,json=completedSteps,proto3" json:"completed_steps,omitempty"`
+	FailedSteps    int32                  `protobuf:"varint,4,opt,name=failed_steps,json=failedSteps,proto3" json:"failed_steps,omitempty"`
+	Status         string                 `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
+	Message        *string                `protobuf:"bytes,6,opt,name=message,proto3,oneof" json:"message,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *OperationProgress) Reset() {
+	*x = OperationProgress{}
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OperationProgress) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OperationProgress) ProtoMessage() {}
+
+func (x *OperationProgress) ProtoReflect() protoreflect.Message {
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OperationProgress.ProtoReflect.Descriptor instead.
+func (*OperationProgress) Descriptor() ([]byte, []int) {
+	return file_hnb_contracts_v1_contracts_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *OperationProgress) GetOperationId() string {
+	if x != nil {
+		return x.OperationId
+	}
+	return ""
+}
+
+func (x *OperationProgress) GetTotalSteps() int32 {
+	if x != nil {
+		return x.TotalSteps
+	}
+	return 0
+}
+
+func (x *OperationProgress) GetCompletedSteps() int32 {
+	if x != nil {
+		return x.CompletedSteps
+	}
+	return 0
+}
+
+func (x *OperationProgress) GetFailedSteps() int32 {
+	if x != nil {
+		return x.FailedSteps
+	}
+	return 0
+}
+
+func (x *OperationProgress) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *OperationProgress) GetMessage() string {
+	if x != nil && x.Message != nil {
+		return *x.Message
+	}
+	return ""
+}
+
+type AlertFiring struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	AlertId         string                 `protobuf:"bytes,1,opt,name=alert_id,json=alertId,proto3" json:"alert_id,omitempty"`
+	TenantId        string                 `protobuf:"bytes,2,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
+	ProjectId       *string                `protobuf:"bytes,3,opt,name=project_id,json=projectId,proto3,oneof" json:"project_id,omitempty"`
+	EnvironmentId   *string                `protobuf:"bytes,4,opt,name=environment_id,json=environmentId,proto3,oneof" json:"environment_id,omitempty"`
+	Source          string                 `protobuf:"bytes,5,opt,name=source,proto3" json:"source,omitempty"`
+	Severity        string                 `protobuf:"bytes,6,opt,name=severity,proto3" json:"severity,omitempty"`
+	Fingerprint     string                 `protobuf:"bytes,7,opt,name=fingerprint,proto3" json:"fingerprint,omitempty"`
+	Summary         string                 `protobuf:"bytes,8,opt,name=summary,proto3" json:"summary,omitempty"`
+	ResourceRef     *string                `protobuf:"bytes,9,opt,name=resource_ref,json=resourceRef,proto3,oneof" json:"resource_ref,omitempty"`
+	OperationId     *string                `protobuf:"bytes,10,opt,name=operation_id,json=operationId,proto3,oneof" json:"operation_id,omitempty"`
+	CorrelationId   *string                `protobuf:"bytes,11,opt,name=correlation_id,json=correlationId,proto3,oneof" json:"correlation_id,omitempty"`
+	Labels          map[string]string      `protobuf:"bytes,12,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	FirstSeenAt     *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=first_seen_at,json=firstSeenAt,proto3" json:"first_seen_at,omitempty"`
+	OccurrenceCount int32                  `protobuf:"varint,14,opt,name=occurrence_count,json=occurrenceCount,proto3" json:"occurrence_count,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *AlertFiring) Reset() {
+	*x = AlertFiring{}
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AlertFiring) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AlertFiring) ProtoMessage() {}
+
+func (x *AlertFiring) ProtoReflect() protoreflect.Message {
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AlertFiring.ProtoReflect.Descriptor instead.
+func (*AlertFiring) Descriptor() ([]byte, []int) {
+	return file_hnb_contracts_v1_contracts_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *AlertFiring) GetAlertId() string {
+	if x != nil {
+		return x.AlertId
+	}
+	return ""
+}
+
+func (x *AlertFiring) GetTenantId() string {
+	if x != nil {
+		return x.TenantId
+	}
+	return ""
+}
+
+func (x *AlertFiring) GetProjectId() string {
+	if x != nil && x.ProjectId != nil {
+		return *x.ProjectId
+	}
+	return ""
+}
+
+func (x *AlertFiring) GetEnvironmentId() string {
+	if x != nil && x.EnvironmentId != nil {
+		return *x.EnvironmentId
+	}
+	return ""
+}
+
+func (x *AlertFiring) GetSource() string {
+	if x != nil {
+		return x.Source
+	}
+	return ""
+}
+
+func (x *AlertFiring) GetSeverity() string {
+	if x != nil {
+		return x.Severity
+	}
+	return ""
+}
+
+func (x *AlertFiring) GetFingerprint() string {
+	if x != nil {
+		return x.Fingerprint
+	}
+	return ""
+}
+
+func (x *AlertFiring) GetSummary() string {
+	if x != nil {
+		return x.Summary
+	}
+	return ""
+}
+
+func (x *AlertFiring) GetResourceRef() string {
+	if x != nil && x.ResourceRef != nil {
+		return *x.ResourceRef
+	}
+	return ""
+}
+
+func (x *AlertFiring) GetOperationId() string {
+	if x != nil && x.OperationId != nil {
+		return *x.OperationId
+	}
+	return ""
+}
+
+func (x *AlertFiring) GetCorrelationId() string {
+	if x != nil && x.CorrelationId != nil {
+		return *x.CorrelationId
+	}
+	return ""
+}
+
+func (x *AlertFiring) GetLabels() map[string]string {
+	if x != nil {
+		return x.Labels
+	}
+	return nil
+}
+
+func (x *AlertFiring) GetFirstSeenAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.FirstSeenAt
+	}
+	return nil
+}
+
+func (x *AlertFiring) GetOccurrenceCount() int32 {
+	if x != nil {
+		return x.OccurrenceCount
+	}
+	return 0
+}
+
+type AlertResolved struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AlertId       string                 `protobuf:"bytes,1,opt,name=alert_id,json=alertId,proto3" json:"alert_id,omitempty"`
+	TenantId      string                 `protobuf:"bytes,2,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
+	Fingerprint   string                 `protobuf:"bytes,3,opt,name=fingerprint,proto3" json:"fingerprint,omitempty"`
+	ResolvedAt    *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=resolved_at,json=resolvedAt,proto3" json:"resolved_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AlertResolved) Reset() {
+	*x = AlertResolved{}
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AlertResolved) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AlertResolved) ProtoMessage() {}
+
+func (x *AlertResolved) ProtoReflect() protoreflect.Message {
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AlertResolved.ProtoReflect.Descriptor instead.
+func (*AlertResolved) Descriptor() ([]byte, []int) {
+	return file_hnb_contracts_v1_contracts_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *AlertResolved) GetAlertId() string {
+	if x != nil {
+		return x.AlertId
+	}
+	return ""
+}
+
+func (x *AlertResolved) GetTenantId() string {
+	if x != nil {
+		return x.TenantId
+	}
+	return ""
+}
+
+func (x *AlertResolved) GetFingerprint() string {
+	if x != nil {
+		return x.Fingerprint
+	}
+	return ""
+}
+
+func (x *AlertResolved) GetResolvedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ResolvedAt
+	}
+	return nil
+}
+
+type NotificationDispatch struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	JobId             string                 `protobuf:"bytes,1,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
+	AlertId           string                 `protobuf:"bytes,2,opt,name=alert_id,json=alertId,proto3" json:"alert_id,omitempty"`
+	ChannelType       string                 `protobuf:"bytes,3,opt,name=channel_type,json=channelType,proto3" json:"channel_type,omitempty"`
+	IdempotencyKey    string                 `protobuf:"bytes,4,opt,name=idempotency_key,json=idempotencyKey,proto3" json:"idempotency_key,omitempty"`
+	PolicySnapshot    []byte                 `protobuf:"bytes,5,opt,name=policy_snapshot,json=policySnapshot,proto3" json:"policy_snapshot,omitempty"`
+	TemplateData      []byte                 `protobuf:"bytes,6,opt,name=template_data,json=templateData,proto3" json:"template_data,omitempty"`
+	DestinationMasked string                 `protobuf:"bytes,7,opt,name=destination_masked,json=destinationMasked,proto3" json:"destination_masked,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *NotificationDispatch) Reset() {
+	*x = NotificationDispatch{}
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *NotificationDispatch) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*NotificationDispatch) ProtoMessage() {}
+
+func (x *NotificationDispatch) ProtoReflect() protoreflect.Message {
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use NotificationDispatch.ProtoReflect.Descriptor instead.
+func (*NotificationDispatch) Descriptor() ([]byte, []int) {
+	return file_hnb_contracts_v1_contracts_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *NotificationDispatch) GetJobId() string {
+	if x != nil {
+		return x.JobId
+	}
+	return ""
+}
+
+func (x *NotificationDispatch) GetAlertId() string {
+	if x != nil {
+		return x.AlertId
+	}
+	return ""
+}
+
+func (x *NotificationDispatch) GetChannelType() string {
+	if x != nil {
+		return x.ChannelType
+	}
+	return ""
+}
+
+func (x *NotificationDispatch) GetIdempotencyKey() string {
+	if x != nil {
+		return x.IdempotencyKey
+	}
+	return ""
+}
+
+func (x *NotificationDispatch) GetPolicySnapshot() []byte {
+	if x != nil {
+		return x.PolicySnapshot
+	}
+	return nil
+}
+
+func (x *NotificationDispatch) GetTemplateData() []byte {
+	if x != nil {
+		return x.TemplateData
+	}
+	return nil
+}
+
+func (x *NotificationDispatch) GetDestinationMasked() string {
+	if x != nil {
+		return x.DestinationMasked
+	}
+	return ""
+}
+
+type DeliveryChanged struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	DeliveryId        string                 `protobuf:"bytes,1,opt,name=delivery_id,json=deliveryId,proto3" json:"delivery_id,omitempty"`
+	JobId             string                 `protobuf:"bytes,2,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
+	AlertId           string                 `protobuf:"bytes,3,opt,name=alert_id,json=alertId,proto3" json:"alert_id,omitempty"`
+	PreviousState     string                 `protobuf:"bytes,4,opt,name=previous_state,json=previousState,proto3" json:"previous_state,omitempty"`
+	NewState          string                 `protobuf:"bytes,5,opt,name=new_state,json=newState,proto3" json:"new_state,omitempty"`
+	ProviderMessageId *string                `protobuf:"bytes,6,opt,name=provider_message_id,json=providerMessageId,proto3,oneof" json:"provider_message_id,omitempty"`
+	ErrorClass        *string                `protobuf:"bytes,7,opt,name=error_class,json=errorClass,proto3,oneof" json:"error_class,omitempty"`
+	AttemptCount      int32                  `protobuf:"varint,8,opt,name=attempt_count,json=attemptCount,proto3" json:"attempt_count,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *DeliveryChanged) Reset() {
+	*x = DeliveryChanged{}
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeliveryChanged) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeliveryChanged) ProtoMessage() {}
+
+func (x *DeliveryChanged) ProtoReflect() protoreflect.Message {
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeliveryChanged.ProtoReflect.Descriptor instead.
+func (*DeliveryChanged) Descriptor() ([]byte, []int) {
+	return file_hnb_contracts_v1_contracts_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *DeliveryChanged) GetDeliveryId() string {
+	if x != nil {
+		return x.DeliveryId
+	}
+	return ""
+}
+
+func (x *DeliveryChanged) GetJobId() string {
+	if x != nil {
+		return x.JobId
+	}
+	return ""
+}
+
+func (x *DeliveryChanged) GetAlertId() string {
+	if x != nil {
+		return x.AlertId
+	}
+	return ""
+}
+
+func (x *DeliveryChanged) GetPreviousState() string {
+	if x != nil {
+		return x.PreviousState
+	}
+	return ""
+}
+
+func (x *DeliveryChanged) GetNewState() string {
+	if x != nil {
+		return x.NewState
+	}
+	return ""
+}
+
+func (x *DeliveryChanged) GetProviderMessageId() string {
+	if x != nil && x.ProviderMessageId != nil {
+		return *x.ProviderMessageId
+	}
+	return ""
+}
+
+func (x *DeliveryChanged) GetErrorClass() string {
+	if x != nil && x.ErrorClass != nil {
+		return *x.ErrorClass
+	}
+	return ""
+}
+
+func (x *DeliveryChanged) GetAttemptCount() int32 {
+	if x != nil {
+		return x.AttemptCount
+	}
+	return 0
+}
+
+type SecretReferenceMsg struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	TenantId      string                 `protobuf:"bytes,2,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
+	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	SecretRef     string                 `protobuf:"bytes,4,opt,name=secret_ref,json=secretRef,proto3" json:"secret_ref,omitempty"`
+	Version       int32                  `protobuf:"varint,5,opt,name=version,proto3" json:"version,omitempty"`
+	Algorithm     *string                `protobuf:"bytes,6,opt,name=algorithm,proto3,oneof" json:"algorithm,omitempty"`
+	ExpiresAt     *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=expires_at,json=expiresAt,proto3,oneof" json:"expires_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SecretReferenceMsg) Reset() {
+	*x = SecretReferenceMsg{}
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SecretReferenceMsg) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SecretReferenceMsg) ProtoMessage() {}
+
+func (x *SecretReferenceMsg) ProtoReflect() protoreflect.Message {
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SecretReferenceMsg.ProtoReflect.Descriptor instead.
+func (*SecretReferenceMsg) Descriptor() ([]byte, []int) {
+	return file_hnb_contracts_v1_contracts_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *SecretReferenceMsg) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *SecretReferenceMsg) GetTenantId() string {
+	if x != nil {
+		return x.TenantId
+	}
+	return ""
+}
+
+func (x *SecretReferenceMsg) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *SecretReferenceMsg) GetSecretRef() string {
+	if x != nil {
+		return x.SecretRef
+	}
+	return ""
+}
+
+func (x *SecretReferenceMsg) GetVersion() int32 {
+	if x != nil {
+		return x.Version
+	}
+	return 0
+}
+
+func (x *SecretReferenceMsg) GetAlgorithm() string {
+	if x != nil && x.Algorithm != nil {
+		return *x.Algorithm
+	}
+	return ""
+}
+
+func (x *SecretReferenceMsg) GetExpiresAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ExpiresAt
+	}
+	return nil
+}
+
+type NamespaceRef struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	TenantId      string                 `protobuf:"bytes,2,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
+	ProjectId     string                 `protobuf:"bytes,3,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
+	EnvironmentId string                 `protobuf:"bytes,4,opt,name=environment_id,json=environmentId,proto3" json:"environment_id,omitempty"`
+	Name          string                 `protobuf:"bytes,5,opt,name=name,proto3" json:"name,omitempty"`
+	Status        string                 `protobuf:"bytes,6,opt,name=status,proto3" json:"status,omitempty"`
+	Description   *string                `protobuf:"bytes,7,opt,name=description,proto3,oneof" json:"description,omitempty"`
+	Labels        map[string]string      `protobuf:"bytes,8,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *NamespaceRef) Reset() {
+	*x = NamespaceRef{}
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *NamespaceRef) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*NamespaceRef) ProtoMessage() {}
+
+func (x *NamespaceRef) ProtoReflect() protoreflect.Message {
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use NamespaceRef.ProtoReflect.Descriptor instead.
+func (*NamespaceRef) Descriptor() ([]byte, []int) {
+	return file_hnb_contracts_v1_contracts_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *NamespaceRef) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *NamespaceRef) GetTenantId() string {
+	if x != nil {
+		return x.TenantId
+	}
+	return ""
+}
+
+func (x *NamespaceRef) GetProjectId() string {
+	if x != nil {
+		return x.ProjectId
+	}
+	return ""
+}
+
+func (x *NamespaceRef) GetEnvironmentId() string {
+	if x != nil {
+		return x.EnvironmentId
+	}
+	return ""
+}
+
+func (x *NamespaceRef) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *NamespaceRef) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *NamespaceRef) GetDescription() string {
+	if x != nil && x.Description != nil {
+		return *x.Description
+	}
+	return ""
+}
+
+func (x *NamespaceRef) GetLabels() map[string]string {
+	if x != nil {
+		return x.Labels
+	}
+	return nil
+}
+
+func (x *NamespaceRef) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+type AccessTokenClaims struct {
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	ProfileVersion      string                 `protobuf:"bytes,1,opt,name=profile_version,json=profileVersion,proto3" json:"profile_version,omitempty"`
+	Issuer              string                 `protobuf:"bytes,2,opt,name=issuer,proto3" json:"issuer,omitempty"`
+	Audiences           []string               `protobuf:"bytes,3,rep,name=audiences,proto3" json:"audiences,omitempty"`
+	SubjectId           string                 `protobuf:"bytes,4,opt,name=subject_id,json=subjectId,proto3" json:"subject_id,omitempty"`
+	SubjectType         SubjectType            `protobuf:"varint,5,opt,name=subject_type,json=subjectType,proto3,enum=hnb.contracts.v1.SubjectType" json:"subject_type,omitempty"`
+	TenantMembershipIds []string               `protobuf:"bytes,6,rep,name=tenant_membership_ids,json=tenantMembershipIds,proto3" json:"tenant_membership_ids,omitempty"`
+	IssuedAt            *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=issued_at,json=issuedAt,proto3" json:"issued_at,omitempty"`
+	ExpiresAt           *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
+	NotBefore           *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=not_before,json=notBefore,proto3" json:"not_before,omitempty"`
+	AuthTime            *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=auth_time,json=authTime,proto3,oneof" json:"auth_time,omitempty"`
+	TokenId             string                 `protobuf:"bytes,11,opt,name=token_id,json=tokenId,proto3" json:"token_id,omitempty"`
+	KeyId               string                 `protobuf:"bytes,12,opt,name=key_id,json=keyId,proto3" json:"key_id,omitempty"`
+	Algorithm           string                 `protobuf:"bytes,13,opt,name=algorithm,proto3" json:"algorithm,omitempty"`
+	TenantId            string                 `protobuf:"bytes,14,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
+	MembershipId        string                 `protobuf:"bytes,15,opt,name=membership_id,json=membershipId,proto3" json:"membership_id,omitempty"`
+	PolicyVersion       string                 `protobuf:"bytes,16,opt,name=policy_version,json=policyVersion,proto3" json:"policy_version,omitempty"`
+	ScopedPermissions   []*ScopedPermission    `protobuf:"bytes,17,rep,name=scoped_permissions,json=scopedPermissions,proto3" json:"scoped_permissions,omitempty"`
+	AllowedActions      []AuthorizationAction  `protobuf:"varint,18,rep,packed,name=allowed_actions,json=allowedActions,proto3,enum=hnb.contracts.v1.AuthorizationAction" json:"allowed_actions,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *AccessTokenClaims) Reset() {
+	*x = AccessTokenClaims{}
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AccessTokenClaims) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AccessTokenClaims) ProtoMessage() {}
+
+func (x *AccessTokenClaims) ProtoReflect() protoreflect.Message {
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AccessTokenClaims.ProtoReflect.Descriptor instead.
+func (*AccessTokenClaims) Descriptor() ([]byte, []int) {
+	return file_hnb_contracts_v1_contracts_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *AccessTokenClaims) GetProfileVersion() string {
+	if x != nil {
+		return x.ProfileVersion
+	}
+	return ""
+}
+
+func (x *AccessTokenClaims) GetIssuer() string {
+	if x != nil {
+		return x.Issuer
+	}
+	return ""
+}
+
+func (x *AccessTokenClaims) GetAudiences() []string {
+	if x != nil {
+		return x.Audiences
+	}
+	return nil
+}
+
+func (x *AccessTokenClaims) GetSubjectId() string {
+	if x != nil {
+		return x.SubjectId
+	}
+	return ""
+}
+
+func (x *AccessTokenClaims) GetSubjectType() SubjectType {
+	if x != nil {
+		return x.SubjectType
+	}
+	return SubjectType_SUBJECT_TYPE_UNSPECIFIED
+}
+
+func (x *AccessTokenClaims) GetTenantMembershipIds() []string {
+	if x != nil {
+		return x.TenantMembershipIds
+	}
+	return nil
+}
+
+func (x *AccessTokenClaims) GetIssuedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.IssuedAt
+	}
+	return nil
+}
+
+func (x *AccessTokenClaims) GetExpiresAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ExpiresAt
+	}
+	return nil
+}
+
+func (x *AccessTokenClaims) GetNotBefore() *timestamppb.Timestamp {
+	if x != nil {
+		return x.NotBefore
+	}
+	return nil
+}
+
+func (x *AccessTokenClaims) GetAuthTime() *timestamppb.Timestamp {
+	if x != nil {
+		return x.AuthTime
+	}
+	return nil
+}
+
+func (x *AccessTokenClaims) GetTokenId() string {
+	if x != nil {
+		return x.TokenId
+	}
+	return ""
+}
+
+func (x *AccessTokenClaims) GetKeyId() string {
+	if x != nil {
+		return x.KeyId
+	}
+	return ""
+}
+
+func (x *AccessTokenClaims) GetAlgorithm() string {
+	if x != nil {
+		return x.Algorithm
+	}
+	return ""
+}
+
+func (x *AccessTokenClaims) GetTenantId() string {
+	if x != nil {
+		return x.TenantId
+	}
+	return ""
+}
+
+func (x *AccessTokenClaims) GetMembershipId() string {
+	if x != nil {
+		return x.MembershipId
+	}
+	return ""
+}
+
+func (x *AccessTokenClaims) GetPolicyVersion() string {
+	if x != nil {
+		return x.PolicyVersion
+	}
+	return ""
+}
+
+func (x *AccessTokenClaims) GetScopedPermissions() []*ScopedPermission {
+	if x != nil {
+		return x.ScopedPermissions
+	}
+	return nil
+}
+
+func (x *AccessTokenClaims) GetAllowedActions() []AuthorizationAction {
+	if x != nil {
+		return x.AllowedActions
+	}
+	return nil
+}
+
+type TrustedRequestContext struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	SubjectId         string                 `protobuf:"bytes,1,opt,name=subject_id,json=subjectId,proto3" json:"subject_id,omitempty"`
+	SubjectType       SubjectType            `protobuf:"varint,2,opt,name=subject_type,json=subjectType,proto3,enum=hnb.contracts.v1.SubjectType" json:"subject_type,omitempty"`
+	TenantId          string                 `protobuf:"bytes,3,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
+	MembershipId      string                 `protobuf:"bytes,4,opt,name=membership_id,json=membershipId,proto3" json:"membership_id,omitempty"`
+	ProjectId         *string                `protobuf:"bytes,5,opt,name=project_id,json=projectId,proto3,oneof" json:"project_id,omitempty"`
+	EnvironmentId     *string                `protobuf:"bytes,6,opt,name=environment_id,json=environmentId,proto3,oneof" json:"environment_id,omitempty"`
+	NamespaceId       *string                `protobuf:"bytes,7,opt,name=namespace_id,json=namespaceId,proto3,oneof" json:"namespace_id,omitempty"`
+	CorrelationId     string                 `protobuf:"bytes,8,opt,name=correlation_id,json=correlationId,proto3" json:"correlation_id,omitempty"`
+	Traceparent       *string                `protobuf:"bytes,9,opt,name=traceparent,proto3,oneof" json:"traceparent,omitempty"`
+	TokenId           string                 `protobuf:"bytes,10,opt,name=token_id,json=tokenId,proto3" json:"token_id,omitempty"`
+	AuthTime          *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=auth_time,json=authTime,proto3" json:"auth_time,omitempty"`
+	PolicyVersion     string                 `protobuf:"bytes,12,opt,name=policy_version,json=policyVersion,proto3" json:"policy_version,omitempty"`
+	ScopedPermissions []*ScopedPermission    `protobuf:"bytes,13,rep,name=scoped_permissions,json=scopedPermissions,proto3" json:"scoped_permissions,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *TrustedRequestContext) Reset() {
+	*x = TrustedRequestContext{}
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TrustedRequestContext) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TrustedRequestContext) ProtoMessage() {}
+
+func (x *TrustedRequestContext) ProtoReflect() protoreflect.Message {
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TrustedRequestContext.ProtoReflect.Descriptor instead.
+func (*TrustedRequestContext) Descriptor() ([]byte, []int) {
+	return file_hnb_contracts_v1_contracts_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *TrustedRequestContext) GetSubjectId() string {
+	if x != nil {
+		return x.SubjectId
+	}
+	return ""
+}
+
+func (x *TrustedRequestContext) GetSubjectType() SubjectType {
+	if x != nil {
+		return x.SubjectType
+	}
+	return SubjectType_SUBJECT_TYPE_UNSPECIFIED
+}
+
+func (x *TrustedRequestContext) GetTenantId() string {
+	if x != nil {
+		return x.TenantId
+	}
+	return ""
+}
+
+func (x *TrustedRequestContext) GetMembershipId() string {
+	if x != nil {
+		return x.MembershipId
+	}
+	return ""
+}
+
+func (x *TrustedRequestContext) GetProjectId() string {
+	if x != nil && x.ProjectId != nil {
+		return *x.ProjectId
+	}
+	return ""
+}
+
+func (x *TrustedRequestContext) GetEnvironmentId() string {
+	if x != nil && x.EnvironmentId != nil {
+		return *x.EnvironmentId
+	}
+	return ""
+}
+
+func (x *TrustedRequestContext) GetNamespaceId() string {
+	if x != nil && x.NamespaceId != nil {
+		return *x.NamespaceId
+	}
+	return ""
+}
+
+func (x *TrustedRequestContext) GetCorrelationId() string {
+	if x != nil {
+		return x.CorrelationId
+	}
+	return ""
+}
+
+func (x *TrustedRequestContext) GetTraceparent() string {
+	if x != nil && x.Traceparent != nil {
+		return *x.Traceparent
+	}
+	return ""
+}
+
+func (x *TrustedRequestContext) GetTokenId() string {
+	if x != nil {
+		return x.TokenId
+	}
+	return ""
+}
+
+func (x *TrustedRequestContext) GetAuthTime() *timestamppb.Timestamp {
+	if x != nil {
+		return x.AuthTime
+	}
+	return nil
+}
+
+func (x *TrustedRequestContext) GetPolicyVersion() string {
+	if x != nil {
+		return x.PolicyVersion
+	}
+	return ""
+}
+
+func (x *TrustedRequestContext) GetScopedPermissions() []*ScopedPermission {
+	if x != nil {
+		return x.ScopedPermissions
+	}
+	return nil
+}
+
+type AuthorizationScope struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Level         ScopeLevel             `protobuf:"varint,1,opt,name=level,proto3,enum=hnb.contracts.v1.ScopeLevel" json:"level,omitempty"`
+	TenantId      string                 `protobuf:"bytes,2,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
+	ProjectId     *string                `protobuf:"bytes,3,opt,name=project_id,json=projectId,proto3,oneof" json:"project_id,omitempty"`
+	EnvironmentId *string                `protobuf:"bytes,4,opt,name=environment_id,json=environmentId,proto3,oneof" json:"environment_id,omitempty"`
+	NamespaceId   *string                `protobuf:"bytes,5,opt,name=namespace_id,json=namespaceId,proto3,oneof" json:"namespace_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AuthorizationScope) Reset() {
+	*x = AuthorizationScope{}
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AuthorizationScope) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AuthorizationScope) ProtoMessage() {}
+
+func (x *AuthorizationScope) ProtoReflect() protoreflect.Message {
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AuthorizationScope.ProtoReflect.Descriptor instead.
+func (*AuthorizationScope) Descriptor() ([]byte, []int) {
+	return file_hnb_contracts_v1_contracts_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *AuthorizationScope) GetLevel() ScopeLevel {
+	if x != nil {
+		return x.Level
+	}
+	return ScopeLevel_SCOPE_LEVEL_UNSPECIFIED
+}
+
+func (x *AuthorizationScope) GetTenantId() string {
+	if x != nil {
+		return x.TenantId
+	}
+	return ""
+}
+
+func (x *AuthorizationScope) GetProjectId() string {
+	if x != nil && x.ProjectId != nil {
+		return *x.ProjectId
+	}
+	return ""
+}
+
+func (x *AuthorizationScope) GetEnvironmentId() string {
+	if x != nil && x.EnvironmentId != nil {
+		return *x.EnvironmentId
+	}
+	return ""
+}
+
+func (x *AuthorizationScope) GetNamespaceId() string {
+	if x != nil && x.NamespaceId != nil {
+		return *x.NamespaceId
+	}
+	return ""
+}
+
+type AuthorizationDecision struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Effect        AuthorizationEffect    `protobuf:"varint,1,opt,name=effect,proto3,enum=hnb.contracts.v1.AuthorizationEffect" json:"effect,omitempty"`
+	ReasonCode    string                 `protobuf:"bytes,2,opt,name=reason_code,json=reasonCode,proto3" json:"reason_code,omitempty"`
+	PolicyVersion string                 `protobuf:"bytes,3,opt,name=policy_version,json=policyVersion,proto3" json:"policy_version,omitempty"`
+	ResourceKind  string                 `protobuf:"bytes,4,opt,name=resource_kind,json=resourceKind,proto3" json:"resource_kind,omitempty"`
+	ResourceId    *string                `protobuf:"bytes,5,opt,name=resource_id,json=resourceId,proto3,oneof" json:"resource_id,omitempty"`
+	Action        AuthorizationAction    `protobuf:"varint,6,opt,name=action,proto3,enum=hnb.contracts.v1.AuthorizationAction" json:"action,omitempty"`
+	Scope         *AuthorizationScope    `protobuf:"bytes,7,opt,name=scope,proto3" json:"scope,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AuthorizationDecision) Reset() {
+	*x = AuthorizationDecision{}
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AuthorizationDecision) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AuthorizationDecision) ProtoMessage() {}
+
+func (x *AuthorizationDecision) ProtoReflect() protoreflect.Message {
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AuthorizationDecision.ProtoReflect.Descriptor instead.
+func (*AuthorizationDecision) Descriptor() ([]byte, []int) {
+	return file_hnb_contracts_v1_contracts_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *AuthorizationDecision) GetEffect() AuthorizationEffect {
+	if x != nil {
+		return x.Effect
+	}
+	return AuthorizationEffect_AUTHORIZATION_EFFECT_UNSPECIFIED
+}
+
+func (x *AuthorizationDecision) GetReasonCode() string {
+	if x != nil {
+		return x.ReasonCode
+	}
+	return ""
+}
+
+func (x *AuthorizationDecision) GetPolicyVersion() string {
+	if x != nil {
+		return x.PolicyVersion
+	}
+	return ""
+}
+
+func (x *AuthorizationDecision) GetResourceKind() string {
+	if x != nil {
+		return x.ResourceKind
+	}
+	return ""
+}
+
+func (x *AuthorizationDecision) GetResourceId() string {
+	if x != nil && x.ResourceId != nil {
+		return *x.ResourceId
+	}
+	return ""
+}
+
+func (x *AuthorizationDecision) GetAction() AuthorizationAction {
+	if x != nil {
+		return x.Action
+	}
+	return AuthorizationAction_AUTHORIZATION_ACTION_UNSPECIFIED
+}
+
+func (x *AuthorizationDecision) GetScope() *AuthorizationScope {
+	if x != nil {
+		return x.Scope
+	}
+	return nil
+}
+
+type ServiceIdentity struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	SubjectId         string                 `protobuf:"bytes,1,opt,name=subject_id,json=subjectId,proto3" json:"subject_id,omitempty"`
+	SubjectType       SubjectType            `protobuf:"varint,2,opt,name=subject_type,json=subjectType,proto3,enum=hnb.contracts.v1.SubjectType" json:"subject_type,omitempty"`
+	Audiences         []string               `protobuf:"bytes,3,rep,name=audiences,proto3" json:"audiences,omitempty"`
+	AllowedActions    []AuthorizationAction  `protobuf:"varint,4,rep,packed,name=allowed_actions,json=allowedActions,proto3,enum=hnb.contracts.v1.AuthorizationAction" json:"allowed_actions,omitempty"`
+	TenantIds         []string               `protobuf:"bytes,5,rep,name=tenant_ids,json=tenantIds,proto3" json:"tenant_ids,omitempty"`
+	ScopedPermissions []*ScopedPermission    `protobuf:"bytes,6,rep,name=scoped_permissions,json=scopedPermissions,proto3" json:"scoped_permissions,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *ServiceIdentity) Reset() {
+	*x = ServiceIdentity{}
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ServiceIdentity) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ServiceIdentity) ProtoMessage() {}
+
+func (x *ServiceIdentity) ProtoReflect() protoreflect.Message {
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ServiceIdentity.ProtoReflect.Descriptor instead.
+func (*ServiceIdentity) Descriptor() ([]byte, []int) {
+	return file_hnb_contracts_v1_contracts_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *ServiceIdentity) GetSubjectId() string {
+	if x != nil {
+		return x.SubjectId
+	}
+	return ""
+}
+
+func (x *ServiceIdentity) GetSubjectType() SubjectType {
+	if x != nil {
+		return x.SubjectType
+	}
+	return SubjectType_SUBJECT_TYPE_UNSPECIFIED
+}
+
+func (x *ServiceIdentity) GetAudiences() []string {
+	if x != nil {
+		return x.Audiences
+	}
+	return nil
+}
+
+func (x *ServiceIdentity) GetAllowedActions() []AuthorizationAction {
+	if x != nil {
+		return x.AllowedActions
+	}
+	return nil
+}
+
+func (x *ServiceIdentity) GetTenantIds() []string {
+	if x != nil {
+		return x.TenantIds
+	}
+	return nil
+}
+
+func (x *ServiceIdentity) GetScopedPermissions() []*ScopedPermission {
+	if x != nil {
+		return x.ScopedPermissions
+	}
+	return nil
+}
+
+type ContractSecretReference struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Provider      string                 `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
+	Scope         string                 `protobuf:"bytes,2,opt,name=scope,proto3" json:"scope,omitempty"`
+	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	Version       *string                `protobuf:"bytes,4,opt,name=version,proto3,oneof" json:"version,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ContractSecretReference) Reset() {
+	*x = ContractSecretReference{}
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ContractSecretReference) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ContractSecretReference) ProtoMessage() {}
+
+func (x *ContractSecretReference) ProtoReflect() protoreflect.Message {
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ContractSecretReference.ProtoReflect.Descriptor instead.
+func (*ContractSecretReference) Descriptor() ([]byte, []int) {
+	return file_hnb_contracts_v1_contracts_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *ContractSecretReference) GetProvider() string {
+	if x != nil {
+		return x.Provider
+	}
+	return ""
+}
+
+func (x *ContractSecretReference) GetScope() string {
+	if x != nil {
+		return x.Scope
+	}
+	return ""
+}
+
+func (x *ContractSecretReference) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *ContractSecretReference) GetVersion() string {
+	if x != nil && x.Version != nil {
+		return *x.Version
+	}
+	return ""
+}
+
+type RuntimeIntentMetadata struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	IdempotencyKey string                 `protobuf:"bytes,1,opt,name=idempotency_key,json=idempotencyKey,proto3" json:"idempotency_key,omitempty"`
+	CorrelationId  string                 `protobuf:"bytes,2,opt,name=correlation_id,json=correlationId,proto3" json:"correlation_id,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *RuntimeIntentMetadata) Reset() {
+	*x = RuntimeIntentMetadata{}
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RuntimeIntentMetadata) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RuntimeIntentMetadata) ProtoMessage() {}
+
+func (x *RuntimeIntentMetadata) ProtoReflect() protoreflect.Message {
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RuntimeIntentMetadata.ProtoReflect.Descriptor instead.
+func (*RuntimeIntentMetadata) Descriptor() ([]byte, []int) {
+	return file_hnb_contracts_v1_contracts_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *RuntimeIntentMetadata) GetIdempotencyKey() string {
+	if x != nil {
+		return x.IdempotencyKey
+	}
+	return ""
+}
+
+func (x *RuntimeIntentMetadata) GetCorrelationId() string {
+	if x != nil {
+		return x.CorrelationId
+	}
+	return ""
+}
+
+type RuntimeIntentSpec struct {
+	state            protoimpl.MessageState     `protogen:"open.v1"`
+	ReleaseId        string                     `protobuf:"bytes,1,opt,name=release_id,json=releaseId,proto3" json:"release_id,omitempty"`
+	TargetRef        string                     `protobuf:"bytes,2,opt,name=target_ref,json=targetRef,proto3" json:"target_ref,omitempty"`
+	ScopeRef         string                     `protobuf:"bytes,3,opt,name=scope_ref,json=scopeRef,proto3" json:"scope_ref,omitempty"`
+	Parameters       *structpb.Struct           `protobuf:"bytes,4,opt,name=parameters,proto3" json:"parameters,omitempty"`
+	SecretReferences []*ContractSecretReference `protobuf:"bytes,5,rep,name=secret_references,json=secretReferences,proto3" json:"secret_references,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *RuntimeIntentSpec) Reset() {
+	*x = RuntimeIntentSpec{}
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RuntimeIntentSpec) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RuntimeIntentSpec) ProtoMessage() {}
+
+func (x *RuntimeIntentSpec) ProtoReflect() protoreflect.Message {
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RuntimeIntentSpec.ProtoReflect.Descriptor instead.
+func (*RuntimeIntentSpec) Descriptor() ([]byte, []int) {
+	return file_hnb_contracts_v1_contracts_proto_rawDescGZIP(), []int{24}
+}
+
+func (x *RuntimeIntentSpec) GetReleaseId() string {
+	if x != nil {
+		return x.ReleaseId
+	}
+	return ""
+}
+
+func (x *RuntimeIntentSpec) GetTargetRef() string {
+	if x != nil {
+		return x.TargetRef
+	}
+	return ""
+}
+
+func (x *RuntimeIntentSpec) GetScopeRef() string {
+	if x != nil {
+		return x.ScopeRef
+	}
+	return ""
+}
+
+func (x *RuntimeIntentSpec) GetParameters() *structpb.Struct {
+	if x != nil {
+		return x.Parameters
+	}
+	return nil
+}
+
+func (x *RuntimeIntentSpec) GetSecretReferences() []*ContractSecretReference {
+	if x != nil {
+		return x.SecretReferences
+	}
+	return nil
+}
+
+type RuntimeIntent struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ApiVersion    string                 `protobuf:"bytes,1,opt,name=api_version,json=apiVersion,proto3" json:"api_version,omitempty"`
+	Kind          RuntimeIntentKind      `protobuf:"varint,2,opt,name=kind,proto3,enum=hnb.contracts.v1.RuntimeIntentKind" json:"kind,omitempty"`
+	Metadata      *RuntimeIntentMetadata `protobuf:"bytes,3,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	Spec          *RuntimeIntentSpec     `protobuf:"bytes,4,opt,name=spec,proto3" json:"spec,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RuntimeIntent) Reset() {
+	*x = RuntimeIntent{}
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[25]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RuntimeIntent) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RuntimeIntent) ProtoMessage() {}
+
+func (x *RuntimeIntent) ProtoReflect() protoreflect.Message {
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[25]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RuntimeIntent.ProtoReflect.Descriptor instead.
+func (*RuntimeIntent) Descriptor() ([]byte, []int) {
+	return file_hnb_contracts_v1_contracts_proto_rawDescGZIP(), []int{25}
+}
+
+func (x *RuntimeIntent) GetApiVersion() string {
+	if x != nil {
+		return x.ApiVersion
+	}
+	return ""
+}
+
+func (x *RuntimeIntent) GetKind() RuntimeIntentKind {
+	if x != nil {
+		return x.Kind
+	}
+	return RuntimeIntentKind_RUNTIME_INTENT_KIND_UNSPECIFIED
+}
+
+func (x *RuntimeIntent) GetMetadata() *RuntimeIntentMetadata {
+	if x != nil {
+		return x.Metadata
+	}
+	return nil
+}
+
+func (x *RuntimeIntent) GetSpec() *RuntimeIntentSpec {
+	if x != nil {
+		return x.Spec
+	}
+	return nil
+}
+
+type ExecutionPlanStep struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	StepId        string                 `protobuf:"bytes,1,opt,name=step_id,json=stepId,proto3" json:"step_id,omitempty"`
+	StepType      string                 `protobuf:"bytes,2,opt,name=step_type,json=stepType,proto3" json:"step_type,omitempty"`
+	DependsOn     []string               `protobuf:"bytes,3,rep,name=depends_on,json=dependsOn,proto3" json:"depends_on,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ExecutionPlanStep) Reset() {
+	*x = ExecutionPlanStep{}
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ExecutionPlanStep) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExecutionPlanStep) ProtoMessage() {}
+
+func (x *ExecutionPlanStep) ProtoReflect() protoreflect.Message {
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExecutionPlanStep.ProtoReflect.Descriptor instead.
+func (*ExecutionPlanStep) Descriptor() ([]byte, []int) {
+	return file_hnb_contracts_v1_contracts_proto_rawDescGZIP(), []int{26}
+}
+
+func (x *ExecutionPlanStep) GetStepId() string {
+	if x != nil {
+		return x.StepId
+	}
+	return ""
+}
+
+func (x *ExecutionPlanStep) GetStepType() string {
+	if x != nil {
+		return x.StepType
+	}
+	return ""
+}
+
+func (x *ExecutionPlanStep) GetDependsOn() []string {
+	if x != nil {
+		return x.DependsOn
+	}
+	return nil
+}
+
+type ExecutionPlan struct {
+	state                    protoimpl.MessageState     `protogen:"open.v1"`
+	PlanId                   string                     `protobuf:"bytes,1,opt,name=plan_id,json=planId,proto3" json:"plan_id,omitempty"`
+	IntentId                 string                     `protobuf:"bytes,2,opt,name=intent_id,json=intentId,proto3" json:"intent_id,omitempty"`
+	SemanticDigest           string                     `protobuf:"bytes,3,opt,name=semantic_digest,json=semanticDigest,proto3" json:"semantic_digest,omitempty"`
+	ReleaseRef               string                     `protobuf:"bytes,4,opt,name=release_ref,json=releaseRef,proto3" json:"release_ref,omitempty"`
+	ArtifactDigests          []string                   `protobuf:"bytes,5,rep,name=artifact_digests,json=artifactDigests,proto3" json:"artifact_digests,omitempty"`
+	TargetRef                string                     `protobuf:"bytes,6,opt,name=target_ref,json=targetRef,proto3" json:"target_ref,omitempty"`
+	CapabilitySnapshotDigest string                     `protobuf:"bytes,7,opt,name=capability_snapshot_digest,json=capabilitySnapshotDigest,proto3" json:"capability_snapshot_digest,omitempty"`
+	ProviderVersions         map[string]string          `protobuf:"bytes,8,rep,name=provider_versions,json=providerVersions,proto3" json:"provider_versions,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	PolicyDecisionRefs       []string                   `protobuf:"bytes,9,rep,name=policy_decision_refs,json=policyDecisionRefs,proto3" json:"policy_decision_refs,omitempty"`
+	ApprovedParameters       *structpb.Struct           `protobuf:"bytes,10,opt,name=approved_parameters,json=approvedParameters,proto3" json:"approved_parameters,omitempty"`
+	SecretReferences         []*ContractSecretReference `protobuf:"bytes,11,rep,name=secret_references,json=secretReferences,proto3" json:"secret_references,omitempty"`
+	Steps                    []*ExecutionPlanStep       `protobuf:"bytes,12,rep,name=steps,proto3" json:"steps,omitempty"`
+	CreatedAt                *timestamppb.Timestamp     `protobuf:"bytes,13,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	unknownFields            protoimpl.UnknownFields
+	sizeCache                protoimpl.SizeCache
+}
+
+func (x *ExecutionPlan) Reset() {
+	*x = ExecutionPlan{}
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[27]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ExecutionPlan) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExecutionPlan) ProtoMessage() {}
+
+func (x *ExecutionPlan) ProtoReflect() protoreflect.Message {
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[27]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExecutionPlan.ProtoReflect.Descriptor instead.
+func (*ExecutionPlan) Descriptor() ([]byte, []int) {
+	return file_hnb_contracts_v1_contracts_proto_rawDescGZIP(), []int{27}
+}
+
+func (x *ExecutionPlan) GetPlanId() string {
+	if x != nil {
+		return x.PlanId
+	}
+	return ""
+}
+
+func (x *ExecutionPlan) GetIntentId() string {
+	if x != nil {
+		return x.IntentId
+	}
+	return ""
+}
+
+func (x *ExecutionPlan) GetSemanticDigest() string {
+	if x != nil {
+		return x.SemanticDigest
+	}
+	return ""
+}
+
+func (x *ExecutionPlan) GetReleaseRef() string {
+	if x != nil {
+		return x.ReleaseRef
+	}
+	return ""
+}
+
+func (x *ExecutionPlan) GetArtifactDigests() []string {
+	if x != nil {
+		return x.ArtifactDigests
+	}
+	return nil
+}
+
+func (x *ExecutionPlan) GetTargetRef() string {
+	if x != nil {
+		return x.TargetRef
+	}
+	return ""
+}
+
+func (x *ExecutionPlan) GetCapabilitySnapshotDigest() string {
+	if x != nil {
+		return x.CapabilitySnapshotDigest
+	}
+	return ""
+}
+
+func (x *ExecutionPlan) GetProviderVersions() map[string]string {
+	if x != nil {
+		return x.ProviderVersions
+	}
+	return nil
+}
+
+func (x *ExecutionPlan) GetPolicyDecisionRefs() []string {
+	if x != nil {
+		return x.PolicyDecisionRefs
+	}
+	return nil
+}
+
+func (x *ExecutionPlan) GetApprovedParameters() *structpb.Struct {
+	if x != nil {
+		return x.ApprovedParameters
+	}
+	return nil
+}
+
+func (x *ExecutionPlan) GetSecretReferences() []*ContractSecretReference {
+	if x != nil {
+		return x.SecretReferences
+	}
+	return nil
+}
+
+func (x *ExecutionPlan) GetSteps() []*ExecutionPlanStep {
+	if x != nil {
+		return x.Steps
+	}
+	return nil
+}
+
+func (x *ExecutionPlan) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+type ConsoleSubject struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Type          SubjectType            `protobuf:"varint,2,opt,name=type,proto3,enum=hnb.contracts.v1.SubjectType" json:"type,omitempty"`
+	DisplayName   string                 `protobuf:"bytes,3,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ConsoleSubject) Reset() {
+	*x = ConsoleSubject{}
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[28]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ConsoleSubject) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ConsoleSubject) ProtoMessage() {}
+
+func (x *ConsoleSubject) ProtoReflect() protoreflect.Message {
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[28]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ConsoleSubject.ProtoReflect.Descriptor instead.
+func (*ConsoleSubject) Descriptor() ([]byte, []int) {
+	return file_hnb_contracts_v1_contracts_proto_rawDescGZIP(), []int{28}
+}
+
+func (x *ConsoleSubject) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *ConsoleSubject) GetType() SubjectType {
+	if x != nil {
+		return x.Type
+	}
+	return SubjectType_SUBJECT_TYPE_UNSPECIFIED
+}
+
+func (x *ConsoleSubject) GetDisplayName() string {
+	if x != nil {
+		return x.DisplayName
+	}
+	return ""
+}
+
+type TenantMembership struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	MembershipId  string                 `protobuf:"bytes,1,opt,name=membership_id,json=membershipId,proto3" json:"membership_id,omitempty"`
+	TenantId      string                 `protobuf:"bytes,2,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
+	TenantName    string                 `protobuf:"bytes,3,opt,name=tenant_name,json=tenantName,proto3" json:"tenant_name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TenantMembership) Reset() {
+	*x = TenantMembership{}
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[29]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TenantMembership) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TenantMembership) ProtoMessage() {}
+
+func (x *TenantMembership) ProtoReflect() protoreflect.Message {
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[29]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TenantMembership.ProtoReflect.Descriptor instead.
+func (*TenantMembership) Descriptor() ([]byte, []int) {
+	return file_hnb_contracts_v1_contracts_proto_rawDescGZIP(), []int{29}
+}
+
+func (x *TenantMembership) GetMembershipId() string {
+	if x != nil {
+		return x.MembershipId
+	}
+	return ""
+}
+
+func (x *TenantMembership) GetTenantId() string {
+	if x != nil {
+		return x.TenantId
+	}
+	return ""
+}
+
+func (x *TenantMembership) GetTenantName() string {
+	if x != nil {
+		return x.TenantName
+	}
+	return ""
+}
+
+type Capability struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Available     bool                   `protobuf:"varint,2,opt,name=available,proto3" json:"available,omitempty"`
+	Version       string                 `protobuf:"bytes,3,opt,name=version,proto3" json:"version,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Capability) Reset() {
+	*x = Capability{}
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[30]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Capability) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Capability) ProtoMessage() {}
+
+func (x *Capability) ProtoReflect() protoreflect.Message {
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[30]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Capability.ProtoReflect.Descriptor instead.
+func (*Capability) Descriptor() ([]byte, []int) {
+	return file_hnb_contracts_v1_contracts_proto_rawDescGZIP(), []int{30}
+}
+
+func (x *Capability) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *Capability) GetAvailable() bool {
+	if x != nil {
+		return x.Available
+	}
+	return false
+}
+
+func (x *Capability) GetVersion() string {
+	if x != nil {
+		return x.Version
+	}
+	return ""
+}
+
+type ScopedPermission struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ResourceKind  string                 `protobuf:"bytes,1,opt,name=resource_kind,json=resourceKind,proto3" json:"resource_kind,omitempty"`
+	ResourceId    *string                `protobuf:"bytes,2,opt,name=resource_id,json=resourceId,proto3,oneof" json:"resource_id,omitempty"`
+	Action        AuthorizationAction    `protobuf:"varint,3,opt,name=action,proto3,enum=hnb.contracts.v1.AuthorizationAction" json:"action,omitempty"`
+	TenantId      string                 `protobuf:"bytes,4,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
+	ProjectId     *string                `protobuf:"bytes,5,opt,name=project_id,json=projectId,proto3,oneof" json:"project_id,omitempty"`
+	EnvironmentId *string                `protobuf:"bytes,6,opt,name=environment_id,json=environmentId,proto3,oneof" json:"environment_id,omitempty"`
+	NamespaceId   *string                `protobuf:"bytes,7,opt,name=namespace_id,json=namespaceId,proto3,oneof" json:"namespace_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ScopedPermission) Reset() {
+	*x = ScopedPermission{}
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[31]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ScopedPermission) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ScopedPermission) ProtoMessage() {}
+
+func (x *ScopedPermission) ProtoReflect() protoreflect.Message {
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[31]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ScopedPermission.ProtoReflect.Descriptor instead.
+func (*ScopedPermission) Descriptor() ([]byte, []int) {
+	return file_hnb_contracts_v1_contracts_proto_rawDescGZIP(), []int{31}
+}
+
+func (x *ScopedPermission) GetResourceKind() string {
+	if x != nil {
+		return x.ResourceKind
+	}
+	return ""
+}
+
+func (x *ScopedPermission) GetResourceId() string {
+	if x != nil && x.ResourceId != nil {
+		return *x.ResourceId
+	}
+	return ""
+}
+
+func (x *ScopedPermission) GetAction() AuthorizationAction {
+	if x != nil {
+		return x.Action
+	}
+	return AuthorizationAction_AUTHORIZATION_ACTION_UNSPECIFIED
+}
+
+func (x *ScopedPermission) GetTenantId() string {
+	if x != nil {
+		return x.TenantId
+	}
+	return ""
+}
+
+func (x *ScopedPermission) GetProjectId() string {
+	if x != nil && x.ProjectId != nil {
+		return *x.ProjectId
+	}
+	return ""
+}
+
+func (x *ScopedPermission) GetEnvironmentId() string {
+	if x != nil && x.EnvironmentId != nil {
+		return *x.EnvironmentId
+	}
+	return ""
+}
+
+func (x *ScopedPermission) GetNamespaceId() string {
+	if x != nil && x.NamespaceId != nil {
+		return *x.NamespaceId
+	}
+	return ""
+}
+
+type ConsoleBootstrap struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	Subject           *ConsoleSubject        `protobuf:"bytes,1,opt,name=subject,proto3" json:"subject,omitempty"`
+	SelectedTenantId  string                 `protobuf:"bytes,2,opt,name=selected_tenant_id,json=selectedTenantId,proto3" json:"selected_tenant_id,omitempty"`
+	Memberships       []*TenantMembership    `protobuf:"bytes,3,rep,name=memberships,proto3" json:"memberships,omitempty"`
+	Capabilities      []*Capability          `protobuf:"bytes,4,rep,name=capabilities,proto3" json:"capabilities,omitempty"`
+	Permissions       []*ScopedPermission    `protobuf:"bytes,5,rep,name=permissions,proto3" json:"permissions,omitempty"`
+	PolicyVersion     string                 `protobuf:"bytes,6,opt,name=policy_version,json=policyVersion,proto3" json:"policy_version,omitempty"`
+	PermissionVersion string                 `protobuf:"bytes,7,opt,name=permission_version,json=permissionVersion,proto3" json:"permission_version,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *ConsoleBootstrap) Reset() {
+	*x = ConsoleBootstrap{}
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[32]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ConsoleBootstrap) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ConsoleBootstrap) ProtoMessage() {}
+
+func (x *ConsoleBootstrap) ProtoReflect() protoreflect.Message {
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[32]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ConsoleBootstrap.ProtoReflect.Descriptor instead.
+func (*ConsoleBootstrap) Descriptor() ([]byte, []int) {
+	return file_hnb_contracts_v1_contracts_proto_rawDescGZIP(), []int{32}
+}
+
+func (x *ConsoleBootstrap) GetSubject() *ConsoleSubject {
+	if x != nil {
+		return x.Subject
+	}
+	return nil
+}
+
+func (x *ConsoleBootstrap) GetSelectedTenantId() string {
+	if x != nil {
+		return x.SelectedTenantId
+	}
+	return ""
+}
+
+func (x *ConsoleBootstrap) GetMemberships() []*TenantMembership {
+	if x != nil {
+		return x.Memberships
+	}
+	return nil
+}
+
+func (x *ConsoleBootstrap) GetCapabilities() []*Capability {
+	if x != nil {
+		return x.Capabilities
+	}
+	return nil
+}
+
+func (x *ConsoleBootstrap) GetPermissions() []*ScopedPermission {
+	if x != nil {
+		return x.Permissions
+	}
+	return nil
+}
+
+func (x *ConsoleBootstrap) GetPolicyVersion() string {
+	if x != nil {
+		return x.PolicyVersion
+	}
+	return ""
+}
+
+func (x *ConsoleBootstrap) GetPermissionVersion() string {
+	if x != nil {
+		return x.PermissionVersion
+	}
+	return ""
+}
+
+type TenantSwitch struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TenantId      string                 `protobuf:"bytes,1,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TenantSwitch) Reset() {
+	*x = TenantSwitch{}
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[33]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TenantSwitch) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TenantSwitch) ProtoMessage() {}
+
+func (x *TenantSwitch) ProtoReflect() protoreflect.Message {
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[33]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TenantSwitch.ProtoReflect.Descriptor instead.
+func (*TenantSwitch) Descriptor() ([]byte, []int) {
+	return file_hnb_contracts_v1_contracts_proto_rawDescGZIP(), []int{33}
+}
+
+func (x *TenantSwitch) GetTenantId() string {
+	if x != nil {
+		return x.TenantId
+	}
+	return ""
+}
+
+type ProblemViolation struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Field         string                 `protobuf:"bytes,1,opt,name=field,proto3" json:"field,omitempty"`
+	Code          string                 `protobuf:"bytes,2,opt,name=code,proto3" json:"code,omitempty"`
+	Message       *string                `protobuf:"bytes,3,opt,name=message,proto3,oneof" json:"message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ProblemViolation) Reset() {
+	*x = ProblemViolation{}
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[34]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ProblemViolation) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ProblemViolation) ProtoMessage() {}
+
+func (x *ProblemViolation) ProtoReflect() protoreflect.Message {
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[34]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ProblemViolation.ProtoReflect.Descriptor instead.
+func (*ProblemViolation) Descriptor() ([]byte, []int) {
+	return file_hnb_contracts_v1_contracts_proto_rawDescGZIP(), []int{34}
+}
+
+func (x *ProblemViolation) GetField() string {
+	if x != nil {
+		return x.Field
+	}
+	return ""
+}
+
+func (x *ProblemViolation) GetCode() string {
+	if x != nil {
+		return x.Code
+	}
+	return ""
+}
+
+func (x *ProblemViolation) GetMessage() string {
+	if x != nil && x.Message != nil {
+		return *x.Message
+	}
+	return ""
+}
+
+type ProblemDetails struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Type          string                 `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
+	Title         string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
+	Status        int32                  `protobuf:"varint,3,opt,name=status,proto3" json:"status,omitempty"`
+	Detail        *string                `protobuf:"bytes,4,opt,name=detail,proto3,oneof" json:"detail,omitempty"`
+	Instance      *string                `protobuf:"bytes,5,opt,name=instance,proto3,oneof" json:"instance,omitempty"`
+	Code          string                 `protobuf:"bytes,6,opt,name=code,proto3" json:"code,omitempty"`
+	CorrelationId string                 `protobuf:"bytes,7,opt,name=correlation_id,json=correlationId,proto3" json:"correlation_id,omitempty"`
+	Violations    []*ProblemViolation    `protobuf:"bytes,8,rep,name=violations,proto3" json:"violations,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ProblemDetails) Reset() {
+	*x = ProblemDetails{}
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[35]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ProblemDetails) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ProblemDetails) ProtoMessage() {}
+
+func (x *ProblemDetails) ProtoReflect() protoreflect.Message {
+	mi := &file_hnb_contracts_v1_contracts_proto_msgTypes[35]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ProblemDetails.ProtoReflect.Descriptor instead.
+func (*ProblemDetails) Descriptor() ([]byte, []int) {
+	return file_hnb_contracts_v1_contracts_proto_rawDescGZIP(), []int{35}
+}
+
+func (x *ProblemDetails) GetType() string {
+	if x != nil {
+		return x.Type
+	}
+	return ""
+}
+
+func (x *ProblemDetails) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *ProblemDetails) GetStatus() int32 {
+	if x != nil {
+		return x.Status
+	}
+	return 0
+}
+
+func (x *ProblemDetails) GetDetail() string {
+	if x != nil && x.Detail != nil {
+		return *x.Detail
+	}
+	return ""
+}
+
+func (x *ProblemDetails) GetInstance() string {
+	if x != nil && x.Instance != nil {
+		return *x.Instance
+	}
+	return ""
+}
+
+func (x *ProblemDetails) GetCode() string {
+	if x != nil {
+		return x.Code
+	}
+	return ""
+}
+
+func (x *ProblemDetails) GetCorrelationId() string {
+	if x != nil {
+		return x.CorrelationId
+	}
+	return ""
+}
+
+func (x *ProblemDetails) GetViolations() []*ProblemViolation {
+	if x != nil {
+		return x.Violations
+	}
+	return nil
+}
 
 var File_hnb_contracts_v1_contracts_proto protoreflect.FileDescriptor
 
 const file_hnb_contracts_v1_contracts_proto_rawDesc = "" +
 	"\n" +
-	" hnb/contracts/v1/contracts.proto\x12\x10hnb.contracts.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x98\x02\n" +
+	" hnb/contracts/v1/contracts.proto\x12\x10hnb.contracts.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xe7\x02\n" +
 	"\x0eRequestContext\x12\x1b\n" +
 	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12\"\n" +
 	"\n" +
@@ -440,10 +3707,43 @@ const file_hnb_contracts_v1_contracts_proto_rawDesc = "" +
 	"\x0eenvironment_id\x18\x03 \x01(\tH\x01R\renvironmentId\x88\x01\x01\x12\x19\n" +
 	"\bactor_id\x18\x04 \x01(\tR\aactorId\x12%\n" +
 	"\x0ecorrelation_id\x18\x05 \x01(\tR\rcorrelationId\x12%\n" +
-	"\vtraceparent\x18\x06 \x01(\tH\x02R\vtraceparent\x88\x01\x01B\r\n" +
+	"\vtraceparent\x18\x06 \x01(\tH\x02R\vtraceparent\x88\x01\x01\x12&\n" +
+	"\fnamespace_id\x18\a \x01(\tH\x03R\vnamespaceId\x88\x01\x01\x12\x14\n" +
+	"\x05roles\x18\b \x03(\tR\x05rolesB\r\n" +
 	"\v_project_idB\x11\n" +
 	"\x0f_environment_idB\x0e\n" +
-	"\f_traceparent\"\xc8\x01\n" +
+	"\f_traceparentB\x0f\n" +
+	"\r_namespace_id\"\x83\x02\n" +
+	"\rTenantContext\x12\x1b\n" +
+	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12\x1d\n" +
+	"\n" +
+	"project_id\x18\x02 \x01(\tR\tprojectId\x12%\n" +
+	"\x0eenvironment_id\x18\x03 \x01(\tR\renvironmentId\x12&\n" +
+	"\fnamespace_id\x18\x04 \x01(\tH\x00R\vnamespaceId\x88\x01\x01\x12\x19\n" +
+	"\bactor_id\x18\x05 \x01(\tR\aactorId\x12%\n" +
+	"\x0ecorrelation_id\x18\x06 \x01(\tR\rcorrelationId\x12\x14\n" +
+	"\x05roles\x18\a \x03(\tR\x05rolesB\x0f\n" +
+	"\r_namespace_id\"\xe7\x02\n" +
+	"\x14AuthorizationRequest\x12\x1b\n" +
+	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12\x1d\n" +
+	"\n" +
+	"project_id\x18\x02 \x01(\tR\tprojectId\x12%\n" +
+	"\x0eenvironment_id\x18\x03 \x01(\tR\renvironmentId\x12&\n" +
+	"\fnamespace_id\x18\x04 \x01(\tH\x00R\vnamespaceId\x88\x01\x01\x12\x19\n" +
+	"\bactor_id\x18\x05 \x01(\tR\aactorId\x12\x16\n" +
+	"\x06action\x18\x06 \x01(\tR\x06action\x12#\n" +
+	"\rresource_type\x18\a \x01(\tR\fresourceType\x12$\n" +
+	"\vresource_id\x18\b \x01(\tH\x01R\n" +
+	"resourceId\x88\x01\x01\x12%\n" +
+	"\x0erequired_roles\x18\t \x03(\tR\rrequiredRolesB\x0f\n" +
+	"\r_namespace_idB\x0e\n" +
+	"\f_resource_id\"\x95\x01\n" +
+	"\x15AuthorizationResponse\x12\x18\n" +
+	"\aallowed\x18\x01 \x01(\bR\aallowed\x12\x1b\n" +
+	"\x06reason\x18\x02 \x01(\tH\x00R\x06reason\x88\x01\x01\x12(\n" +
+	"\rrequired_role\x18\x03 \x01(\tH\x01R\frequiredRole\x88\x01\x01B\t\n" +
+	"\a_reasonB\x10\n" +
+	"\x0e_required_role\"\xc8\x01\n" +
 	"\x11ResourceReference\x12\x1f\n" +
 	"\vapi_version\x18\x01 \x01(\tR\n" +
 	"apiVersion\x12\x12\n" +
@@ -459,7 +3759,7 @@ const file_hnb_contracts_v1_contracts_proto_rawDesc = "" +
 	"\acontext\x18\x01 \x01(\v2 .hnb.contracts.v1.RequestContextR\acontext\x12K\n" +
 	"\fresource_ref\x18\x02 \x01(\v2#.hnb.contracts.v1.ResourceReferenceH\x00R\vresourceRef\x88\x01\x01\x12\x14\n" +
 	"\x05value\x18\x03 \x01(\tR\x05valueB\x0f\n" +
-	"\r_resource_ref\"\x89\x06\n" +
+	"\r_resource_ref\"\xc4\r\n" +
 	"\rEventEnvelope\x12\x1d\n" +
 	"\n" +
 	"message_id\x18\x01 \x01(\tR\tmessageId\x12!\n" +
@@ -479,8 +3779,23 @@ const file_hnb_contracts_v1_contracts_proto_rawDesc = "" +
 	"\faggregate_id\x18\f \x01(\tH\x05R\vaggregateId\x88\x01\x01\x120\n" +
 	"\x11aggregate_version\x18\r \x01(\x03H\x06R\x10aggregateVersion\x88\x01\x01\x12$\n" +
 	"\vpayload_ref\x18\x0e \x01(\tH\aR\n" +
-	"payloadRef\x88\x01\x01\x12K\n" +
-	"\x0fcontract_echoed\x18\x14 \x01(\v2 .hnb.contracts.v1.ContractEchoedH\x00R\x0econtractEchoedB\t\n" +
+	"payloadRef\x88\x01\x01\x12&\n" +
+	"\foperation_id\x18\x0f \x01(\tH\bR\voperationId\x88\x01\x01\x12\x1c\n" +
+	"\astep_id\x18\x10 \x01(\tH\tR\x06stepId\x88\x01\x01\x12$\n" +
+	"\vresource_id\x18\x11 \x01(\tH\n" +
+	"R\n" +
+	"resourceId\x88\x01\x01\x12.\n" +
+	"\x10expected_version\x18\x12 \x01(\x03H\vR\x0fexpectedVersion\x88\x01\x01\x12K\n" +
+	"\x0fcontract_echoed\x18\x14 \x01(\v2 .hnb.contracts.v1.ContractEchoedH\x00R\x0econtractEchoed\x12B\n" +
+	"\falert_firing\x18\x15 \x01(\v2\x1d.hnb.contracts.v1.AlertFiringH\x00R\valertFiring\x12H\n" +
+	"\x0ealert_resolved\x18\x16 \x01(\v2\x1f.hnb.contracts.v1.AlertResolvedH\x00R\ralertResolved\x12]\n" +
+	"\x15notification_dispatch\x18\x17 \x01(\v2&.hnb.contracts.v1.NotificationDispatchH\x00R\x14notificationDispatch\x12N\n" +
+	"\x10delivery_changed\x18\x18 \x01(\v2!.hnb.contracts.v1.DeliveryChangedH\x00R\x0fdeliveryChanged\x12Q\n" +
+	"\x10secret_reference\x18\x19 \x01(\v2$.hnb.contracts.v1.SecretReferenceMsgH\x00R\x0fsecretReference\x12H\n" +
+	"\x0estep_requested\x18\x1a \x01(\v2\x1f.hnb.contracts.v1.StepRequestedH\x00R\rstepRequested\x12H\n" +
+	"\x0estep_completed\x18\x1b \x01(\v2\x1f.hnb.contracts.v1.StepCompletedH\x00R\rstepCompleted\x12a\n" +
+	"\x17operation_state_changed\x18\x1c \x01(\v2'.hnb.contracts.v1.OperationStateChangedH\x00R\x15operationStateChanged\x12T\n" +
+	"\x12operation_progress\x18\x1d \x01(\v2#.hnb.contracts.v1.OperationProgressH\x00R\x11operationProgressB\t\n" +
 	"\apayloadB\r\n" +
 	"\v_project_idB\x11\n" +
 	"\x0f_environment_idB\v\n" +
@@ -488,7 +3803,348 @@ const file_hnb_contracts_v1_contracts_proto_rawDesc = "" +
 	"\r_causation_idB\x0f\n" +
 	"\r_aggregate_idB\x14\n" +
 	"\x12_aggregate_versionB\x0e\n" +
-	"\f_payload_refBNZLgithub.com/F31/hnb/contracts/generated/go/proto/hnb/contracts/v1;contractsv1b\x06proto3"
+	"\f_payload_refB\x0f\n" +
+	"\r_operation_idB\n" +
+	"\n" +
+	"\b_step_idB\x0e\n" +
+	"\f_resource_idB\x13\n" +
+	"\x11_expected_version\"\xe9\x01\n" +
+	"\rStepRequested\x12!\n" +
+	"\foperation_id\x18\x01 \x01(\tR\voperationId\x12\x17\n" +
+	"\astep_id\x18\x02 \x01(\tR\x06stepId\x12\x1b\n" +
+	"\tstep_type\x18\x03 \x01(\tR\bstepType\x12'\n" +
+	"\x0fidempotency_key\x18\x04 \x01(\tR\x0eidempotencyKey\x12)\n" +
+	"\x10expected_version\x18\x05 \x01(\x03R\x0fexpectedVersion\x12+\n" +
+	"\x11execution_context\x18\x06 \x01(\fR\x10executionContext\"\xbc\x01\n" +
+	"\rStepCompleted\x12!\n" +
+	"\foperation_id\x18\x01 \x01(\tR\voperationId\x12\x17\n" +
+	"\astep_id\x18\x02 \x01(\tR\x06stepId\x12\x16\n" +
+	"\x06status\x18\x03 \x01(\tR\x06status\x12#\n" +
+	"\n" +
+	"checkpoint\x18\x04 \x01(\tH\x00R\n" +
+	"checkpoint\x88\x01\x01\x12\x19\n" +
+	"\x05error\x18\x05 \x01(\tH\x01R\x05error\x88\x01\x01B\r\n" +
+	"\v_checkpointB\b\n" +
+	"\x06_error\"\xa6\x01\n" +
+	"\x15OperationStateChanged\x12!\n" +
+	"\foperation_id\x18\x01 \x01(\tR\voperationId\x12%\n" +
+	"\x0eprevious_state\x18\x02 \x01(\tR\rpreviousState\x12\x1b\n" +
+	"\tnew_state\x18\x03 \x01(\tR\bnewState\x12\x1b\n" +
+	"\x06reason\x18\x04 \x01(\tH\x00R\x06reason\x88\x01\x01B\t\n" +
+	"\a_reason\"\xe6\x01\n" +
+	"\x11OperationProgress\x12!\n" +
+	"\foperation_id\x18\x01 \x01(\tR\voperationId\x12\x1f\n" +
+	"\vtotal_steps\x18\x02 \x01(\x05R\n" +
+	"totalSteps\x12'\n" +
+	"\x0fcompleted_steps\x18\x03 \x01(\x05R\x0ecompletedSteps\x12!\n" +
+	"\ffailed_steps\x18\x04 \x01(\x05R\vfailedSteps\x12\x16\n" +
+	"\x06status\x18\x05 \x01(\tR\x06status\x12\x1d\n" +
+	"\amessage\x18\x06 \x01(\tH\x00R\amessage\x88\x01\x01B\n" +
+	"\n" +
+	"\b_message\"\xc1\x05\n" +
+	"\vAlertFiring\x12\x19\n" +
+	"\balert_id\x18\x01 \x01(\tR\aalertId\x12\x1b\n" +
+	"\ttenant_id\x18\x02 \x01(\tR\btenantId\x12\"\n" +
+	"\n" +
+	"project_id\x18\x03 \x01(\tH\x00R\tprojectId\x88\x01\x01\x12*\n" +
+	"\x0eenvironment_id\x18\x04 \x01(\tH\x01R\renvironmentId\x88\x01\x01\x12\x16\n" +
+	"\x06source\x18\x05 \x01(\tR\x06source\x12\x1a\n" +
+	"\bseverity\x18\x06 \x01(\tR\bseverity\x12 \n" +
+	"\vfingerprint\x18\a \x01(\tR\vfingerprint\x12\x18\n" +
+	"\asummary\x18\b \x01(\tR\asummary\x12&\n" +
+	"\fresource_ref\x18\t \x01(\tH\x02R\vresourceRef\x88\x01\x01\x12&\n" +
+	"\foperation_id\x18\n" +
+	" \x01(\tH\x03R\voperationId\x88\x01\x01\x12*\n" +
+	"\x0ecorrelation_id\x18\v \x01(\tH\x04R\rcorrelationId\x88\x01\x01\x12A\n" +
+	"\x06labels\x18\f \x03(\v2).hnb.contracts.v1.AlertFiring.LabelsEntryR\x06labels\x12>\n" +
+	"\rfirst_seen_at\x18\r \x01(\v2\x1a.google.protobuf.TimestampR\vfirstSeenAt\x12)\n" +
+	"\x10occurrence_count\x18\x0e \x01(\x05R\x0foccurrenceCount\x1a9\n" +
+	"\vLabelsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B\r\n" +
+	"\v_project_idB\x11\n" +
+	"\x0f_environment_idB\x0f\n" +
+	"\r_resource_refB\x0f\n" +
+	"\r_operation_idB\x11\n" +
+	"\x0f_correlation_id\"\xa6\x01\n" +
+	"\rAlertResolved\x12\x19\n" +
+	"\balert_id\x18\x01 \x01(\tR\aalertId\x12\x1b\n" +
+	"\ttenant_id\x18\x02 \x01(\tR\btenantId\x12 \n" +
+	"\vfingerprint\x18\x03 \x01(\tR\vfingerprint\x12;\n" +
+	"\vresolved_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"resolvedAt\"\x91\x02\n" +
+	"\x14NotificationDispatch\x12\x15\n" +
+	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12\x19\n" +
+	"\balert_id\x18\x02 \x01(\tR\aalertId\x12!\n" +
+	"\fchannel_type\x18\x03 \x01(\tR\vchannelType\x12'\n" +
+	"\x0fidempotency_key\x18\x04 \x01(\tR\x0eidempotencyKey\x12'\n" +
+	"\x0fpolicy_snapshot\x18\x05 \x01(\fR\x0epolicySnapshot\x12#\n" +
+	"\rtemplate_data\x18\x06 \x01(\fR\ftemplateData\x12-\n" +
+	"\x12destination_masked\x18\a \x01(\tR\x11destinationMasked\"\xd0\x02\n" +
+	"\x0fDeliveryChanged\x12\x1f\n" +
+	"\vdelivery_id\x18\x01 \x01(\tR\n" +
+	"deliveryId\x12\x15\n" +
+	"\x06job_id\x18\x02 \x01(\tR\x05jobId\x12\x19\n" +
+	"\balert_id\x18\x03 \x01(\tR\aalertId\x12%\n" +
+	"\x0eprevious_state\x18\x04 \x01(\tR\rpreviousState\x12\x1b\n" +
+	"\tnew_state\x18\x05 \x01(\tR\bnewState\x123\n" +
+	"\x13provider_message_id\x18\x06 \x01(\tH\x00R\x11providerMessageId\x88\x01\x01\x12$\n" +
+	"\verror_class\x18\a \x01(\tH\x01R\n" +
+	"errorClass\x88\x01\x01\x12#\n" +
+	"\rattempt_count\x18\b \x01(\x05R\fattemptCountB\x16\n" +
+	"\x14_provider_message_idB\x0e\n" +
+	"\f_error_class\"\x8e\x02\n" +
+	"\x12SecretReferenceMsg\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1b\n" +
+	"\ttenant_id\x18\x02 \x01(\tR\btenantId\x12\x12\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\x12\x1d\n" +
+	"\n" +
+	"secret_ref\x18\x04 \x01(\tR\tsecretRef\x12\x18\n" +
+	"\aversion\x18\x05 \x01(\x05R\aversion\x12!\n" +
+	"\talgorithm\x18\x06 \x01(\tH\x00R\talgorithm\x88\x01\x01\x12>\n" +
+	"\n" +
+	"expires_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampH\x01R\texpiresAt\x88\x01\x01B\f\n" +
+	"\n" +
+	"_algorithmB\r\n" +
+	"\v_expires_at\"\x9e\x03\n" +
+	"\fNamespaceRef\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1b\n" +
+	"\ttenant_id\x18\x02 \x01(\tR\btenantId\x12\x1d\n" +
+	"\n" +
+	"project_id\x18\x03 \x01(\tR\tprojectId\x12%\n" +
+	"\x0eenvironment_id\x18\x04 \x01(\tR\renvironmentId\x12\x12\n" +
+	"\x04name\x18\x05 \x01(\tR\x04name\x12\x16\n" +
+	"\x06status\x18\x06 \x01(\tR\x06status\x12%\n" +
+	"\vdescription\x18\a \x01(\tH\x00R\vdescription\x88\x01\x01\x12B\n" +
+	"\x06labels\x18\b \x03(\v2*.hnb.contracts.v1.NamespaceRef.LabelsEntryR\x06labels\x129\n" +
+	"\n" +
+	"created_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x1a9\n" +
+	"\vLabelsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B\x0e\n" +
+	"\f_description\"\xde\x06\n" +
+	"\x11AccessTokenClaims\x12'\n" +
+	"\x0fprofile_version\x18\x01 \x01(\tR\x0eprofileVersion\x12\x16\n" +
+	"\x06issuer\x18\x02 \x01(\tR\x06issuer\x12\x1c\n" +
+	"\taudiences\x18\x03 \x03(\tR\taudiences\x12\x1d\n" +
+	"\n" +
+	"subject_id\x18\x04 \x01(\tR\tsubjectId\x12@\n" +
+	"\fsubject_type\x18\x05 \x01(\x0e2\x1d.hnb.contracts.v1.SubjectTypeR\vsubjectType\x122\n" +
+	"\x15tenant_membership_ids\x18\x06 \x03(\tR\x13tenantMembershipIds\x127\n" +
+	"\tissued_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\bissuedAt\x129\n" +
+	"\n" +
+	"expires_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\x129\n" +
+	"\n" +
+	"not_before\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tnotBefore\x12<\n" +
+	"\tauth_time\x18\n" +
+	" \x01(\v2\x1a.google.protobuf.TimestampH\x00R\bauthTime\x88\x01\x01\x12\x19\n" +
+	"\btoken_id\x18\v \x01(\tR\atokenId\x12\x15\n" +
+	"\x06key_id\x18\f \x01(\tR\x05keyId\x12\x1c\n" +
+	"\talgorithm\x18\r \x01(\tR\talgorithm\x12\x1b\n" +
+	"\ttenant_id\x18\x0e \x01(\tR\btenantId\x12#\n" +
+	"\rmembership_id\x18\x0f \x01(\tR\fmembershipId\x12%\n" +
+	"\x0epolicy_version\x18\x10 \x01(\tR\rpolicyVersion\x12Q\n" +
+	"\x12scoped_permissions\x18\x11 \x03(\v2\".hnb.contracts.v1.ScopedPermissionR\x11scopedPermissions\x12N\n" +
+	"\x0fallowed_actions\x18\x12 \x03(\x0e2%.hnb.contracts.v1.AuthorizationActionR\x0eallowedActionsB\f\n" +
+	"\n" +
+	"_auth_time\"\x91\x05\n" +
+	"\x15TrustedRequestContext\x12\x1d\n" +
+	"\n" +
+	"subject_id\x18\x01 \x01(\tR\tsubjectId\x12@\n" +
+	"\fsubject_type\x18\x02 \x01(\x0e2\x1d.hnb.contracts.v1.SubjectTypeR\vsubjectType\x12\x1b\n" +
+	"\ttenant_id\x18\x03 \x01(\tR\btenantId\x12#\n" +
+	"\rmembership_id\x18\x04 \x01(\tR\fmembershipId\x12\"\n" +
+	"\n" +
+	"project_id\x18\x05 \x01(\tH\x00R\tprojectId\x88\x01\x01\x12*\n" +
+	"\x0eenvironment_id\x18\x06 \x01(\tH\x01R\renvironmentId\x88\x01\x01\x12&\n" +
+	"\fnamespace_id\x18\a \x01(\tH\x02R\vnamespaceId\x88\x01\x01\x12%\n" +
+	"\x0ecorrelation_id\x18\b \x01(\tR\rcorrelationId\x12%\n" +
+	"\vtraceparent\x18\t \x01(\tH\x03R\vtraceparent\x88\x01\x01\x12\x19\n" +
+	"\btoken_id\x18\n" +
+	" \x01(\tR\atokenId\x127\n" +
+	"\tauth_time\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\bauthTime\x12%\n" +
+	"\x0epolicy_version\x18\f \x01(\tR\rpolicyVersion\x12Q\n" +
+	"\x12scoped_permissions\x18\r \x03(\v2\".hnb.contracts.v1.ScopedPermissionR\x11scopedPermissionsB\r\n" +
+	"\v_project_idB\x11\n" +
+	"\x0f_environment_idB\x0f\n" +
+	"\r_namespace_idB\x0e\n" +
+	"\f_traceparent\"\x90\x02\n" +
+	"\x12AuthorizationScope\x122\n" +
+	"\x05level\x18\x01 \x01(\x0e2\x1c.hnb.contracts.v1.ScopeLevelR\x05level\x12\x1b\n" +
+	"\ttenant_id\x18\x02 \x01(\tR\btenantId\x12\"\n" +
+	"\n" +
+	"project_id\x18\x03 \x01(\tH\x00R\tprojectId\x88\x01\x01\x12*\n" +
+	"\x0eenvironment_id\x18\x04 \x01(\tH\x01R\renvironmentId\x88\x01\x01\x12&\n" +
+	"\fnamespace_id\x18\x05 \x01(\tH\x02R\vnamespaceId\x88\x01\x01B\r\n" +
+	"\v_project_idB\x11\n" +
+	"\x0f_environment_idB\x0f\n" +
+	"\r_namespace_id\"\xf4\x02\n" +
+	"\x15AuthorizationDecision\x12=\n" +
+	"\x06effect\x18\x01 \x01(\x0e2%.hnb.contracts.v1.AuthorizationEffectR\x06effect\x12\x1f\n" +
+	"\vreason_code\x18\x02 \x01(\tR\n" +
+	"reasonCode\x12%\n" +
+	"\x0epolicy_version\x18\x03 \x01(\tR\rpolicyVersion\x12#\n" +
+	"\rresource_kind\x18\x04 \x01(\tR\fresourceKind\x12$\n" +
+	"\vresource_id\x18\x05 \x01(\tH\x00R\n" +
+	"resourceId\x88\x01\x01\x12=\n" +
+	"\x06action\x18\x06 \x01(\x0e2%.hnb.contracts.v1.AuthorizationActionR\x06action\x12:\n" +
+	"\x05scope\x18\a \x01(\v2$.hnb.contracts.v1.AuthorizationScopeR\x05scopeB\x0e\n" +
+	"\f_resource_id\"\xd2\x02\n" +
+	"\x0fServiceIdentity\x12\x1d\n" +
+	"\n" +
+	"subject_id\x18\x01 \x01(\tR\tsubjectId\x12@\n" +
+	"\fsubject_type\x18\x02 \x01(\x0e2\x1d.hnb.contracts.v1.SubjectTypeR\vsubjectType\x12\x1c\n" +
+	"\taudiences\x18\x03 \x03(\tR\taudiences\x12N\n" +
+	"\x0fallowed_actions\x18\x04 \x03(\x0e2%.hnb.contracts.v1.AuthorizationActionR\x0eallowedActions\x12\x1d\n" +
+	"\n" +
+	"tenant_ids\x18\x05 \x03(\tR\ttenantIds\x12Q\n" +
+	"\x12scoped_permissions\x18\x06 \x03(\v2\".hnb.contracts.v1.ScopedPermissionR\x11scopedPermissions\"\x8a\x01\n" +
+	"\x17ContractSecretReference\x12\x1a\n" +
+	"\bprovider\x18\x01 \x01(\tR\bprovider\x12\x14\n" +
+	"\x05scope\x18\x02 \x01(\tR\x05scope\x12\x12\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\x12\x1d\n" +
+	"\aversion\x18\x04 \x01(\tH\x00R\aversion\x88\x01\x01B\n" +
+	"\n" +
+	"\b_version\"g\n" +
+	"\x15RuntimeIntentMetadata\x12'\n" +
+	"\x0fidempotency_key\x18\x01 \x01(\tR\x0eidempotencyKey\x12%\n" +
+	"\x0ecorrelation_id\x18\x02 \x01(\tR\rcorrelationId\"\xff\x01\n" +
+	"\x11RuntimeIntentSpec\x12\x1d\n" +
+	"\n" +
+	"release_id\x18\x01 \x01(\tR\treleaseId\x12\x1d\n" +
+	"\n" +
+	"target_ref\x18\x02 \x01(\tR\ttargetRef\x12\x1b\n" +
+	"\tscope_ref\x18\x03 \x01(\tR\bscopeRef\x127\n" +
+	"\n" +
+	"parameters\x18\x04 \x01(\v2\x17.google.protobuf.StructR\n" +
+	"parameters\x12V\n" +
+	"\x11secret_references\x18\x05 \x03(\v2).hnb.contracts.v1.ContractSecretReferenceR\x10secretReferences\"\xe7\x01\n" +
+	"\rRuntimeIntent\x12\x1f\n" +
+	"\vapi_version\x18\x01 \x01(\tR\n" +
+	"apiVersion\x127\n" +
+	"\x04kind\x18\x02 \x01(\x0e2#.hnb.contracts.v1.RuntimeIntentKindR\x04kind\x12C\n" +
+	"\bmetadata\x18\x03 \x01(\v2'.hnb.contracts.v1.RuntimeIntentMetadataR\bmetadata\x127\n" +
+	"\x04spec\x18\x04 \x01(\v2#.hnb.contracts.v1.RuntimeIntentSpecR\x04spec\"h\n" +
+	"\x11ExecutionPlanStep\x12\x17\n" +
+	"\astep_id\x18\x01 \x01(\tR\x06stepId\x12\x1b\n" +
+	"\tstep_type\x18\x02 \x01(\tR\bstepType\x12\x1d\n" +
+	"\n" +
+	"depends_on\x18\x03 \x03(\tR\tdependsOn\"\x8a\x06\n" +
+	"\rExecutionPlan\x12\x17\n" +
+	"\aplan_id\x18\x01 \x01(\tR\x06planId\x12\x1b\n" +
+	"\tintent_id\x18\x02 \x01(\tR\bintentId\x12'\n" +
+	"\x0fsemantic_digest\x18\x03 \x01(\tR\x0esemanticDigest\x12\x1f\n" +
+	"\vrelease_ref\x18\x04 \x01(\tR\n" +
+	"releaseRef\x12)\n" +
+	"\x10artifact_digests\x18\x05 \x03(\tR\x0fartifactDigests\x12\x1d\n" +
+	"\n" +
+	"target_ref\x18\x06 \x01(\tR\ttargetRef\x12<\n" +
+	"\x1acapability_snapshot_digest\x18\a \x01(\tR\x18capabilitySnapshotDigest\x12b\n" +
+	"\x11provider_versions\x18\b \x03(\v25.hnb.contracts.v1.ExecutionPlan.ProviderVersionsEntryR\x10providerVersions\x120\n" +
+	"\x14policy_decision_refs\x18\t \x03(\tR\x12policyDecisionRefs\x12H\n" +
+	"\x13approved_parameters\x18\n" +
+	" \x01(\v2\x17.google.protobuf.StructR\x12approvedParameters\x12V\n" +
+	"\x11secret_references\x18\v \x03(\v2).hnb.contracts.v1.ContractSecretReferenceR\x10secretReferences\x129\n" +
+	"\x05steps\x18\f \x03(\v2#.hnb.contracts.v1.ExecutionPlanStepR\x05steps\x129\n" +
+	"\n" +
+	"created_at\x18\r \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x1aC\n" +
+	"\x15ProviderVersionsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"v\n" +
+	"\x0eConsoleSubject\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x121\n" +
+	"\x04type\x18\x02 \x01(\x0e2\x1d.hnb.contracts.v1.SubjectTypeR\x04type\x12!\n" +
+	"\fdisplay_name\x18\x03 \x01(\tR\vdisplayName\"u\n" +
+	"\x10TenantMembership\x12#\n" +
+	"\rmembership_id\x18\x01 \x01(\tR\fmembershipId\x12\x1b\n" +
+	"\ttenant_id\x18\x02 \x01(\tR\btenantId\x12\x1f\n" +
+	"\vtenant_name\x18\x03 \x01(\tR\n" +
+	"tenantName\"X\n" +
+	"\n" +
+	"Capability\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1c\n" +
+	"\tavailable\x18\x02 \x01(\bR\tavailable\x12\x18\n" +
+	"\aversion\x18\x03 \x01(\tR\aversion\"\xf4\x02\n" +
+	"\x10ScopedPermission\x12#\n" +
+	"\rresource_kind\x18\x01 \x01(\tR\fresourceKind\x12$\n" +
+	"\vresource_id\x18\x02 \x01(\tH\x00R\n" +
+	"resourceId\x88\x01\x01\x12=\n" +
+	"\x06action\x18\x03 \x01(\x0e2%.hnb.contracts.v1.AuthorizationActionR\x06action\x12\x1b\n" +
+	"\ttenant_id\x18\x04 \x01(\tR\btenantId\x12\"\n" +
+	"\n" +
+	"project_id\x18\x05 \x01(\tH\x01R\tprojectId\x88\x01\x01\x12*\n" +
+	"\x0eenvironment_id\x18\x06 \x01(\tH\x02R\renvironmentId\x88\x01\x01\x12&\n" +
+	"\fnamespace_id\x18\a \x01(\tH\x03R\vnamespaceId\x88\x01\x01B\x0e\n" +
+	"\f_resource_idB\r\n" +
+	"\v_project_idB\x11\n" +
+	"\x0f_environment_idB\x0f\n" +
+	"\r_namespace_id\"\xa0\x03\n" +
+	"\x10ConsoleBootstrap\x12:\n" +
+	"\asubject\x18\x01 \x01(\v2 .hnb.contracts.v1.ConsoleSubjectR\asubject\x12,\n" +
+	"\x12selected_tenant_id\x18\x02 \x01(\tR\x10selectedTenantId\x12D\n" +
+	"\vmemberships\x18\x03 \x03(\v2\".hnb.contracts.v1.TenantMembershipR\vmemberships\x12@\n" +
+	"\fcapabilities\x18\x04 \x03(\v2\x1c.hnb.contracts.v1.CapabilityR\fcapabilities\x12D\n" +
+	"\vpermissions\x18\x05 \x03(\v2\".hnb.contracts.v1.ScopedPermissionR\vpermissions\x12%\n" +
+	"\x0epolicy_version\x18\x06 \x01(\tR\rpolicyVersion\x12-\n" +
+	"\x12permission_version\x18\a \x01(\tR\x11permissionVersion\"+\n" +
+	"\fTenantSwitch\x12\x1b\n" +
+	"\ttenant_id\x18\x01 \x01(\tR\btenantId\"g\n" +
+	"\x10ProblemViolation\x12\x14\n" +
+	"\x05field\x18\x01 \x01(\tR\x05field\x12\x12\n" +
+	"\x04code\x18\x02 \x01(\tR\x04code\x12\x1d\n" +
+	"\amessage\x18\x03 \x01(\tH\x00R\amessage\x88\x01\x01B\n" +
+	"\n" +
+	"\b_message\"\xa7\x02\n" +
+	"\x0eProblemDetails\x12\x12\n" +
+	"\x04type\x18\x01 \x01(\tR\x04type\x12\x14\n" +
+	"\x05title\x18\x02 \x01(\tR\x05title\x12\x16\n" +
+	"\x06status\x18\x03 \x01(\x05R\x06status\x12\x1b\n" +
+	"\x06detail\x18\x04 \x01(\tH\x00R\x06detail\x88\x01\x01\x12\x1f\n" +
+	"\binstance\x18\x05 \x01(\tH\x01R\binstance\x88\x01\x01\x12\x12\n" +
+	"\x04code\x18\x06 \x01(\tR\x04code\x12%\n" +
+	"\x0ecorrelation_id\x18\a \x01(\tR\rcorrelationId\x12B\n" +
+	"\n" +
+	"violations\x18\b \x03(\v2\".hnb.contracts.v1.ProblemViolationR\n" +
+	"violationsB\t\n" +
+	"\a_detailB\v\n" +
+	"\t_instance*w\n" +
+	"\vSubjectType\x12\x1c\n" +
+	"\x18SUBJECT_TYPE_UNSPECIFIED\x10\x00\x12\x15\n" +
+	"\x11SUBJECT_TYPE_USER\x10\x01\x12\x19\n" +
+	"\x15SUBJECT_TYPE_WORKLOAD\x10\x02\x12\x18\n" +
+	"\x14SUBJECT_TYPE_SERVICE\x10\x03*\x8a\x03\n" +
+	"\x13AuthorizationAction\x12$\n" +
+	" AUTHORIZATION_ACTION_UNSPECIFIED\x10\x00\x12\x1d\n" +
+	"\x19AUTHORIZATION_ACTION_READ\x10\x01\x12\x1d\n" +
+	"\x19AUTHORIZATION_ACTION_LIST\x10\x02\x12\x1f\n" +
+	"\x1bAUTHORIZATION_ACTION_CREATE\x10\x03\x12\x1f\n" +
+	"\x1bAUTHORIZATION_ACTION_UPDATE\x10\x04\x12\x1f\n" +
+	"\x1bAUTHORIZATION_ACTION_DELETE\x10\x05\x12 \n" +
+	"\x1cAUTHORIZATION_ACTION_EXECUTE\x10\x06\x12 \n" +
+	"\x1cAUTHORIZATION_ACTION_APPROVE\x10\a\x12\x1f\n" +
+	"\x1bAUTHORIZATION_ACTION_REJECT\x10\b\x12\x1f\n" +
+	"\x1bAUTHORIZATION_ACTION_CANCEL\x10\t\x12&\n" +
+	"\"AUTHORIZATION_ACTION_SWITCH_TENANT\x10\n" +
+	"*\xac\x01\n" +
+	"\n" +
+	"ScopeLevel\x12\x1b\n" +
+	"\x17SCOPE_LEVEL_UNSPECIFIED\x10\x00\x12\x16\n" +
+	"\x12SCOPE_LEVEL_TENANT\x10\x01\x12\x17\n" +
+	"\x13SCOPE_LEVEL_PROJECT\x10\x02\x12\x1b\n" +
+	"\x17SCOPE_LEVEL_ENVIRONMENT\x10\x03\x12\x19\n" +
+	"\x15SCOPE_LEVEL_NAMESPACE\x10\x04\x12\x18\n" +
+	"\x14SCOPE_LEVEL_RESOURCE\x10\x05*z\n" +
+	"\x13AuthorizationEffect\x12$\n" +
+	" AUTHORIZATION_EFFECT_UNSPECIFIED\x10\x00\x12\x1e\n" +
+	"\x1aAUTHORIZATION_EFFECT_ALLOW\x10\x01\x12\x1d\n" +
+	"\x19AUTHORIZATION_EFFECT_DENY\x10\x02*\x8d\x02\n" +
+	"\x11RuntimeIntentKind\x12#\n" +
+	"\x1fRUNTIME_INTENT_KIND_UNSPECIFIED\x10\x00\x12'\n" +
+	"#RUNTIME_INTENT_KIND_INSTALL_RELEASE\x10\x01\x12)\n" +
+	"%RUNTIME_INTENT_KIND_UNINSTALL_RELEASE\x10\x02\x12'\n" +
+	"#RUNTIME_INTENT_KIND_UPGRADE_RELEASE\x10\x03\x12(\n" +
+	"$RUNTIME_INTENT_KIND_ROLLBACK_RELEASE\x10\x04\x12,\n" +
+	"(RUNTIME_INTENT_KIND_CHANGE_CONFIGURATION\x10\x05BNZLgithub.com/F31/hnb/contracts/generated/go/proto/hnb/contracts/v1;contractsv1b\x06proto3"
 
 var (
 	file_hnb_contracts_v1_contracts_proto_rawDescOnce sync.Once
@@ -502,24 +4158,115 @@ func file_hnb_contracts_v1_contracts_proto_rawDescGZIP() []byte {
 	return file_hnb_contracts_v1_contracts_proto_rawDescData
 }
 
-var file_hnb_contracts_v1_contracts_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_hnb_contracts_v1_contracts_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
+var file_hnb_contracts_v1_contracts_proto_msgTypes = make([]protoimpl.MessageInfo, 39)
 var file_hnb_contracts_v1_contracts_proto_goTypes = []any{
-	(*RequestContext)(nil),        // 0: hnb.contracts.v1.RequestContext
-	(*ResourceReference)(nil),     // 1: hnb.contracts.v1.ResourceReference
-	(*ContractEchoed)(nil),        // 2: hnb.contracts.v1.ContractEchoed
-	(*EventEnvelope)(nil),         // 3: hnb.contracts.v1.EventEnvelope
-	(*timestamppb.Timestamp)(nil), // 4: google.protobuf.Timestamp
+	(SubjectType)(0),                // 0: hnb.contracts.v1.SubjectType
+	(AuthorizationAction)(0),        // 1: hnb.contracts.v1.AuthorizationAction
+	(ScopeLevel)(0),                 // 2: hnb.contracts.v1.ScopeLevel
+	(AuthorizationEffect)(0),        // 3: hnb.contracts.v1.AuthorizationEffect
+	(RuntimeIntentKind)(0),          // 4: hnb.contracts.v1.RuntimeIntentKind
+	(*RequestContext)(nil),          // 5: hnb.contracts.v1.RequestContext
+	(*TenantContext)(nil),           // 6: hnb.contracts.v1.TenantContext
+	(*AuthorizationRequest)(nil),    // 7: hnb.contracts.v1.AuthorizationRequest
+	(*AuthorizationResponse)(nil),   // 8: hnb.contracts.v1.AuthorizationResponse
+	(*ResourceReference)(nil),       // 9: hnb.contracts.v1.ResourceReference
+	(*ContractEchoed)(nil),          // 10: hnb.contracts.v1.ContractEchoed
+	(*EventEnvelope)(nil),           // 11: hnb.contracts.v1.EventEnvelope
+	(*StepRequested)(nil),           // 12: hnb.contracts.v1.StepRequested
+	(*StepCompleted)(nil),           // 13: hnb.contracts.v1.StepCompleted
+	(*OperationStateChanged)(nil),   // 14: hnb.contracts.v1.OperationStateChanged
+	(*OperationProgress)(nil),       // 15: hnb.contracts.v1.OperationProgress
+	(*AlertFiring)(nil),             // 16: hnb.contracts.v1.AlertFiring
+	(*AlertResolved)(nil),           // 17: hnb.contracts.v1.AlertResolved
+	(*NotificationDispatch)(nil),    // 18: hnb.contracts.v1.NotificationDispatch
+	(*DeliveryChanged)(nil),         // 19: hnb.contracts.v1.DeliveryChanged
+	(*SecretReferenceMsg)(nil),      // 20: hnb.contracts.v1.SecretReferenceMsg
+	(*NamespaceRef)(nil),            // 21: hnb.contracts.v1.NamespaceRef
+	(*AccessTokenClaims)(nil),       // 22: hnb.contracts.v1.AccessTokenClaims
+	(*TrustedRequestContext)(nil),   // 23: hnb.contracts.v1.TrustedRequestContext
+	(*AuthorizationScope)(nil),      // 24: hnb.contracts.v1.AuthorizationScope
+	(*AuthorizationDecision)(nil),   // 25: hnb.contracts.v1.AuthorizationDecision
+	(*ServiceIdentity)(nil),         // 26: hnb.contracts.v1.ServiceIdentity
+	(*ContractSecretReference)(nil), // 27: hnb.contracts.v1.ContractSecretReference
+	(*RuntimeIntentMetadata)(nil),   // 28: hnb.contracts.v1.RuntimeIntentMetadata
+	(*RuntimeIntentSpec)(nil),       // 29: hnb.contracts.v1.RuntimeIntentSpec
+	(*RuntimeIntent)(nil),           // 30: hnb.contracts.v1.RuntimeIntent
+	(*ExecutionPlanStep)(nil),       // 31: hnb.contracts.v1.ExecutionPlanStep
+	(*ExecutionPlan)(nil),           // 32: hnb.contracts.v1.ExecutionPlan
+	(*ConsoleSubject)(nil),          // 33: hnb.contracts.v1.ConsoleSubject
+	(*TenantMembership)(nil),        // 34: hnb.contracts.v1.TenantMembership
+	(*Capability)(nil),              // 35: hnb.contracts.v1.Capability
+	(*ScopedPermission)(nil),        // 36: hnb.contracts.v1.ScopedPermission
+	(*ConsoleBootstrap)(nil),        // 37: hnb.contracts.v1.ConsoleBootstrap
+	(*TenantSwitch)(nil),            // 38: hnb.contracts.v1.TenantSwitch
+	(*ProblemViolation)(nil),        // 39: hnb.contracts.v1.ProblemViolation
+	(*ProblemDetails)(nil),          // 40: hnb.contracts.v1.ProblemDetails
+	nil,                             // 41: hnb.contracts.v1.AlertFiring.LabelsEntry
+	nil,                             // 42: hnb.contracts.v1.NamespaceRef.LabelsEntry
+	nil,                             // 43: hnb.contracts.v1.ExecutionPlan.ProviderVersionsEntry
+	(*timestamppb.Timestamp)(nil),   // 44: google.protobuf.Timestamp
+	(*structpb.Struct)(nil),         // 45: google.protobuf.Struct
 }
 var file_hnb_contracts_v1_contracts_proto_depIdxs = []int32{
-	0, // 0: hnb.contracts.v1.ContractEchoed.context:type_name -> hnb.contracts.v1.RequestContext
-	1, // 1: hnb.contracts.v1.ContractEchoed.resource_ref:type_name -> hnb.contracts.v1.ResourceReference
-	4, // 2: hnb.contracts.v1.EventEnvelope.occurred_at:type_name -> google.protobuf.Timestamp
-	2, // 3: hnb.contracts.v1.EventEnvelope.contract_echoed:type_name -> hnb.contracts.v1.ContractEchoed
-	4, // [4:4] is the sub-list for method output_type
-	4, // [4:4] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	5,  // 0: hnb.contracts.v1.ContractEchoed.context:type_name -> hnb.contracts.v1.RequestContext
+	9,  // 1: hnb.contracts.v1.ContractEchoed.resource_ref:type_name -> hnb.contracts.v1.ResourceReference
+	44, // 2: hnb.contracts.v1.EventEnvelope.occurred_at:type_name -> google.protobuf.Timestamp
+	10, // 3: hnb.contracts.v1.EventEnvelope.contract_echoed:type_name -> hnb.contracts.v1.ContractEchoed
+	16, // 4: hnb.contracts.v1.EventEnvelope.alert_firing:type_name -> hnb.contracts.v1.AlertFiring
+	17, // 5: hnb.contracts.v1.EventEnvelope.alert_resolved:type_name -> hnb.contracts.v1.AlertResolved
+	18, // 6: hnb.contracts.v1.EventEnvelope.notification_dispatch:type_name -> hnb.contracts.v1.NotificationDispatch
+	19, // 7: hnb.contracts.v1.EventEnvelope.delivery_changed:type_name -> hnb.contracts.v1.DeliveryChanged
+	20, // 8: hnb.contracts.v1.EventEnvelope.secret_reference:type_name -> hnb.contracts.v1.SecretReferenceMsg
+	12, // 9: hnb.contracts.v1.EventEnvelope.step_requested:type_name -> hnb.contracts.v1.StepRequested
+	13, // 10: hnb.contracts.v1.EventEnvelope.step_completed:type_name -> hnb.contracts.v1.StepCompleted
+	14, // 11: hnb.contracts.v1.EventEnvelope.operation_state_changed:type_name -> hnb.contracts.v1.OperationStateChanged
+	15, // 12: hnb.contracts.v1.EventEnvelope.operation_progress:type_name -> hnb.contracts.v1.OperationProgress
+	41, // 13: hnb.contracts.v1.AlertFiring.labels:type_name -> hnb.contracts.v1.AlertFiring.LabelsEntry
+	44, // 14: hnb.contracts.v1.AlertFiring.first_seen_at:type_name -> google.protobuf.Timestamp
+	44, // 15: hnb.contracts.v1.AlertResolved.resolved_at:type_name -> google.protobuf.Timestamp
+	44, // 16: hnb.contracts.v1.SecretReferenceMsg.expires_at:type_name -> google.protobuf.Timestamp
+	42, // 17: hnb.contracts.v1.NamespaceRef.labels:type_name -> hnb.contracts.v1.NamespaceRef.LabelsEntry
+	44, // 18: hnb.contracts.v1.NamespaceRef.created_at:type_name -> google.protobuf.Timestamp
+	0,  // 19: hnb.contracts.v1.AccessTokenClaims.subject_type:type_name -> hnb.contracts.v1.SubjectType
+	44, // 20: hnb.contracts.v1.AccessTokenClaims.issued_at:type_name -> google.protobuf.Timestamp
+	44, // 21: hnb.contracts.v1.AccessTokenClaims.expires_at:type_name -> google.protobuf.Timestamp
+	44, // 22: hnb.contracts.v1.AccessTokenClaims.not_before:type_name -> google.protobuf.Timestamp
+	44, // 23: hnb.contracts.v1.AccessTokenClaims.auth_time:type_name -> google.protobuf.Timestamp
+	36, // 24: hnb.contracts.v1.AccessTokenClaims.scoped_permissions:type_name -> hnb.contracts.v1.ScopedPermission
+	1,  // 25: hnb.contracts.v1.AccessTokenClaims.allowed_actions:type_name -> hnb.contracts.v1.AuthorizationAction
+	0,  // 26: hnb.contracts.v1.TrustedRequestContext.subject_type:type_name -> hnb.contracts.v1.SubjectType
+	44, // 27: hnb.contracts.v1.TrustedRequestContext.auth_time:type_name -> google.protobuf.Timestamp
+	36, // 28: hnb.contracts.v1.TrustedRequestContext.scoped_permissions:type_name -> hnb.contracts.v1.ScopedPermission
+	2,  // 29: hnb.contracts.v1.AuthorizationScope.level:type_name -> hnb.contracts.v1.ScopeLevel
+	3,  // 30: hnb.contracts.v1.AuthorizationDecision.effect:type_name -> hnb.contracts.v1.AuthorizationEffect
+	1,  // 31: hnb.contracts.v1.AuthorizationDecision.action:type_name -> hnb.contracts.v1.AuthorizationAction
+	24, // 32: hnb.contracts.v1.AuthorizationDecision.scope:type_name -> hnb.contracts.v1.AuthorizationScope
+	0,  // 33: hnb.contracts.v1.ServiceIdentity.subject_type:type_name -> hnb.contracts.v1.SubjectType
+	1,  // 34: hnb.contracts.v1.ServiceIdentity.allowed_actions:type_name -> hnb.contracts.v1.AuthorizationAction
+	36, // 35: hnb.contracts.v1.ServiceIdentity.scoped_permissions:type_name -> hnb.contracts.v1.ScopedPermission
+	45, // 36: hnb.contracts.v1.RuntimeIntentSpec.parameters:type_name -> google.protobuf.Struct
+	27, // 37: hnb.contracts.v1.RuntimeIntentSpec.secret_references:type_name -> hnb.contracts.v1.ContractSecretReference
+	4,  // 38: hnb.contracts.v1.RuntimeIntent.kind:type_name -> hnb.contracts.v1.RuntimeIntentKind
+	28, // 39: hnb.contracts.v1.RuntimeIntent.metadata:type_name -> hnb.contracts.v1.RuntimeIntentMetadata
+	29, // 40: hnb.contracts.v1.RuntimeIntent.spec:type_name -> hnb.contracts.v1.RuntimeIntentSpec
+	43, // 41: hnb.contracts.v1.ExecutionPlan.provider_versions:type_name -> hnb.contracts.v1.ExecutionPlan.ProviderVersionsEntry
+	45, // 42: hnb.contracts.v1.ExecutionPlan.approved_parameters:type_name -> google.protobuf.Struct
+	27, // 43: hnb.contracts.v1.ExecutionPlan.secret_references:type_name -> hnb.contracts.v1.ContractSecretReference
+	31, // 44: hnb.contracts.v1.ExecutionPlan.steps:type_name -> hnb.contracts.v1.ExecutionPlanStep
+	44, // 45: hnb.contracts.v1.ExecutionPlan.created_at:type_name -> google.protobuf.Timestamp
+	0,  // 46: hnb.contracts.v1.ConsoleSubject.type:type_name -> hnb.contracts.v1.SubjectType
+	1,  // 47: hnb.contracts.v1.ScopedPermission.action:type_name -> hnb.contracts.v1.AuthorizationAction
+	33, // 48: hnb.contracts.v1.ConsoleBootstrap.subject:type_name -> hnb.contracts.v1.ConsoleSubject
+	34, // 49: hnb.contracts.v1.ConsoleBootstrap.memberships:type_name -> hnb.contracts.v1.TenantMembership
+	35, // 50: hnb.contracts.v1.ConsoleBootstrap.capabilities:type_name -> hnb.contracts.v1.Capability
+	36, // 51: hnb.contracts.v1.ConsoleBootstrap.permissions:type_name -> hnb.contracts.v1.ScopedPermission
+	39, // 52: hnb.contracts.v1.ProblemDetails.violations:type_name -> hnb.contracts.v1.ProblemViolation
+	53, // [53:53] is the sub-list for method output_type
+	53, // [53:53] is the sub-list for method input_type
+	53, // [53:53] is the sub-list for extension type_name
+	53, // [53:53] is the sub-list for extension extendee
+	0,  // [0:53] is the sub-list for field type_name
 }
 
 func init() { file_hnb_contracts_v1_contracts_proto_init() }
@@ -530,21 +4277,49 @@ func file_hnb_contracts_v1_contracts_proto_init() {
 	file_hnb_contracts_v1_contracts_proto_msgTypes[0].OneofWrappers = []any{}
 	file_hnb_contracts_v1_contracts_proto_msgTypes[1].OneofWrappers = []any{}
 	file_hnb_contracts_v1_contracts_proto_msgTypes[2].OneofWrappers = []any{}
-	file_hnb_contracts_v1_contracts_proto_msgTypes[3].OneofWrappers = []any{
+	file_hnb_contracts_v1_contracts_proto_msgTypes[3].OneofWrappers = []any{}
+	file_hnb_contracts_v1_contracts_proto_msgTypes[4].OneofWrappers = []any{}
+	file_hnb_contracts_v1_contracts_proto_msgTypes[5].OneofWrappers = []any{}
+	file_hnb_contracts_v1_contracts_proto_msgTypes[6].OneofWrappers = []any{
 		(*EventEnvelope_ContractEchoed)(nil),
+		(*EventEnvelope_AlertFiring)(nil),
+		(*EventEnvelope_AlertResolved)(nil),
+		(*EventEnvelope_NotificationDispatch)(nil),
+		(*EventEnvelope_DeliveryChanged)(nil),
+		(*EventEnvelope_SecretReference)(nil),
+		(*EventEnvelope_StepRequested)(nil),
+		(*EventEnvelope_StepCompleted)(nil),
+		(*EventEnvelope_OperationStateChanged)(nil),
+		(*EventEnvelope_OperationProgress)(nil),
 	}
+	file_hnb_contracts_v1_contracts_proto_msgTypes[8].OneofWrappers = []any{}
+	file_hnb_contracts_v1_contracts_proto_msgTypes[9].OneofWrappers = []any{}
+	file_hnb_contracts_v1_contracts_proto_msgTypes[10].OneofWrappers = []any{}
+	file_hnb_contracts_v1_contracts_proto_msgTypes[11].OneofWrappers = []any{}
+	file_hnb_contracts_v1_contracts_proto_msgTypes[14].OneofWrappers = []any{}
+	file_hnb_contracts_v1_contracts_proto_msgTypes[15].OneofWrappers = []any{}
+	file_hnb_contracts_v1_contracts_proto_msgTypes[16].OneofWrappers = []any{}
+	file_hnb_contracts_v1_contracts_proto_msgTypes[17].OneofWrappers = []any{}
+	file_hnb_contracts_v1_contracts_proto_msgTypes[18].OneofWrappers = []any{}
+	file_hnb_contracts_v1_contracts_proto_msgTypes[19].OneofWrappers = []any{}
+	file_hnb_contracts_v1_contracts_proto_msgTypes[20].OneofWrappers = []any{}
+	file_hnb_contracts_v1_contracts_proto_msgTypes[22].OneofWrappers = []any{}
+	file_hnb_contracts_v1_contracts_proto_msgTypes[31].OneofWrappers = []any{}
+	file_hnb_contracts_v1_contracts_proto_msgTypes[34].OneofWrappers = []any{}
+	file_hnb_contracts_v1_contracts_proto_msgTypes[35].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_hnb_contracts_v1_contracts_proto_rawDesc), len(file_hnb_contracts_v1_contracts_proto_rawDesc)),
-			NumEnums:      0,
-			NumMessages:   4,
+			NumEnums:      5,
+			NumMessages:   39,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_hnb_contracts_v1_contracts_proto_goTypes,
 		DependencyIndexes: file_hnb_contracts_v1_contracts_proto_depIdxs,
+		EnumInfos:         file_hnb_contracts_v1_contracts_proto_enumTypes,
 		MessageInfos:      file_hnb_contracts_v1_contracts_proto_msgTypes,
 	}.Build()
 	File_hnb_contracts_v1_contracts_proto = out.File

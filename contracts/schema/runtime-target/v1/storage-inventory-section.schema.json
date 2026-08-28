@@ -1,0 +1,245 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.hnb.cloud/runtime-target/v1/storage-inventory-section.schema.json",
+  "title": "RuntimeTargetStorageInventorySection",
+  "description": "Bounded Kubernetes storage facts. inventoryMode, observerGeneration, and sequence are inherited from the enclosing RuntimeTargetObservation.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "storageClasses": {
+      "type": "array",
+      "maxItems": 512,
+      "items": { "$ref": "#/$defs/storageClass" }
+    },
+    "csiDrivers": {
+      "type": "array",
+      "maxItems": 128,
+      "items": { "$ref": "#/$defs/csiDriver" }
+    },
+    "csiNodes": {
+      "type": "array",
+      "maxItems": 5000,
+      "items": { "$ref": "#/$defs/csiNode" }
+    },
+    "csiStorageCapacities": {
+      "type": "array",
+      "maxItems": 4096,
+      "items": { "$ref": "#/$defs/csiStorageCapacity" }
+    },
+    "volumeAttachments": {
+      "type": "array",
+      "maxItems": 10000,
+      "items": { "$ref": "#/$defs/volumeAttachment" }
+    },
+    "volumeSnapshotClasses": {
+      "type": "array",
+      "maxItems": 512,
+      "items": { "$ref": "#/$defs/volumeSnapshotClass" }
+    },
+    "volumeSnapshots": {
+      "type": "array",
+      "maxItems": 10000,
+      "items": { "$ref": "#/$defs/volumeSnapshot" }
+    },
+    "volumeSnapshotContents": {
+      "type": "array",
+      "maxItems": 10000,
+      "items": { "$ref": "#/$defs/volumeSnapshotContent" }
+    },
+    "snapshotApi": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "source", "observedAt"],
+      "properties": {
+        "status": { "enum": ["Installed", "NotInstalled", "Unsupported"] },
+        "apiVersion": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "source": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "observedAt": { "type": "string", "format": "date-time" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "status": { "const": "Installed" } }, "required": ["status"] },
+          "then": { "type": "object", "required": ["apiVersion"] }
+        }
+      ]
+    }
+  },
+  "minProperties": 1,
+  "$defs": {
+    "identityProperties": {
+      "uid": { "type": "string", "minLength": 1, "maxLength": 128 },
+      "resourceVersion": { "type": "string", "minLength": 1, "maxLength": 128 },
+      "name": { "type": "string", "minLength": 1, "maxLength": 253 },
+      "source": { "type": "string", "minLength": 1, "maxLength": 256 },
+      "observedAt": { "type": "string", "format": "date-time" },
+      "deleted": { "type": "boolean", "default": false }
+    },
+    "stringMap": {
+      "type": "object",
+      "maxProperties": 256,
+      "propertyNames": { "minLength": 1, "maxLength": 253 },
+      "additionalProperties": { "type": "string", "maxLength": 2048 }
+    },
+    "storageClass": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["uid", "resourceVersion", "name", "source", "observedAt"],
+      "properties": {
+        "uid": { "$ref": "#/$defs/identityProperties/uid" },
+        "resourceVersion": { "$ref": "#/$defs/identityProperties/resourceVersion" },
+        "name": { "$ref": "#/$defs/identityProperties/name" },
+        "source": { "$ref": "#/$defs/identityProperties/source" },
+        "observedAt": { "$ref": "#/$defs/identityProperties/observedAt" },
+        "deleted": { "$ref": "#/$defs/identityProperties/deleted" },
+        "provisioner": { "type": "string", "minLength": 1, "maxLength": 253 },
+        "parameters": { "$ref": "#/$defs/stringMap" },
+        "reclaimPolicy": { "enum": ["Delete", "Retain"] },
+        "volumeBindingMode": { "enum": ["Immediate", "WaitForFirstConsumer"] },
+        "allowVolumeExpansion": { "type": "boolean" },
+        "isDefault": { "type": "boolean" },
+        "mountOptions": { "type": "array", "maxItems": 64, "items": { "type": "string", "maxLength": 256 } },
+        "allowedTopologies": { "type": "array", "maxItems": 64, "items": { "$ref": "#/$defs/stringMap" } }
+      }
+    },
+    "csiDriver": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["uid", "resourceVersion", "name", "source", "observedAt"],
+      "properties": {
+        "uid": { "$ref": "#/$defs/identityProperties/uid" },
+        "resourceVersion": { "$ref": "#/$defs/identityProperties/resourceVersion" },
+        "name": { "$ref": "#/$defs/identityProperties/name" },
+        "source": { "$ref": "#/$defs/identityProperties/source" },
+        "observedAt": { "$ref": "#/$defs/identityProperties/observedAt" },
+        "deleted": { "$ref": "#/$defs/identityProperties/deleted" },
+        "attachRequired": { "type": "boolean" },
+        "podInfoOnMount": { "type": "boolean" },
+        "storageCapacity": { "type": "boolean" },
+        "fsGroupPolicy": { "type": "string", "maxLength": 64 },
+        "requiresRepublish": { "type": "boolean" },
+        "seLinuxMount": { "type": "boolean" },
+        "volumeLifecycleModes": { "type": "array", "maxItems": 8, "uniqueItems": true, "items": { "enum": ["Persistent", "Ephemeral"] } }
+      }
+    },
+    "csiNodeDriver": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "nodeId", "topologyKeys"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 253 },
+        "nodeId": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "allocatableCount": { "type": "integer", "minimum": 0 },
+        "topologyKeys": { "type": "array", "maxItems": 64, "uniqueItems": true, "items": { "type": "string", "minLength": 1, "maxLength": 253 } }
+      }
+    },
+    "csiNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["uid", "resourceVersion", "name", "source", "observedAt"],
+      "properties": {
+        "uid": { "$ref": "#/$defs/identityProperties/uid" },
+        "resourceVersion": { "$ref": "#/$defs/identityProperties/resourceVersion" },
+        "name": { "$ref": "#/$defs/identityProperties/name" },
+        "source": { "$ref": "#/$defs/identityProperties/source" },
+        "observedAt": { "$ref": "#/$defs/identityProperties/observedAt" },
+        "deleted": { "$ref": "#/$defs/identityProperties/deleted" },
+        "drivers": { "type": "array", "maxItems": 64, "items": { "$ref": "#/$defs/csiNodeDriver" } }
+      }
+    },
+    "csiStorageCapacity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["uid", "resourceVersion", "name", "source", "observedAt"],
+      "properties": {
+        "uid": { "$ref": "#/$defs/identityProperties/uid" },
+        "resourceVersion": { "$ref": "#/$defs/identityProperties/resourceVersion" },
+        "name": { "$ref": "#/$defs/identityProperties/name" },
+        "source": { "$ref": "#/$defs/identityProperties/source" },
+        "observedAt": { "$ref": "#/$defs/identityProperties/observedAt" },
+        "deleted": { "$ref": "#/$defs/identityProperties/deleted" },
+        "namespace": { "type": "string", "minLength": 1, "maxLength": 63 },
+        "storageClassName": { "type": "string", "minLength": 1, "maxLength": 253 },
+        "capacityBytes": { "type": "integer", "minimum": 0 },
+        "maximumVolumeSizeBytes": { "type": "integer", "minimum": 0 },
+        "nodeTopology": { "$ref": "#/$defs/stringMap" }
+      }
+    },
+    "volumeAttachment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["uid", "resourceVersion", "name", "source", "observedAt"],
+      "properties": {
+        "uid": { "$ref": "#/$defs/identityProperties/uid" },
+        "resourceVersion": { "$ref": "#/$defs/identityProperties/resourceVersion" },
+        "name": { "$ref": "#/$defs/identityProperties/name" },
+        "source": { "$ref": "#/$defs/identityProperties/source" },
+        "observedAt": { "$ref": "#/$defs/identityProperties/observedAt" },
+        "deleted": { "$ref": "#/$defs/identityProperties/deleted" },
+        "attacher": { "type": "string", "minLength": 1, "maxLength": 253 },
+        "nodeName": { "type": "string", "minLength": 1, "maxLength": 253 },
+        "persistentVolumeName": { "type": "string", "minLength": 1, "maxLength": 253 },
+        "attached": { "type": "boolean" },
+        "attachError": { "type": "string", "maxLength": 2048 },
+        "detachError": { "type": "string", "maxLength": 2048 }
+      }
+    },
+    "volumeSnapshotClass": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["uid", "resourceVersion", "name", "source", "observedAt"],
+      "properties": {
+        "uid": { "$ref": "#/$defs/identityProperties/uid" },
+        "resourceVersion": { "$ref": "#/$defs/identityProperties/resourceVersion" },
+        "name": { "$ref": "#/$defs/identityProperties/name" },
+        "source": { "$ref": "#/$defs/identityProperties/source" },
+        "observedAt": { "$ref": "#/$defs/identityProperties/observedAt" },
+        "deleted": { "$ref": "#/$defs/identityProperties/deleted" },
+        "driver": { "type": "string", "minLength": 1, "maxLength": 253 },
+        "deletionPolicy": { "enum": ["Delete", "Retain"] },
+        "parameters": { "$ref": "#/$defs/stringMap" }
+      }
+    },
+    "volumeSnapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["uid", "resourceVersion", "name", "source", "observedAt"],
+      "properties": {
+        "uid": { "$ref": "#/$defs/identityProperties/uid" },
+        "resourceVersion": { "$ref": "#/$defs/identityProperties/resourceVersion" },
+        "name": { "$ref": "#/$defs/identityProperties/name" },
+        "source": { "$ref": "#/$defs/identityProperties/source" },
+        "observedAt": { "$ref": "#/$defs/identityProperties/observedAt" },
+        "deleted": { "$ref": "#/$defs/identityProperties/deleted" },
+        "namespace": { "type": "string", "minLength": 1, "maxLength": 63 },
+        "volumeSnapshotClassName": { "type": "string", "minLength": 1, "maxLength": 253 },
+        "sourceKind": { "enum": ["PersistentVolumeClaim", "VolumeSnapshotContent"] },
+        "sourceName": { "type": "string", "minLength": 1, "maxLength": 253 },
+        "boundVolumeSnapshotContentName": { "type": "string", "minLength": 1, "maxLength": 253 },
+        "readyToUse": { "type": "boolean" },
+        "restoreSizeBytes": { "type": "integer", "minimum": 0 },
+        "error": { "type": "string", "maxLength": 2048 }
+      }
+    },
+    "volumeSnapshotContent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["uid", "resourceVersion", "name", "source", "observedAt"],
+      "properties": {
+        "uid": { "$ref": "#/$defs/identityProperties/uid" },
+        "resourceVersion": { "$ref": "#/$defs/identityProperties/resourceVersion" },
+        "name": { "$ref": "#/$defs/identityProperties/name" },
+        "source": { "$ref": "#/$defs/identityProperties/source" },
+        "observedAt": { "$ref": "#/$defs/identityProperties/observedAt" },
+        "deleted": { "$ref": "#/$defs/identityProperties/deleted" },
+        "driver": { "type": "string", "minLength": 1, "maxLength": 253 },
+        "deletionPolicy": { "enum": ["Delete", "Retain"] },
+        "snapshotHandle": { "type": "string", "minLength": 1, "maxLength": 512 },
+        "volumeSnapshotNamespace": { "type": "string", "minLength": 1, "maxLength": 63 },
+        "volumeSnapshotName": { "type": "string", "minLength": 1, "maxLength": 253 },
+        "readyToUse": { "type": "boolean" },
+        "restoreSizeBytes": { "type": "integer", "minimum": 0 },
+        "error": { "type": "string", "maxLength": 2048 }
+      }
+    }
+  }
+}

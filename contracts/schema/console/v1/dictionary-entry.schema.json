@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.hnb.cloud/console/v1/dictionary-entry.schema.json",
+  "title": "ConsoleDictionaryEntry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["code", "label", "labelKey", "semanticToken", "terminal"],
+  "properties": {
+    "code": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$", "maxLength": 64 },
+    "label": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "labelKey": { "type": "string", "pattern": "^resource\\.clusterMgmt\\.[A-Za-z0-9_.-]+$", "maxLength": 256 },
+    "semanticToken": { "enum": ["default", "processing", "success", "warning", "error", "info"] },
+    "iconToken": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$", "maxLength": 64 },
+    "terminal": { "type": "boolean" }
+  }
+}

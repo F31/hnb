@@ -1,0 +1,22 @@
+{
+  "apiVersion": "ui.hnb.io/v1",
+  "items": [
+    {
+      "targetId": "018f6c2a-4a64-7b58-9cc3-9f70462f3801",
+      "targetKind": "KubernetesTarget",
+      "displayName": "prod-a",
+      "source": "created",
+      "lifecycleState": "ACTIVE",
+      "healthState": "HEALTHY",
+      "connectivityState": "CONNECTED",
+      "freshness": "FRESH",
+      "observedAt": "2026-08-01T12:00:00Z",
+      "lastKnownStateAt": "2026-08-01T12:00:00Z",
+      "staleThresholdSeconds": 300,
+      "nodeCount": 3,
+      "createdAt": "2026-07-01T12:00:00Z",
+      "updatedAt": "2026-08-01T12:00:00Z"
+    }
+  ],
+  "pagination": { "page": 1, "pageSize": 20, "total": 1, "pageCount": 1, "exactTotal": true }
+}

@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.hnb.cloud/alert/v1/contact-group.schema.json",
+  "title": "ContactGroup",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "tenantId", "name", "members", "version"],
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "tenantId": { "type": "string", "minLength": 1 },
+    "name": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "members": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["userId", "name"],
+        "properties": {
+          "userId": { "type": "string", "minLength": 1 },
+          "name": { "type": "string", "minLength": 1 },
+          "email": { "type": "string", "format": "email" },
+          "phone": { "type": "string", "pattern": "^\\+[0-9]{7,15}$" }
+        },
+        "additionalProperties": false
+      },
+      "minItems": 1
+    },
+    "scheduleRef": { "type": "string", "format": "uuid" },
+    "version": { "type": "integer", "minimum": 1 }
+  }
+}

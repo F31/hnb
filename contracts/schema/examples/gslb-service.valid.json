@@ -1,0 +1,12 @@
+{
+  "id": "00000000-0000-4000-8000-0000000000a1",
+  "tenantId": "tenant-a",
+  "name": "api-gateway",
+  "domain": "api.hnb.cloud",
+  "routingMode": "dns",
+  "activePoolId": "00000000-0000-4000-8000-0000000000b1",
+  "lifecycleState": "Active",
+  "requireApproval": true,
+  "createdAt": "2026-08-19T08:00:00Z",
+  "updatedAt": "2026-08-19T08:00:00Z"
+}

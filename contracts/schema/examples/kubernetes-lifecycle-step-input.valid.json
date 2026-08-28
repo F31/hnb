@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "1.0.0",
+  "targetId": "018f6c2a-4a64-7b58-9cc3-9f70462f3751",
+  "targetKind": "KubernetesTarget",
+  "action": "import",
+  "displayName": "prod-a",
+  "credentialSecretRef": { "provider": "vault", "scope": "tenant:tenant-a", "name": "prod-a-kubeconfig", "version": "7" },
+  "idempotencyKey": "cluster-import-prod-a",
+  "fencingGeneration": 12,
+  "observationVersion": 0
+}

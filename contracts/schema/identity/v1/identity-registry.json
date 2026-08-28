@@ -1,0 +1,46 @@
+{
+  "title": "Identity Schema Registry",
+  "version": "1.0.0",
+  "schemas": {
+    "access-token-claims": {
+      "$ref": "access-token-claims.schema.json",
+      "description": "Verified versioned access-token claim profile; never the encoded credential."
+    },
+    "trusted-request-context": {
+      "$ref": "trusted-request-context.schema.json",
+      "description": "Ingress-derived subject, membership, scope, and correlation context."
+    },
+    "authorization-decision": {
+      "$ref": "authorization-decision.schema.json",
+      "description": "Fail-closed scoped authorization result with policy evidence."
+    },
+    "service-identity": {
+      "$ref": "service-identity.schema.json",
+      "description": "Audience- and action-restricted workload or service identity."
+    },
+    "tenant-context": {
+      "$ref": "tenant-context.schema.json",
+      "description": "Tenant context propagated through API, events, and Provider calls."
+    },
+    "rbac-role": {
+      "$ref": "rbac-role.schema.json",
+      "messageType": null,
+      "description": "RBAC role definition with permissions and inheritance."
+    },
+    "approval-policy": {
+      "$ref": "approval-policy.schema.json",
+      "messageType": null,
+      "description": "Approval policy binding operation types to required roles."
+    },
+    "secret-reference": {
+      "$ref": "secret-reference.schema.json",
+      "messageType": null,
+      "description": "SecretReference for encrypted credential storage and management."
+    },
+    "namespace": {
+      "$ref": "namespace.schema.json",
+      "messageType": "NamespaceRef",
+      "description": "Kubernetes namespace mapping within a tenant environment."
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "name": "Unsafe channel",
+  "severity": "warning",
+  "resource": { "targetId": "32684d2c-fca8-4f28-a946-fb267363fd6c", "kind": "PersistentVolumeClaim", "uid": "pvc-uid-a" },
+  "metric": { "providerId": "kubernetes", "kind": "health", "unit": "1", "source": "kube_state_metrics", "freshFor": "5m", "operator": "lt", "threshold": 1 },
+  "duration": "10m",
+  "channels": [{ "type": "webhook", "configReference": "hook", "secretReference": { "provider": "platform-secrets", "scope": "tenant:tenant-a", "name": "hook", "value": "raw-secret" } }]
+}

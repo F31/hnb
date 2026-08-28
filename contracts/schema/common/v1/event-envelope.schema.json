@@ -27,6 +27,10 @@
     "idempotencyKey": { "type": "string", "minLength": 1, "maxLength": 128 },
     "aggregateId": { "type": "string", "minLength": 1 },
     "aggregateVersion": { "type": "integer", "minimum": 0 },
+    "operationId": { "type": "string", "format": "uuid" },
+    "stepId": { "type": "string", "format": "uuid" },
+    "resourceId": { "type": "string", "minLength": 1 },
+    "expectedVersion": { "type": "integer", "minimum": 0 },
     "payloadRef": { "type": "string", "minLength": 1 },
     "payload": { "type": "object" }
   },

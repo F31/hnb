@@ -1,0 +1,13 @@
+{
+  "title": "Platform Schema Registry",
+  "version": "1.0.0",
+  "schemas": {
+    "runtime-intent": { "$ref": "runtime-intent.schema.json", "description": "Typed public runtime mutation intent." },
+    "execution-plan": { "$ref": "execution-plan.schema.json", "description": "Immutable server-owned execution plan." },
+    "console-bootstrap": { "$ref": "console-bootstrap.schema.json", "description": "Authenticated Console access bootstrap." },
+    "capability": { "$ref": "capability.schema.json", "description": "Deployment feature availability." },
+    "scoped-permission": { "$ref": "scoped-permission.schema.json", "description": "Subject permission constrained to resource and scope." },
+    "tenant-switch": { "$ref": "tenant-switch.schema.json", "description": "Authorized Console tenant selection request." },
+    "problem-details": { "$ref": "problem-details.schema.json", "description": "RFC 9457-compatible error response." }
+  }
+}

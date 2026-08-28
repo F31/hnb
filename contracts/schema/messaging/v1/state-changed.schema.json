@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.hnb.cloud/messaging/v1/state-changed.schema.json",
+  "title": "OperationStateChanged",
+  "type": "object",
+  "required": ["operationId", "previousState", "newState"],
+  "additionalProperties": false,
+  "properties": {
+    "operationId": { "type": "string", "format": "uuid" },
+    "previousState": { "type": "string", "minLength": 1 },
+    "newState": { "type": "string", "minLength": 1 },
+    "reason": { "type": "string" }
+  }
+}

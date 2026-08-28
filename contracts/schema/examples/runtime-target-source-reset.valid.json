@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "1.0.0",
+  "eventId": "018f6c2a-4a64-7b58-9cc3-9f70462f3721",
+  "tenantId": "tenant-a",
+  "targetId": "018f6c2a-4a64-7b58-9cc3-9f70462f3722",
+  "targetKind": "EdgeRuntimeTarget",
+  "observerId": "cloudcore-east",
+  "observerKind": "CloudCore",
+  "previousObserverGeneration": 7,
+  "newObserverGeneration": 8,
+  "observedAt": "2026-08-01T12:00:00Z",
+  "observerLeaseId": "018f6c2a-4a64-7b58-9cc3-9f70462f3723",
+  "reason": "lease-reissued"
+}

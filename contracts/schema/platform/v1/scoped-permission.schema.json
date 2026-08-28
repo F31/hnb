@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.hnb.cloud/platform/v1/scoped-permission.schema.json",
+  "title": "ScopedPermission",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["resourceKind", "action", "tenantId"],
+  "properties": {
+    "resourceKind": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^(\\*|[A-Za-z][A-Za-z0-9._-]{0,127})$" },
+    "resourceId": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "action": { "enum": ["read", "list", "create", "update", "delete", "execute", "approve", "reject", "cancel", "switchTenant"] },
+    "tenantId": { "type": "string", "minLength": 1, "maxLength": 128, "not": { "const": "*" } },
+    "projectId": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "environmentId": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "namespaceId": { "type": "string", "minLength": 1, "maxLength": 253 }
+  }
+}

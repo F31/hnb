@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.hnb.cloud/runtime-target/v1/compatibility-matrix.schema.json",
+  "title": "RuntimeTargetLifecycleCompatibilityMatrix",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "matrixVersion", "providerProtocolVersion", "effectiveAt", "expiresAt", "rows"],
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "matrixVersion": { "type": "string", "pattern": "^[1-9][0-9]*\\.[0-9]+\\.[0-9]+$" },
+    "providerProtocolVersion": { "const": "2.0.0" },
+    "effectiveAt": { "type": "string", "format": "date-time" },
+    "expiresAt": { "type": "string", "format": "date-time" },
+    "rows": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["targetKind", "providerId", "observationSource", "actions"],
+        "properties": {
+          "targetKind": { "enum": ["KubernetesTarget", "EdgeRuntimeTarget"] },
+          "providerId": { "enum": ["runtime-target.lifecycle.kubernetes", "runtime-target.lifecycle.edge"] },
+          "observationSource": { "enum": ["Agent", "CloudCore"] },
+          "actions": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["create", "import", "upgrade", "unmanage"],
+            "properties": {
+              "create": { "enum": ["REQUIRED", "UNSUPPORTED"] },
+              "import": { "enum": ["REQUIRED", "UNSUPPORTED"] },
+              "upgrade": { "enum": ["REQUIRED", "UNSUPPORTED"] },
+              "unmanage": { "enum": ["REQUIRED", "UNSUPPORTED"] }
+            }
+          }
+        }
+      }
+    }
+  }
+}

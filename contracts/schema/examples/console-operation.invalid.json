@@ -1,0 +1,20 @@
+{
+  "apiVersion": "ui.hnb.io/v1",
+  "data": {
+    "operationId": "018f6c2a-4a64-7b58-9cc3-9f70462f3831",
+    "intentId": "018f6c2a-4a64-7b58-9cc3-9f70462f3832",
+    "executionPlanId": "018f6c2a-4a64-7b58-9cc3-9f70462f3833",
+    "type": "UpgradeRuntimeTarget",
+    "status": "completed",
+    "targetId": "018f6c2a-4a64-7b58-9cc3-9f70462f3834",
+    "targetKind": "ContainerEngineTarget",
+    "progress": { "completedSteps": 2, "totalSteps": 1, "percent": 150 },
+    "failure": { "code": "FAILED", "message": "unsafe", "retryable": false, "stackTrace": "secret internals" },
+    "correlationId": "018f6c2a-4a64-7b58-9cc3-9f70462f3835",
+    "createdAt": "2026-08-01T12:00:00Z",
+    "updatedAt": "2026-08-01T12:01:00Z",
+    "steps": [],
+    "allowedActions": ["execute"],
+    "links": { "operation": "https://provider.internal/operations/1" }
+  }
+}

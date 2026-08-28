@@ -1,0 +1,104 @@
+{
+  "streams": [
+    {
+      "name": "commands",
+      "subjects": ["hnb.command.>"],
+      "storage": "file",
+      "retention": "workQueue",
+      "maxAge": "7d",
+      "maxBytes": 1073741824,
+      "maxMsgSize": 2097152,
+      "replicas": 1,
+      "discard": "old",
+      "duplicateWindow": "2m"
+    },
+    {
+      "name": "domain-events",
+      "subjects": ["hnb.event.>"],
+      "storage": "file",
+      "retention": "limits",
+      "maxAge": "30d",
+      "maxBytes": 5368709120,
+      "maxMsgSize": 2097152,
+      "replicas": 1,
+      "discard": "old",
+      "duplicateWindow": "2m"
+    },
+    {
+      "name": "notifications",
+      "subjects": ["hnb.notification.>"],
+      "storage": "file",
+      "retention": "limits",
+      "maxAge": "7d",
+      "maxBytes": 1073741824,
+      "maxMsgSize": 1048576,
+      "replicas": 1,
+      "discard": "old",
+      "duplicateWindow": "2m"
+    }
+  ],
+  "consumers": [
+    {
+      "name": "operation-worker",
+      "streamName": "commands",
+      "filterSubject": "hnb.command.operation.step-requested.v1",
+      "deliverPolicy": "all",
+      "ackPolicy": "explicit",
+      "ackWait": "60s",
+      "maxDeliver": 11,
+      "backoff": ["10s", "30s", "60s", "120s", "300s", "600s", "1800s", "3600s", "7200s"],
+      "maxAckPending": 16,
+      "replayPolicy": "instant",
+      "numReplicas": 1,
+      "inactiveThreshold": "72h"
+    },
+    {
+      "name": "projector",
+      "streamName": "domain-events",
+      "filterSubject": "hnb.event.>",
+      "deliverPolicy": "new",
+      "ackPolicy": "explicit",
+      "ackWait": "60s",
+      "maxDeliver": 5,
+      "backoff": ["10s", "30s", "60s", "120s", "300s"],
+      "maxAckPending": 32,
+      "replayPolicy": "instant",
+      "numReplicas": 1,
+      "inactiveThreshold": "72h"
+    },
+    {
+      "name": "audit",
+      "streamName": "domain-events",
+      "filterSubject": "hnb.event.>",
+      "deliverPolicy": "new",
+      "ackPolicy": "explicit",
+      "ackWait": "30s",
+      "maxDeliver": 3,
+      "backoff": ["5s", "15s", "30s"],
+      "maxAckPending": 64,
+      "replayPolicy": "instant",
+      "numReplicas": 1,
+      "inactiveThreshold": "72h"
+    },
+    {
+      "name": "notification-dispatcher",
+      "streamName": "notifications",
+      "filterSubject": "hnb.notification.>",
+      "deliverPolicy": "new",
+      "ackPolicy": "explicit",
+      "ackWait": "30s",
+      "maxDeliver": 5,
+      "backoff": ["5s", "15s", "30s", "60s", "120s"],
+      "maxAckPending": 32,
+      "replayPolicy": "instant",
+      "numReplicas": 1,
+      "inactiveThreshold": "24h"
+    }
+  ],
+  "failedSubject": {
+    "prefix": "hnb.failed",
+    "maxDeliver": 3,
+    "retention": "30d",
+    "maxBytes": 1073741824
+  }
+}

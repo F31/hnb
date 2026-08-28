@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.hnb.cloud/alert/v1/severity-levels.schema.json",
+  "title": "SeverityLevels",
+  "description": "Defines the three severity levels and their default behavior for alert routing.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["levels", "defaultSafetyRoute"],
+  "properties": {
+    "levels": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "order", "color", "defaultRepeatInterval"],
+        "properties": {
+          "name": { "type": "string", "enum": ["critical", "warning", "info"] },
+          "order": { "type": "integer", "minimum": 0, "maximum": 2 },
+          "color": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+          "defaultRepeatInterval": { "type": "string", "pattern": "^[0-9]+[smhd]$" },
+          "defaultEscalationAfter": { "type": "string", "pattern": "^[0-9]+[smhd]$" },
+          "mandatoryRoute": { "type": "boolean" }
+        }
+      },
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "defaultSafetyRoute": {
+      "type": "object",
+      "required": ["contactGroup", "channels"],
+      "properties": {
+        "contactGroup": {
+          "type": "object",
+          "required": ["name", "members"],
+          "properties": {
+            "name": { "type": "string", "minLength": 1 },
+            "members": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["name", "email"],
+                "properties": {
+                  "name": { "type": "string", "minLength": 1 },
+                  "email": { "type": "string", "format": "email" },
+                  "phone": { "type": "string", "pattern": "^\\+[0-9]{7,15}$" }
+                },
+                "additionalProperties": false
+              },
+              "minItems": 1
+            }
+          },
+          "additionalProperties": false
+        },
+        "channels": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["portal", "email", "webhook"] },
+          "minItems": 1
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

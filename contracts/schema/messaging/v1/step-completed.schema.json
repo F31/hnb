@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.hnb.cloud/messaging/v1/step-completed.schema.json",
+  "title": "StepCompleted",
+  "type": "object",
+  "required": ["operationId", "stepId", "status"],
+  "additionalProperties": false,
+  "properties": {
+    "operationId": { "type": "string", "format": "uuid" },
+    "stepId": { "type": "string", "format": "uuid" },
+    "status": { "type": "string", "enum": ["succeeded", "failed", "skipped"] },
+    "checkpoint": { "type": "string" },
+    "error": { "type": "string" }
+  }
+}

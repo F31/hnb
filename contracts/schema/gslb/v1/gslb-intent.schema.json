@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.hnb.cloud/gslb/v1/gslb-intent.schema.json",
+  "title": "GSLBRuntimeIntent",
+  "description": "GSLB 受控流量变更意图（GSLB-005）：只携带引用与有界参数，禁止执行细节字段。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["apiVersion", "kind", "serviceId", "tenantId", "metadata"],
+  "properties": {
+    "apiVersion": { "const": "gslb.hnb.io/v1" },
+    "kind": { "enum": ["gslb.failover", "gslb.switchback", "gslb.weight-update", "gslb.drill"] },
+    "serviceId": { "type": "string", "format": "uuid" },
+    "tenantId": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "targetPoolId": { "type": "string", "format": "uuid" },
+    "weights": {
+      "type": "object",
+      "additionalProperties": { "type": "integer", "minimum": 0, "maximum": 100 }
+    },
+    "reason": { "type": "string", "maxLength": 512 },
+    "drGroupRef": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$",
+      "description": "DRProtectionGroup 编排来源引用（GSLB-009 对接缝），仅用于审计/追踪，不携带执行细节。"
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["idempotencyKey", "correlationId"],
+      "properties": {
+        "idempotencyKey": { "type": "string", "pattern": "^[!-~]{1,128}$" },
+        "correlationId": { "type": "string", "format": "uuid" }
+      }
+    }
+  }
+}

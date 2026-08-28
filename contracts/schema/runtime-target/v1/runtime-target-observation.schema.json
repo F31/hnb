@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.hnb.cloud/runtime-target/v1/runtime-target-observation.schema.json",
+  "$comment": "The authenticated observer identity MUST match tenantId, targetId, targetKind, observerId, and observerKind. Consumers MUST reject payloads over 1048576 encoded bytes or observedAt more than 300 seconds in the future.",
+  "title": "RuntimeTargetObservation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "eventId", "tenantId", "targetId", "targetKind", "observerId", "observerKind", "observerGeneration", "sequence", "observedAt", "inventoryMode"],
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "eventId": { "type": "string", "format": "uuid" },
+    "tenantId": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "targetId": { "type": "string", "format": "uuid" },
+    "targetKind": { "enum": ["KubernetesTarget", "EdgeRuntimeTarget"] },
+    "observerId": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "observerKind": { "enum": ["Agent", "CloudCore"] },
+    "observerGeneration": { "type": "integer", "minimum": 1 },
+    "sequence": { "type": "integer", "minimum": 1 },
+    "observedAt": { "type": "string", "format": "date-time" },
+    "inventoryMode": { "enum": ["Full", "Delta"] },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["lifecycleState", "healthState", "connectivityState", "lastKnownStateAt", "staleThresholdSeconds"],
+      "properties": {
+        "lifecycleState": { "enum": ["UNKNOWN", "REGISTERING", "PROVISIONING", "ACTIVE", "UPGRADING", "FAILED", "DELETING", "TERMINATED"] },
+        "healthState": { "enum": ["UNKNOWN", "HEALTHY", "DEGRADED", "UNHEALTHY"] },
+        "connectivityState": { "enum": ["UNKNOWN", "CONNECTED", "DISCONNECTED"] },
+        "lastKnownStateAt": { "type": "string", "format": "date-time" },
+        "staleThresholdSeconds": { "type": "integer", "minimum": 1, "maximum": 86400 },
+        "runtimeVersion": { "type": "string", "maxLength": 128 }
+      }
+    },
+    "capability": { "$ref": "capability-section.schema.json" },
+    "nodes": {
+      "type": "array",
+      "maxItems": 5000,
+      "items": { "$ref": "node-section.schema.json" }
+    },
+    "storageInventory": { "$ref": "storage-inventory-section.schema.json" }
+  },
+  "anyOf": [
+    { "required": ["target"] },
+    { "required": ["capability"] },
+    { "required": ["nodes"] },
+    { "required": ["storageInventory"] }
+  ],
+  "allOf": [
+    {
+      "if": { "properties": { "targetKind": { "const": "KubernetesTarget" } }, "required": ["targetKind"] },
+      "then": { "properties": { "observerKind": { "const": "Agent" } } }
+    },
+    {
+      "if": { "properties": { "targetKind": { "const": "EdgeRuntimeTarget" } }, "required": ["targetKind"] },
+      "then": { "properties": { "observerKind": { "const": "CloudCore" } } }
+    },
+    {
+      "if": { "properties": { "inventoryMode": { "const": "Full" } }, "required": ["inventoryMode"] },
+      "then": {
+        "properties": {
+          "nodes": {
+            "type": "array",
+            "items": {
+              "allOf": [
+                { "$ref": "node-section.schema.json" },
+                { "type": "object", "properties": { "deleted": { "type": "boolean", "const": false } } }
+              ]
+            }
+          },
+          "storageInventory": {
+            "allOf": [
+              { "$ref": "storage-inventory-section.schema.json" },
+              {
+                "type": "object",
+                "required": ["storageClasses", "csiDrivers", "csiNodes", "csiStorageCapacities", "volumeAttachments", "snapshotApi"],
+                "properties": {
+                  "storageClasses": { "type": "array", "items": { "$ref": "#/$defs/liveStorageClass" } },
+                  "csiDrivers": { "type": "array", "items": { "$ref": "#/$defs/liveCSIDriver" } },
+                  "csiNodes": { "type": "array", "items": { "$ref": "#/$defs/liveCSINode" } },
+                  "csiStorageCapacities": { "type": "array", "items": { "$ref": "#/$defs/liveCSIStorageCapacity" } },
+                  "volumeAttachments": { "type": "array", "items": { "$ref": "#/$defs/liveVolumeAttachment" } },
+                  "volumeSnapshotClasses": { "type": "array", "items": { "$ref": "#/$defs/liveVolumeSnapshotClass" } },
+                  "volumeSnapshots": { "type": "array", "items": { "$ref": "#/$defs/liveVolumeSnapshot" } },
+                  "volumeSnapshotContents": { "type": "array", "items": { "$ref": "#/$defs/liveVolumeSnapshotContent" } }
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": { "required": ["storageInventory"] },
+      "then": {
+        "properties": {
+          "targetKind": { "const": "KubernetesTarget" },
+          "observerKind": { "const": "Agent" }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "notDeleted": { "type": "object", "properties": { "deleted": { "type": "boolean", "const": false } } },
+    "liveStorageClass": { "allOf": [{ "$ref": "storage-inventory-section.schema.json#/$defs/storageClass" }, { "$ref": "#/$defs/notDeleted" }] },
+    "liveCSIDriver": { "allOf": [{ "$ref": "storage-inventory-section.schema.json#/$defs/csiDriver" }, { "$ref": "#/$defs/notDeleted" }] },
+    "liveCSINode": { "allOf": [{ "$ref": "storage-inventory-section.schema.json#/$defs/csiNode" }, { "$ref": "#/$defs/notDeleted" }] },
+    "liveCSIStorageCapacity": { "allOf": [{ "$ref": "storage-inventory-section.schema.json#/$defs/csiStorageCapacity" }, { "$ref": "#/$defs/notDeleted" }] },
+    "liveVolumeAttachment": { "allOf": [{ "$ref": "storage-inventory-section.schema.json#/$defs/volumeAttachment" }, { "$ref": "#/$defs/notDeleted" }] },
+    "liveVolumeSnapshotClass": { "allOf": [{ "$ref": "storage-inventory-section.schema.json#/$defs/volumeSnapshotClass" }, { "$ref": "#/$defs/notDeleted" }] },
+    "liveVolumeSnapshot": { "allOf": [{ "$ref": "storage-inventory-section.schema.json#/$defs/volumeSnapshot" }, { "$ref": "#/$defs/notDeleted" }] },
+    "liveVolumeSnapshotContent": { "allOf": [{ "$ref": "storage-inventory-section.schema.json#/$defs/volumeSnapshotContent" }, { "$ref": "#/$defs/notDeleted" }] }
+  }
+}

@@ -1,0 +1,214 @@
+openapi: 3.1.0
+info:
+  title: HNB Platform API
+  version: 1.0.0
+  description: Trusted session and canonical runtime-intent contracts.
+  license:
+    name: Apache-2.0
+    identifier: Apache-2.0
+servers:
+  - url: https://api.hnb.cloud
+security:
+  - bearerAuth: []
+tags:
+  - name: Session
+    description: Authenticated Console session and tenant-selection contracts.
+  - name: Runtime Intents
+    description: Typed runtime mutation submission and tenant-scoped lookup.
+paths:
+  /v1/session/bootstrap:
+    get:
+      tags: [Session]
+      operationId: getSessionBootstrap
+      summary: Get the authoritative Console access bootstrap
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: Verified subject, active tenant, capabilities, and permissions.
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConsoleBootstrap"
+        "400":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /v1/session/tenant-switch:
+    post:
+      tags: [Session]
+      operationId: switchSessionTenant
+      summary: Select an authorized tenant and return a fresh bootstrap
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/IfMatch"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TenantSwitch"
+      responses:
+        "200":
+          description: Tenant selection succeeded and all scoped access data was refreshed.
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConsoleBootstrap"
+        "400":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /v1/runtime-intents:
+    post:
+      tags: [Runtime Intents]
+      operationId: submitRuntimeIntent
+      summary: Submit a typed runtime mutation intent for server-side planning
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RuntimeIntent"
+      responses:
+        "202":
+          description: Intent was accepted for validation and immutable planning.
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RuntimeIntentRecord"
+        "400":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /v1/runtime-intents/{intentId}:
+    parameters:
+      - $ref: "#/components/parameters/IntentId"
+    get:
+      tags: [Runtime Intents]
+      operationId: getRuntimeIntent
+      summary: Get a tenant-scoped runtime intent and canonical operation linkage
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: Current immutable intent record and canonical linkage.
+          headers:
+            ETag:
+              $ref: "#/components/headers/ETag"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RuntimeIntentRecord"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    CorrelationId:
+      name: X-Correlation-ID
+      in: header
+      required: true
+      schema:
+        type: string
+        format: uuid
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 128
+        pattern: "^[!-~]+$"
+    IfMatch:
+      name: If-Match
+      in: header
+      required: true
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 256
+    IntentId:
+      name: intentId
+      in: path
+      required: true
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 128
+  headers:
+    ETag:
+      required: true
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 256
+  responses:
+    Problem:
+      description: RFC 9457 problem response.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetails"
+  schemas:
+    RuntimeIntent:
+      $ref: "../../../schema/platform/v1/runtime-intent.schema.json"
+    ExecutionPlan:
+      $ref: "../../../schema/platform/v1/execution-plan.schema.json"
+    ConsoleBootstrap:
+      $ref: "../../../schema/platform/v1/console-bootstrap.schema.json"
+    Capability:
+      $ref: "../../../schema/platform/v1/capability.schema.json"
+    ScopedPermission:
+      $ref: "../../../schema/platform/v1/scoped-permission.schema.json"
+    TenantSwitch:
+      $ref: "../../../schema/platform/v1/tenant-switch.schema.json"
+    ProblemDetails:
+      $ref: "../../../schema/platform/v1/problem-details.schema.json"
+    RuntimeIntentRecord:
+      type: object
+      additionalProperties: false
+      required: [intentId, status, semanticDigest, intent, createdAt]
+      properties:
+        intentId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        status:
+          enum: [received, validated, planned, operationCommitted, rejected]
+        semanticDigest:
+          type: string
+          pattern: "^sha256:[0-9a-f]{64}$"
+        intent:
+          $ref: "#/components/schemas/RuntimeIntent"
+        executionPlanId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        operationId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        createdAt:
+          type: string
+          format: date-time

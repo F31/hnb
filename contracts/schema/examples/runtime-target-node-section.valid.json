@@ -1,0 +1,13 @@
+{
+  "nodeId": "edge-node-17",
+  "name": "factory-17",
+  "lifecycleState": "ACTIVE",
+  "healthState": "DEGRADED",
+  "connectivityState": "DISCONNECTED",
+  "freshness": "STALE",
+  "observedAt": "2026-08-01T11:50:00Z",
+  "lastKnownStateAt": "2026-08-01T11:50:00Z",
+  "architecture": "arm64",
+  "resources": { "cpuMillis": 4000, "memoryBytes": 8589934592 },
+  "labels": { "site": "factory-a" }
+}

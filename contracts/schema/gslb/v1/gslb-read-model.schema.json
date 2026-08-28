@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.hnb.cloud/gslb/v1/gslb-read-model.schema.json",
+  "title": "GSLBReadModel",
+  "description": "GSLB 只读投影（GSLB-007）：查询只读本快照，不实时探测/查 DNS。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["serviceId", "tenantId", "domain", "lifecycleState", "observedAt"],
+  "properties": {
+    "serviceId": { "type": "string", "format": "uuid" },
+    "tenantId": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "domain": { "type": "string", "format": "hostname", "maxLength": 253 },
+    "activePoolId": { "type": "string", "format": "uuid" },
+    "lifecycleState": {
+      "enum": ["Inactive", "Provisioning", "Active", "Degraded", "FailingOver", "Paused", "Disabled", "Terminated"]
+    },
+    "healthyPools": { "type": "array", "items": { "type": "string" } },
+    "currentDnsTargets": { "type": "array", "items": { "type": "string" } },
+    "lastSwitchRequestId": { "type": "string", "format": "uuid" },
+    "lastSwitchAt": { "type": "string", "format": "date-time" },
+    "observedAt": { "type": "string", "format": "date-time" }
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "schemaVersion": "1.0.0",
+  "packageId": "example.csi.io/driver",
+  "packageVersion": "1.4.0",
+  "provisioners": ["example.csi.io"],
+  "compatibility": {
+    "kubernetesVersions": [{ "minInclusive": "1.30.0", "maxExclusive": "1.34.0" }],
+    "upgradeFromVersions": ["1.3.0"],
+    "rollbackToVersions": ["1.3.0"]
+  },
+  "capabilities": {
+    "volumeModes": ["Block", "File"],
+    "accessModes": ["ReadWriteOnce", "ReadWriteMany"],
+    "topology": "Supported",
+    "capacityTracking": ["CSIStorageCapacity"],
+    "expansion": "Supported",
+    "clone": "Supported",
+    "snapshot": "Supported",
+    "ephemeral": "Unsupported",
+    "health": "Supported"
+  },
+  "requiredComponents": {
+    "crds": [{ "name": "volumesnapshots.snapshot.storage.k8s.io", "versions": ["v1"] }],
+    "controllers": [{ "name": "example-csi-controller", "versions": ["1.4.0"] }]
+  },
+  "packageDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "signature": {
+    "format": "Cosign",
+    "keyId": "storage-release-key-1",
+    "signedDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "evidenceRef": "oci://registry.example/hnb/example-csi@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.sig"
+  },
+  "conformanceEvidence": [{
+    "packageVersion": "1.4.0",
+    "kubernetesVersion": "1.32.2",
+    "suiteVersion": "1.0.0",
+    "passedAt": "2026-08-01T12:00:00Z",
+    "expiresAt": "2027-08-01T12:00:00Z",
+    "evidenceRef": "oci://registry.example/hnb/example-csi-conformance:1.4.0-k8s-1.32.2",
+    "evidenceDigest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  }]
+}

@@ -1,0 +1,15 @@
+{
+  "id": "00000000-0000-4000-8000-0000000000d3",
+  "groupId": "00000000-0000-4000-8000-0000000000d1",
+  "tenantId": "tenant-a",
+  "direction": "failover",
+  "status": "AwaitingApproval",
+  "idempotencyKey": "dr-switch-2026-08-19-001",
+  "correlationId": "00000000-0000-4000-8000-0000000000d4",
+  "operationId": "00000000-0000-4000-8000-0000000000d5",
+  "trafficRequestIds": ["00000000-0000-4000-8000-0000000000d6"],
+  "reason": "region cn-east-1 power incident",
+  "actorId": "user-ops-1",
+  "createdAt": "2026-08-19T09:00:00Z",
+  "updatedAt": "2026-08-19T09:01:00Z"
+}

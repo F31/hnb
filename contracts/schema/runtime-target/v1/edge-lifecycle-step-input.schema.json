@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.hnb.cloud/runtime-target/v1/edge-lifecycle-step-input.schema.json",
+  "$comment": "This is a planner-authored input snapshot. Edge create is unsupported. Provider identity, Step type, execution endpoint, callback URL, command, and secret values are deliberately absent.",
+  "title": "EdgeLifecycleStepInput",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "targetId", "targetKind", "action", "idempotencyKey", "fencingGeneration", "observationVersion"],
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "targetId": { "type": "string", "format": "uuid" },
+    "targetKind": { "const": "EdgeRuntimeTarget" },
+    "action": { "enum": ["import", "upgrade", "unmanage"] },
+    "displayName": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "cloudCoreEndpoint": {
+      "type": "string",
+      "format": "uri",
+      "pattern": "^(https|wss)://[^/?#@]+(?::[0-9]{1,5})?(/[^?#]*)?$",
+      "maxLength": 512,
+      "description": "Normalized CloudCore target address; userinfo, query, and fragment are forbidden."
+    },
+    "credentialSecretRef": { "$ref": "../../common/v1/secret-reference.schema.json" },
+    "nodeGroupMappings": {
+      "type": "object",
+      "maxProperties": 64,
+      "propertyNames": { "minLength": 1, "maxLength": 128 },
+      "additionalProperties": { "type": "string", "minLength": 1, "maxLength": 128 }
+    },
+    "desiredVersion": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "idempotencyKey": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[!-~]+$" },
+    "fencingGeneration": { "type": "integer", "minimum": 1 },
+    "observationVersion": { "type": "integer", "minimum": 0 }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "action": { "const": "import" } }, "required": ["action"] },
+      "then": { "required": ["displayName", "cloudCoreEndpoint", "credentialSecretRef"] }
+    },
+    {
+      "if": { "properties": { "action": { "const": "upgrade" } }, "required": ["action"] },
+      "then": { "required": ["desiredVersion"] }
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.hnb.cloud/gslb/v1/gslb-service.schema.json",
+  "title": "GSLBService",
+  "description": "GSLB 流量层容灾服务（OpenSpec change gslb-traffic-resilience，GSLB-008 多租户）。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "tenantId", "name", "domain", "routingMode", "lifecycleState", "requireApproval"],
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "tenantId": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "name": { "type": "string", "pattern": "^[a-z][a-z0-9-]{2,62}$", "maxLength": 64 },
+    "domain": { "type": "string", "format": "hostname", "maxLength": 253 },
+    "routingMode": { "enum": ["dns", "anycast"] },
+    "activePoolId": { "type": "string", "format": "uuid" },
+    "lifecycleState": {
+      "enum": ["Inactive", "Provisioning", "Active", "Degraded", "FailingOver", "Paused", "Disabled", "Terminated"]
+    },
+    "requireApproval": { "type": "boolean" },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "updatedAt": { "type": "string", "format": "date-time" }
+  }
+}

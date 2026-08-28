@@ -15,12 +15,18 @@
     "idempotencyKey": "idempotencyKey",
     "aggregateId": "aggregateId",
     "aggregateVersion": "aggregateVersion",
+    "operationId": "operationId",
+    "stepId": "stepId",
+    "resourceId": "resourceId",
+    "expectedVersion": "expectedVersion",
     "payloadRef": "payloadRef",
     "payload": "payload"
   },
   "constraints": {
     "transactionalFact": "The outbox row and owning business fact are committed in one database transaction.",
     "delivery": "Transport adapters may deliver more than once; messageId and idempotencyKey remain stable.",
-    "secrets": "Payload contains references only and never resolved credentials."
+    "secrets": "Payload contains references only and never resolved credentials.",
+    "messageSize": "Envelope + payload must not exceed per-message-type maxSizeBytes limit.",
+    "forbiddenFields": "Payload must not contain password, token, kubeconfig, secret, private_key, certificate_key, access_key, or api_key."
   }
 }

@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.hnb.cloud/messaging/v1/progress.schema.json",
+  "title": "OperationProgress",
+  "type": "object",
+  "required": ["operationId", "totalSteps", "completedSteps", "failedSteps", "status"],
+  "additionalProperties": false,
+  "properties": {
+    "operationId": { "type": "string", "format": "uuid" },
+    "totalSteps": { "type": "integer", "minimum": 0 },
+    "completedSteps": { "type": "integer", "minimum": 0 },
+    "failedSteps": { "type": "integer", "minimum": 0 },
+    "status": { "type": "string", "minLength": 1 },
+    "message": { "type": "string" }
+  }
+}

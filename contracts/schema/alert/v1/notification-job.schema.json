@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.hnb.cloud/alert/v1/notification-job.schema.json",
+  "title": "NotificationJob",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "alertId",
+    "policySnapshot",
+    "channelId",
+    "idempotencyKey",
+    "priority",
+    "scheduledAt",
+    "state"
+  ],
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "alertId": { "type": "string", "format": "uuid" },
+    "policySnapshot": {
+      "type": "object",
+      "properties": {
+        "policyId": { "type": "string", "format": "uuid" },
+        "contactGroupId": { "type": "string", "format": "uuid" },
+        "channels": { "type": "array", "items": { "type": "string" } },
+        "repeatInterval": { "type": "string" },
+        "escalationLevel": { "type": "integer", "minimum": 0 }
+      },
+      "required": ["policyId", "contactGroupId", "channels"]
+    },
+    "channelId": { "type": "string", "format": "uuid" },
+    "idempotencyKey": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "priority": { "type": "integer", "minimum": 0, "maximum": 100 },
+    "scheduledAt": { "type": "string", "format": "date-time" },
+    "state": { "type": "string", "enum": ["pending", "sending", "accepted", "delivered", "read", "failed", "suppressed", "cancelled"] }
+  }
+}

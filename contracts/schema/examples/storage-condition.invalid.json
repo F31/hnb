@@ -1,0 +1,9 @@
+{
+  "schemaVersion": "1.0.0",
+  "type": "DriverRegistered",
+  "status": "Healthy",
+  "reason": "CSIDriverObserved",
+  "source": "runtime-target-agent",
+  "observedAt": "2026-08-09T12:00:00Z",
+  "freshness": "Fresh"
+}

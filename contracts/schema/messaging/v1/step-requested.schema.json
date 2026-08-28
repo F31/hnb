@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.hnb.cloud/messaging/v1/step-requested.schema.json",
+  "title": "StepRequested",
+  "type": "object",
+  "required": ["operationId", "stepId", "stepType", "idempotencyKey", "expectedVersion"],
+  "additionalProperties": false,
+  "properties": {
+    "operationId": { "type": "string", "format": "uuid" },
+    "stepId": { "type": "string", "format": "uuid" },
+    "stepType": { "type": "string", "minLength": 1 },
+    "idempotencyKey": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "expectedVersion": { "type": "integer", "minimum": 0 },
+    "executionContext": { "type": "string", "contentEncoding": "base64" }
+  }
+}

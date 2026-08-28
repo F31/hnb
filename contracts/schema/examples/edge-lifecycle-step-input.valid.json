@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "1.0.0",
+  "targetId": "018f6c2a-4a64-7b58-9cc3-9f70462f3761",
+  "targetKind": "EdgeRuntimeTarget",
+  "action": "import",
+  "displayName": "factory-edge",
+  "cloudCoreEndpoint": "wss://cloudcore.factory.example:10002",
+  "credentialSecretRef": { "provider": "vault", "scope": "tenant:tenant-a", "name": "cloudcore-client", "version": "3" },
+  "nodeGroupMappings": { "factory-a": "edge-factory-a" },
+  "idempotencyKey": "edge-import-factory",
+  "fencingGeneration": 3,
+  "observationVersion": 0
+}

@@ -1,0 +1,52 @@
+{
+  "title": "Alert/Notification Schema Registry",
+  "description": "Registers all alert and notification JSON Schema files for the alert-notification capability.",
+  "version": "1.0.0",
+  "schemas": {
+    "alert-instance": {
+      "$ref": "alert-instance.schema.json",
+      "messageType": "hnb.event.alert.firing.v1",
+      "description": "An alert instance representing a normalized, deduplicated alert fact."
+    },
+    "alert-rule": {
+      "$ref": "alert-rule.schema.json",
+      "messageType": null,
+      "description": "An alert rule definition for source-type-specific alert generation."
+    },
+    "storage-alert-rule": {
+      "$ref": "storage-alert-rule.schema.json",
+      "messageType": null,
+      "description": "An executable storage metric rule with stable resource identity and SecretReference channels."
+    },
+    "silence": {
+      "$ref": "silence.schema.json",
+      "messageType": null,
+      "description": "A time-bound silence rule with matchers for suppressing notifications."
+    },
+    "notification-policy": {
+      "$ref": "notification-policy.schema.json",
+      "messageType": null,
+      "description": "A notification routing policy with matchers, channels, escalation, and schedule."
+    },
+    "notification-channel": {
+      "$ref": "notification-channel.schema.json",
+      "messageType": null,
+      "description": "A notification channel configuration with type, capability, and secret reference."
+    },
+    "notification-job": {
+      "$ref": "notification-job.schema.json",
+      "messageType": "hnb.command.notification.dispatch.v1",
+      "description": "A notification dispatch job with policy snapshot and priority."
+    },
+    "delivery-record": {
+      "$ref": "delivery-record.schema.json",
+      "messageType": "hnb.event.notification.delivery-changed.v1",
+      "description": "A delivery record tracking the state of a single notification attempt."
+    },
+    "delivery-attempt": {
+      "$ref": "delivery-attempt.schema.json",
+      "messageType": null,
+      "description": "A single delivery attempt record with result, duration, and trace."
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.hnb.cloud/identity/v1/tenant-context.schema.json",
+  "title": "TenantContext",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["tenantId", "projectId", "environmentId", "actorId", "correlationId"],
+  "properties": {
+    "tenantId": { "type": "string", "minLength": 1 },
+    "projectId": { "type": "string", "minLength": 1 },
+    "environmentId": { "type": "string", "minLength": 1 },
+    "namespaceId": { "type": "string", "minLength": 1 },
+    "actorId": { "type": "string", "minLength": 1 },
+    "correlationId": { "type": "string", "format": "uuid" },
+    "roles": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "minItems": 1
+    }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "title": "Workload Storage Contract Registry",
+  "version": "1.0.0",
+  "schemas": {
+    "inventory": { "$ref": "storage-inventory.schema.json", "description": "Tenant-bound target storage inventory with stable Kubernetes identities and source freshness." },
+    "backend": { "$ref": "storage-backend.schema.json", "description": "Tenant-owned storage system and sanitized connection health." },
+    "driver-lifecycle-step-input": { "$ref": "storage-driver-lifecycle-step-input.schema.json", "description": "Immutable provider step input for storage driver lifecycle operations." },
+    "offering": { "$ref": "workload-storage-offering.schema.json", "description": "Kubernetes persistent-volume service capabilities; object/bucket and App Market artifact storage are excluded." },
+    "binding": { "$ref": "storage-class-binding.schema.json", "description": "Offering mapping only to a target-local Kubernetes StorageClass identity." },
+    "condition": { "$ref": "storage-condition.schema.json", "description": "Source-attributed storage condition with freshness." },
+    "providerBackendSchema": { "$ref": "provider-backend-schema.schema.json", "description": "Versioned allowlisted provider attributes rendered by a trusted local component." },
+    "storageDriverPackage": { "$ref": "storage-driver-package.schema.json", "description": "Provider or extension package declarations for storage identity, compatibility, capabilities, supply chain, and version-bound conformance." },
+    "retainedVolumeWorkflowStepInput": { "$ref": "retained-volume-workflow-step-input.schema.json", "description": "Fenced Provider input for retained-volume dependency checking and release or sanitization." },
+    "retainedVolumeWorkflowResult": { "$ref": "retained-volume-workflow-result.schema.json", "description": "Provider sanitization evidence or an explicit data-retained manual-release state; never a generic claimRef mutation." }
+  }
+}

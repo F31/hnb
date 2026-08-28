@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.hnb.cloud/alert/v1/delivery-record.schema.json",
+  "title": "DeliveryRecord",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "jobId",
+    "channelType",
+    "destinationMasked",
+    "state",
+    "attemptCount",
+    "version"
+  ],
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "jobId": { "type": "string", "format": "uuid" },
+    "channelType": { "type": "string", "enum": ["portal", "email", "webhook", "sms"] },
+    "destinationMasked": { "type": "string", "minLength": 1 },
+    "state": { "type": "string", "enum": ["pending", "sending", "accepted", "delivered", "read", "failed", "suppressed", "cancelled"] },
+    "providerMessageId": { "type": "string", "minLength": 1 },
+    "acceptedAt": { "type": "string", "format": "date-time" },
+    "deliveredAt": { "type": "string", "format": "date-time" },
+    "readAt": { "type": "string", "format": "date-time" },
+    "attemptCount": { "type": "integer", "minimum": 0 },
+    "lastErrorClass": { "type": "string", "maxLength": 256 },
+    "nextAttemptAt": { "type": "string", "format": "date-time" },
+    "version": { "type": "integer", "minimum": 1 }
+  }
+}

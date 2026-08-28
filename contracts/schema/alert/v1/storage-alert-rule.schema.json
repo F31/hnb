@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.hnb.cloud/alert/v1/storage-alert-rule.schema.json",
+  "title": "StorageAlertRule",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["name", "severity", "resource", "metric", "duration"],
+  "properties": {
+    "name": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "description": { "type": "string", "maxLength": 2048 },
+    "severity": { "enum": ["critical", "warning", "info"] },
+    "enabled": { "type": "boolean" },
+    "resource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["targetId", "kind", "uid"],
+      "properties": {
+        "targetId": { "type": "string", "format": "uuid" },
+        "kind": { "enum": ["StorageBackend", "WorkloadStorageOffering", "StorageClassBinding", "StorageClass", "PersistentVolumeClaim", "PersistentVolume"] },
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "namespace": { "type": "string", "minLength": 1, "maxLength": 253 },
+        "name": { "type": "string", "minLength": 1, "maxLength": 253 }
+      }
+    },
+    "metric": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["providerId", "kind", "unit", "source", "freshFor", "operator", "threshold"],
+      "properties": {
+        "providerId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "kind": { "enum": ["capacity", "usage", "iops", "throughput", "latency", "health"] },
+        "unit": { "enum": ["By", "1/s", "By/s", "s", "1"] },
+        "source": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "freshFor": { "type": "string", "pattern": "^[1-9][0-9]*[smh]$" },
+        "operator": { "enum": ["gt", "gte", "lt", "lte"] },
+        "threshold": { "type": "number", "minimum": 0 }
+      }
+    },
+    "duration": { "type": "string", "pattern": "^[1-9][0-9]*[smh]$" },
+    "channels": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "configReference", "secretReference"],
+        "properties": {
+          "type": { "enum": ["email", "webhook", "sms"] },
+          "configReference": { "type": "string", "minLength": 1 },
+          "secretReference": { "$ref": "../../common/v1/secret-reference.schema.json" }
+        }
+      }
+    },
+    "context": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "bindingId": { "type": "string", "format": "uuid" },
+        "offeringId": { "type": "string", "format": "uuid" },
+        "operationId": { "type": "string", "format": "uuid" },
+        "runbookRef": { "type": "string", "minLength": 1 },
+        "navigationRef": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

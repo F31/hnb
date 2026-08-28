@@ -13,7 +13,11 @@
     "skipLibCheck": false
   },
   "include": [
+    "console-openapi/**/*.ts",
     "openapi/**/*.ts",
-    "proto/**/*.ts"
+    "platform-openapi/**/*.ts",
+    "proto/**/*.ts",
+    "runtime-target-openapi/**/*.ts",
+    "storage-openapi/**/*.ts"
   ]
 }

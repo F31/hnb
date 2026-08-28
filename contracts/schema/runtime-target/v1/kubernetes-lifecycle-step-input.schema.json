@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.hnb.cloud/runtime-target/v1/kubernetes-lifecycle-step-input.schema.json",
+  "$comment": "This is a planner-authored input snapshot. Provider identity, Step type, execution endpoint, command, and secret values are not caller fields and are deliberately absent.",
+  "title": "KubernetesLifecycleStepInput",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "targetId", "targetKind", "action", "idempotencyKey", "fencingGeneration", "observationVersion"],
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "targetId": { "type": "string", "format": "uuid" },
+    "targetKind": { "const": "KubernetesTarget" },
+    "action": { "enum": ["create", "import", "upgrade", "unmanage"] },
+    "displayName": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "desiredVersion": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "credentialSecretRef": { "$ref": "../../common/v1/secret-reference.schema.json" },
+    "idempotencyKey": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[!-~]+$" },
+    "fencingGeneration": { "type": "integer", "minimum": 1 },
+    "observationVersion": { "type": "integer", "minimum": 0 }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "action": { "enum": ["create", "import"] } }, "required": ["action"] },
+      "then": { "required": ["displayName", "credentialSecretRef"] }
+    },
+    {
+      "if": { "properties": { "action": { "const": "upgrade" } }, "required": ["action"] },
+      "then": { "required": ["desiredVersion"] }
+    }
+  ]
+}

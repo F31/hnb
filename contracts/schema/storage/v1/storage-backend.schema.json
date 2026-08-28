@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.hnb.cloud/storage/v1/storage-backend.schema.json",
+  "title": "StorageBackend",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "id", "tenantId", "providerType", "backendId", "displayName", "healthState", "source", "observedAt", "freshness", "conditions", "version", "createdAt", "updatedAt"],
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "id": { "type": "string", "format": "uuid" },
+    "tenantId": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "providerType": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "providerSchemaVersion": { "type": "string", "pattern": "^[1-9][0-9]*\\.[0-9]+\\.[0-9]+$" },
+    "backendId": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "displayName": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "description": { "type": "string", "maxLength": 2048 },
+    "secretReference": { "$ref": "../../common/v1/secret-reference.schema.json" },
+    "connectionState": { "enum": ["Unknown", "Connected", "Disconnected"] },
+    "healthState": { "enum": ["Unknown", "Healthy", "Degraded", "Unhealthy"] },
+    "source": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "observedAt": { "type": "string", "format": "date-time" },
+    "freshness": { "enum": ["Fresh", "Stale", "Unknown"] },
+    "capacity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "unit", "source", "observedAt", "freshness"],
+      "properties": {
+        "status": { "enum": ["Known", "Elastic", "Unknown", "NotReported"] },
+        "value": { "type": "integer", "minimum": 0 },
+        "unit": { "enum": ["By"] },
+        "source": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "observedAt": { "type": "string", "format": "date-time" },
+        "freshness": { "enum": ["Fresh", "Stale", "Unknown"] }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "status": { "const": "Known" } }, "required": ["status"] },
+          "then": { "required": ["value"] },
+          "else": { "not": { "required": ["value"] } }
+        }
+      ]
+    },
+    "attributes": {
+      "type": "object",
+      "maxProperties": 64,
+      "propertyNames": { "minLength": 1, "maxLength": 128 },
+      "additionalProperties": {
+        "anyOf": [
+          { "type": "string", "maxLength": 512 },
+          { "type": "number" },
+          { "type": "boolean" }
+        ]
+      }
+    },
+    "conditions": { "type": "array", "maxItems": 64, "items": { "$ref": "storage-condition.schema.json" } },
+    "version": { "type": "integer", "minimum": 1 },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "updatedAt": { "type": "string", "format": "date-time" }
+  },
+  "dependentRequired": { "attributes": ["providerSchemaVersion"] }
+}

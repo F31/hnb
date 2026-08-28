@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "1.0.0",
+  "providerId": "nfs",
+  "targetId": "32684d2c-fca8-4f28-a946-fb267363fd6c",
+  "resourceKind": "StorageBackend",
+  "resourceUid": "backend-uid-a",
+  "metrics": [
+    { "kind": "capacity", "unit": "By", "status": "Known", "applicability": "Applicable", "source": "nfs_adapter", "observedAt": "2026-08-14T10:00:00Z", "freshness": "Fresh" },
+    { "kind": "usage", "unit": "By", "status": "NotReported", "applicability": "Applicable", "source": "nfs_adapter", "observedAt": "2026-08-14T10:00:00Z", "freshness": "Fresh" },
+    { "kind": "iops", "unit": "1/s", "value": 0, "status": "NotReported", "applicability": "Unsupported", "source": "nfs_adapter", "observedAt": "2026-08-14T10:00:00Z", "freshness": "Fresh" },
+    { "kind": "throughput", "unit": "By/s", "status": "NotReported", "applicability": "Unknown", "source": "nfs_adapter", "observedAt": "2026-08-14T10:00:00Z", "freshness": "Fresh" },
+    { "kind": "latency", "unit": "s", "status": "NotReported", "applicability": "Unknown", "source": "nfs_adapter", "observedAt": "2026-08-14T10:00:00Z", "freshness": "Fresh" },
+    { "kind": "health", "unit": "1", "status": "Unknown", "applicability": "Applicable", "source": "nfs_adapter", "observedAt": "2026-08-14T10:00:00Z", "freshness": "Fresh" }
+  ]
+}

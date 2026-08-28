@@ -1,0 +1,108 @@
+{
+  "storageClasses": [
+    {
+      "uid": "storage-class-uid-1",
+      "resourceVersion": "1842",
+      "name": "fast",
+      "source": "kubernetes.storage.k8s.io/v1",
+      "observedAt": "2026-08-01T12:00:00Z",
+      "provisioner": "example.csi.io",
+      "reclaimPolicy": "Delete",
+      "volumeBindingMode": "WaitForFirstConsumer",
+      "allowVolumeExpansion": true
+    }
+  ],
+  "csiDrivers": [
+    {
+      "uid": "csi-driver-uid-1",
+      "resourceVersion": "1843",
+      "name": "example.csi.io",
+      "source": "kubernetes.storage.k8s.io/v1",
+      "observedAt": "2026-08-01T12:00:00Z",
+      "attachRequired": true,
+      "podInfoOnMount": false,
+      "storageCapacity": true,
+      "volumeLifecycleModes": ["Persistent"]
+    }
+  ],
+  "csiNodes": [
+    {
+      "uid": "csi-node-uid-1",
+      "resourceVersion": "1844",
+      "name": "worker-1",
+      "source": "kubernetes.storage.k8s.io/v1",
+      "observedAt": "2026-08-01T12:00:00Z",
+      "drivers": [{ "name": "example.csi.io", "nodeId": "node-provider-id-1", "topologyKeys": ["topology.kubernetes.io/zone"] }]
+    }
+  ],
+  "csiStorageCapacities": [
+    {
+      "uid": "capacity-uid-1",
+      "resourceVersion": "1845",
+      "name": "capacity-a",
+      "namespace": "storage-system",
+      "source": "kubernetes.storage.k8s.io/v1",
+      "observedAt": "2026-08-01T12:00:00Z",
+      "storageClassName": "fast",
+      "capacityBytes": 1099511627776
+    }
+  ],
+  "volumeAttachments": [
+    {
+      "uid": "attachment-uid-1",
+      "resourceVersion": "1846",
+      "name": "csi-attachment-a",
+      "source": "kubernetes.storage.k8s.io/v1",
+      "observedAt": "2026-08-01T12:00:00Z",
+      "attacher": "example.csi.io",
+      "nodeName": "worker-1",
+      "persistentVolumeName": "pv-a",
+      "attached": true
+    }
+  ],
+  "volumeSnapshotClasses": [
+    {
+      "uid": "snapshot-class-uid-1",
+      "resourceVersion": "1847",
+      "name": "example-snapshots",
+      "source": "snapshot.storage.k8s.io/v1",
+      "observedAt": "2026-08-01T12:00:00Z",
+      "driver": "example.csi.io",
+      "deletionPolicy": "Delete"
+    }
+  ],
+  "volumeSnapshots": [
+    {
+      "uid": "snapshot-uid-1",
+      "resourceVersion": "1848",
+      "name": "snapshot-a",
+      "namespace": "tenant-a",
+      "source": "snapshot.storage.k8s.io/v1",
+      "observedAt": "2026-08-01T12:00:00Z",
+      "sourceKind": "PersistentVolumeClaim",
+      "sourceName": "claim-a",
+      "readyToUse": true
+    }
+  ],
+  "volumeSnapshotContents": [
+    {
+      "uid": "snapshot-content-uid-1",
+      "resourceVersion": "1849",
+      "name": "snapshot-content-a",
+      "source": "snapshot.storage.k8s.io/v1",
+      "observedAt": "2026-08-01T12:00:00Z",
+      "driver": "example.csi.io",
+      "deletionPolicy": "Delete",
+      "snapshotHandle": "provider-snapshot-a",
+      "volumeSnapshotNamespace": "tenant-a",
+      "volumeSnapshotName": "snapshot-a",
+      "readyToUse": true
+    }
+  ],
+  "snapshotApi": {
+    "status": "Installed",
+    "apiVersion": "snapshot.storage.k8s.io/v1",
+    "source": "kubernetes.apidiscovery.k8s.io/v1",
+    "observedAt": "2026-08-01T12:00:00Z"
+  }
+}
