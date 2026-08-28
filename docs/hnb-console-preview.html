@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HNB 云原生平台 · 控制台</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;700&display=swap');
+
+:root{
+  --void:      #0A1420;
+  --panel:     #101C2C;
+  --panel-2:   #16263A;
+  --panel-3:   #1C3049;
+  --line:      #22374E;
+  --line-soft: #182636;
+  --text-1:    #E8EEF5;
+  --text-2:    #93A7BB;
+  --text-3:    #5E7488;
+  --teal:      #2DD8C4;
+  --teal-dim:  #1B7A6E;
+  --amber:     #F2A93B;
+  --coral:     #FF6B6B;
+  --violet:    #8888F7;
+  --font-ui:   'IBM Plex Sans','Noto Sans SC',sans-serif;
+  --font-data: 'IBM Plex Mono','Noto Sans SC',monospace;
+}
+
+*{box-sizing:border-box; margin:0; padding:0;}
+html,body{height:100%;}
+body{
+  background:var(--void);
+  color:var(--text-1);
+  font-family:var(--font-ui);
+  font-size:14px;
+  -webkit-font-smoothing:antialiased;
+  overflow:hidden;
+}
+::selection{background:var(--teal-dim); color:#fff;}
+::-webkit-scrollbar{width:8px; height:8px;}
+::-webkit-scrollbar-thumb{background:var(--panel-3); border-radius:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+
+a{color:inherit; text-decoration:none;}
+button{font-family:inherit; cursor:pointer;}
+
+/* ---------- Shell layout ---------- */
+.shell{display:grid; grid-template-columns:248px 1fr; grid-template-rows:56px 1fr; height:100vh; width:100vw;}
+
+/* ---------- Sidebar ---------- */
+.sidebar{
+  grid-row:1 / 3;
+  background:var(--panel);
+  border-right:1px solid var(--line-soft);
+  display:flex; flex-direction:column;
+  overflow-y:auto;
+}
+.brand{
+  height:56px; display:flex; align-items:center; gap:10px;
+  padding:0 18px; border-bottom:1px solid var(--line-soft); flex-shrink:0;
+}
+.brand-mark{
+  width:26px; height:26px; position:relative; flex-shrink:0;
+}
+.brand-mark svg{width:100%; height:100%;}
+.brand-name{font-weight:600; font-size:15px; letter-spacing:.2px;}
+.brand-sub{font-family:var(--font-data); font-size:10px; color:var(--text-3); letter-spacing:.6px; margin-top:1px;}
+
+.nav{padding:14px 10px 24px; flex:1;}
+.nav-group{margin-bottom:6px;}
+.nav-group-label{
+  font-size:10.5px; color:var(--text-3); letter-spacing:1.2px; text-transform:uppercase;
+  padding:14px 10px 6px; font-family:var(--font-data);
+}
+.nav-item{
+  display:flex; align-items:center; gap:10px;
+  padding:8px 10px; border-radius:7px; color:var(--text-2);
+  font-size:13.5px; cursor:pointer; position:relative; transition:background .12s, color .12s;
+}
+.nav-item:hover{background:var(--panel-2); color:var(--text-1);}
+.nav-item.active{background:var(--panel-2); color:var(--text-1);}
+.nav-item.active::before{
+  content:''; position:absolute; left:-10px; top:8px; bottom:8px; width:3px;
+  background:var(--teal); border-radius:0 3px 3px 0;
+}
+.nav-item .ic{width:16px; height:16px; flex-shrink:0; opacity:.85;}
+.nav-item .badge{
+  margin-left:auto; font-family:var(--font-data); font-size:10px; color:var(--text-3);
+  background:var(--panel-3); padding:1px 6px; border-radius:20px;
+}
+.nav-item .badge.warn{color:var(--amber); }
+
+/* ---------- Topbar ---------- */
+.topbar{
+  grid-column:2; display:flex; align-items:center; gap:16px;
+  padding:0 20px; border-bottom:1px solid var(--line-soft); background:var(--void);
+}
+.crumb{font-size:12.5px; color:var(--text-3); display:flex; align-items:center; gap:6px;}
+.crumb b{color:var(--text-1); font-weight:600;}
+.ctx-switch{
+  margin-left:6px; display:flex; align-items:center; gap:8px;
+  background:var(--panel); border:1px solid var(--line); padding:5px 10px 5px 8px; border-radius:8px;
+  font-size:12px; color:var(--text-2);
+}
+.ctx-switch .dot{width:6px; height:6px; border-radius:50%; background:var(--teal); box-shadow:0 0 0 3px rgba(45,216,196,.15);}
+.topbar-spacer{flex:1;}
+.search{
+  display:flex; align-items:center; gap:8px; background:var(--panel); border:1px solid var(--line);
+  border-radius:8px; padding:6px 10px; width:280px; color:var(--text-3); font-size:12.5px;
+}
+.search svg{width:14px; height:14px; opacity:.7;}
+.icon-btn{
+  width:32px; height:32px; display:flex; align-items:center; justify-content:center;
+  border-radius:8px; color:var(--text-2); position:relative;
+}
+.icon-btn:hover{background:var(--panel);}
+.icon-btn svg{width:16px; height:16px;}
+.dot-badge{position:absolute; top:5px; right:6px; width:7px; height:7px; border-radius:50%; background:var(--coral); border:1.5px solid var(--void);}
+.user-chip{display:flex; align-items:center; gap:8px; padding:4px 8px 4px 4px; border-radius:20px;}
+.user-chip:hover{background:var(--panel);}
+.avatar{width:26px; height:26px; border-radius:50%; background:linear-gradient(135deg,var(--teal),var(--violet)); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:#08131c;}
+.user-meta{line-height:1.2;}
+.user-meta .name{font-size:12.5px; font-weight:500;}
+.user-meta .role{font-size:10.5px; color:var(--text-3);}
+
+/* ---------- Main ---------- */
+.main{grid-column:2; overflow-y:auto; padding:26px 30px 60px;}
+.page{display:none; animation:fadeIn .25s ease;}
+.page.active{display:block;}
+@keyframes fadeIn{from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:none;}}
+
+.page-head{display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:22px; gap:20px;}
+.page-title{font-size:21px; font-weight:700; letter-spacing:.2px;}
+.page-desc{font-size:13px; color:var(--text-3); margin-top:5px; max-width:560px; line-height:1.6;}
+.primary-btn{
+  background:var(--teal); color:#06231f; font-weight:600; font-size:13px;
+  padding:9px 16px; border-radius:8px; border:none; display:flex; align-items:center; gap:6px;
+  white-space:nowrap;
+}
+.primary-btn svg{width:14px; height:14px;}
+.ghost-btn{
+  background:transparent; color:var(--text-2); font-weight:500; font-size:12.5px;
+  padding:8px 14px; border-radius:8px; border:1px solid var(--line);
+}
+.ghost-btn:hover{border-color:var(--text-3); color:var(--text-1);}
+
+/* ---------- Stat chips ---------- */
+.stat-row{display:grid; grid-template-columns:repeat(6,1fr); gap:12px; margin-bottom:22px;}
+.stat-card{
+  background:var(--panel); border:1px solid var(--line-soft); border-radius:10px; padding:14px 16px;
+}
+.stat-card .n{font-family:var(--font-data); font-size:22px; font-weight:600;}
+.stat-card .l{font-size:11.5px; color:var(--text-3); margin-top:3px;}
+.stat-card .tick{font-size:10px; color:var(--teal); margin-top:6px; display:flex; align-items:center; gap:4px;}
+
+/* ---------- Grid / cards ---------- */
+.grid-2{display:grid; grid-template-columns:1.4fr 1fr; gap:16px;}
+.grid-3{display:grid; grid-template-columns:repeat(3,1fr); gap:16px;}
+.card{
+  background:var(--panel); border:1px solid var(--line-soft); border-radius:12px; overflow:hidden;
+}
+.card-head{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 18px; border-bottom:1px solid var(--line-soft);
+}
+.card-head h3{font-size:13.5px; font-weight:600;}
+.card-head .sub{font-size:11px; color:var(--text-3); margin-top:2px;}
+.card-body{padding:16px 18px;}
+.link-more{font-size:11.5px; color:var(--teal);}
+
+/* ---------- Topology signature ---------- */
+.topology-wrap{padding:8px 4px 4px;}
+.topology-legend{display:flex; gap:16px; padding:0 18px 12px; flex-wrap:wrap;}
+.legend-item{display:flex; align-items:center; gap:6px; font-size:11px; color:var(--text-3);}
+.legend-swatch{width:8px; height:8px; border-radius:2px;}
+
+/* ---------- Tables ---------- */
+table{width:100%; border-collapse:collapse;}
+th{
+  text-align:left; font-size:10.5px; color:var(--text-3); font-weight:600; letter-spacing:.6px;
+  text-transform:uppercase; padding:9px 18px; border-bottom:1px solid var(--line-soft);
+  font-family:var(--font-data);
+}
+td{padding:11px 18px; font-size:12.8px; border-bottom:1px solid var(--line-soft); vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tbody tr:hover{background:var(--panel-2);}
+.mono{font-family:var(--font-data);}
+.dim{color:var(--text-3);}
+
+.pill{
+  display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:20px;
+  font-size:11px; font-weight:600; font-family:var(--font-data);
+}
+.pill .pd{width:6px; height:6px; border-radius:50%;}
+.pill.ok{background:rgba(45,216,196,.12); color:var(--teal);}
+.pill.ok .pd{background:var(--teal);}
+.pill.warn{background:rgba(242,169,59,.13); color:var(--amber);}
+.pill.warn .pd{background:var(--amber);}
+.pill.crit{background:rgba(255,107,107,.13); color:var(--coral);}
+.pill.crit .pd{background:var(--coral);}
+.pill.info{background:rgba(136,136,247,.14); color:var(--violet);}
+.pill.info .pd{background:var(--violet);}
+.pill.neutral{background:var(--panel-3); color:var(--text-2);}
+
+.bar-track{width:70px; height:5px; border-radius:4px; background:var(--panel-3); overflow:hidden;}
+.bar-fill{height:100%; background:var(--teal);}
+
+/* ---------- roadmap ---------- */
+.road-group{margin-bottom:6px;}
+.road-group-title{
+  display:flex; align-items:center; gap:8px; font-size:11px; font-weight:600; letter-spacing:.4px;
+  color:var(--text-2); padding:12px 18px 8px;
+}
+.road-tag{padding:1px 7px; border-radius:4px; font-size:10px; font-family:var(--font-data);}
+.road-tag.high{background:rgba(255,107,107,.14); color:var(--coral);}
+.road-tag.mid{background:rgba(242,169,59,.14); color:var(--amber);}
+.road-tag.low{background:var(--panel-3); color:var(--text-3);}
+.road-item{
+  display:flex; align-items:center; justify-content:space-between; padding:9px 18px 9px 30px;
+  border-bottom:1px solid var(--line-soft); font-size:12.5px;
+}
+.road-item:last-child{border-bottom:none;}
+.road-item .name{font-weight:500;}
+.road-item .desc{color:var(--text-3); font-size:11.3px; margin-top:2px;}
+.road-item .eta{font-family:var(--font-data); font-size:11px; color:var(--text-3); white-space:nowrap; margin-left:12px;}
+
+/* ---------- App market ---------- */
+.app-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:14px;}
+.app-card{background:var(--panel); border:1px solid var(--line-soft); border-radius:12px; padding:16px;}
+.app-icon{
+  width:38px; height:38px; border-radius:9px; display:flex; align-items:center; justify-content:center;
+  font-weight:700; font-size:14px; margin-bottom:12px;
+}
+.app-name{font-size:13.5px; font-weight:600;}
+.app-cat{font-size:11px; color:var(--text-3); margin-top:2px;}
+.app-desc{font-size:11.6px; color:var(--text-2); margin-top:10px; line-height:1.55; min-height:50px;}
+.app-foot{display:flex; align-items:center; justify-content:space-between; margin-top:14px; padding-top:12px; border-top:1px solid var(--line-soft);}
+.app-ver{font-family:var(--font-data); font-size:11px; color:var(--text-3);}
+.app-install{font-size:11.5px; color:var(--teal); font-weight:600;}
+
+/* ---------- Extensions ---------- */
+.ext-card{background:var(--panel); border:1px solid var(--line-soft); border-radius:12px; padding:16px 18px; display:flex; flex-direction:column; gap:10px;}
+.ext-top{display:flex; align-items:flex-start; justify-content:space-between;}
+.ext-name{font-size:13.5px; font-weight:600;}
+.ext-desc{font-size:11.6px; color:var(--text-2); line-height:1.55;}
+.ext-meta{display:flex; gap:14px; font-size:11px; color:var(--text-3); font-family:var(--font-data);}
+
+/* ---------- Audit stream ---------- */
+.audit-item{display:flex; gap:12px; padding:11px 18px; border-bottom:1px solid var(--line-soft);}
+.audit-item:last-child{border-bottom:none;}
+.audit-dot{width:7px; height:7px; border-radius:50%; margin-top:5px; flex-shrink:0;}
+.audit-text{font-size:12.3px; line-height:1.5;}
+.audit-text b{font-weight:600;}
+.audit-time{font-family:var(--font-data); font-size:10.6px; color:var(--text-3); margin-top:2px;}
+
+/* misc */
+.section-title{font-size:14px; font-weight:600; margin:26px 0 12px;}
+.two-col-tables{display:grid; grid-template-columns:1.5fr 1fr; gap:16px;}
+.tag-row{display:flex; gap:6px; flex-wrap:wrap;}
+
+@media (prefers-reduced-motion: reduce){
+  * { animation-duration: 0.001ms !important; }
+  .flow-dash { stroke-dashoffset: 0 !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 32 32" fill="none">
+          <path d="M16 2 L28 9 V23 L16 30 L4 23 V9 Z" stroke="#2DD8C4" stroke-width="1.6"/>
+          <path d="M16 2 V16 M16 16 L28 9 M16 16 L4 9 M16 16 V30" stroke="#8888F7" stroke-width="1.1" opacity=".6"/>
+          <circle cx="16" cy="16" r="2.6" fill="#2DD8C4"/>
+        </svg>
+      </div>
+      <div>
+        <div class="brand-name">HNB 平台</div>
+        <div class="brand-sub">CLOUD&nbsp;NATIVE&nbsp;CONSOLE</div>
+      </div>
+    </div>
+
+    <nav class="nav" id="nav">
+      <div class="nav-group">
+        <div class="nav-item active" data-page="overview">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="5" rx="1.5"/><rect x="13" y="10" width="8" height="11" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/></svg>
+          概览
+        </div>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-group-label">多集群管理</div>
+        <div class="nav-item" data-page="clusters">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="5" r="2.4"/><circle cx="5" cy="17" r="2.4"/><circle cx="19" cy="17" r="2.4"/><path d="M12 7.4V12M12 12L6.6 15M12 12L17.4 15"/></svg>
+          集群列表
+          <span class="badge">12</span>
+        </div>
+        <div class="nav-item" data-page="overview">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 010 18 14 14 0 010-18z"/></svg>
+          隧道拓扑
+        </div>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-group-label">网络</div>
+        <div class="nav-item" data-page="network">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+          网关 &amp; CNI
+        </div>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-group-label">生态</div>
+        <div class="nav-item" data-page="market">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 9l1.5-5h15L21 9M3 9h18M3 9v10a1 1 0 001 1h16a1 1 0 001-1V9"/><path d="M9 13a3 3 0 006 0"/></svg>
+          应用市场
+          <span class="badge">37</span>
+        </div>
+        <div class="nav-item" data-page="extensions">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14.7 6.3a1 1 0 011.4 0l1.6 1.6a1 1 0 010 1.4l-8.4 8.4a1 1 0 01-1.4 0L6.3 16.1a1 1 0 010-1.4z"/><path d="M8 8l-2-2M16 16l2 2M4 20l3-3M20 4l-3 3"/></svg>
+          扩展中心
+        </div>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-group-label">运维</div>
+        <div class="nav-item" data-page="alerts">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3a6 6 0 016 6v3.4l1.6 3.1a1 1 0 01-.9 1.5H5.3a1 1 0 01-.9-1.5L6 12.4V9a6 6 0 016-6z"/><path d="M9.5 18a2.5 2.5 0 005 0"/></svg>
+          告警中心
+          <span class="badge warn">4</span>
+        </div>
+        <div class="nav-item" data-page="iam">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="3.2"/><path d="M5 20c0-3.6 3.1-6.4 7-6.4s7 2.8 7 6.4"/></svg>
+          权限与审计
+        </div>
+      </div>
+    </nav>
+  </aside>
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="crumb"><span id="crumbText">概览</span></div>
+    <div class="ctx-switch">
+      <span class="dot"></span> prod-cn-east-1 <span class="dim" style="opacity:.5">▾</span>
+    </div>
+    <div class="topbar-spacer"></div>
+    <div class="search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      搜索集群 / 资源 / 审计事件…
+    </div>
+    <div class="icon-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3a6 6 0 016 6v3.4l1.6 3.1a1 1 0 01-.9 1.5H5.3a1 1 0 01-.9-1.5L6 12.4V9a6 6 0 016-6z"/><path d="M9.5 18a2.5 2.5 0 005 0"/></svg>
+      <span class="dot-badge"></span>
+    </div>
+    <div class="user-chip">
+      <div class="avatar">运</div>
+      <div class="user-meta">
+        <div class="name">运维 · 王工</div>
+        <div class="role">平台管理员</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- ================= OVERVIEW ================= -->
+    <section class="page active" id="page-overview">
+      <div class="page-head">
+        <div>
+          <div class="page-title">平台概览</div>
+          <div class="page-desc">29 个 Go 模块、20 个二进制服务全部构建通过。以下为核心链路的实时拓扑与阶段性交付计划。</div>
+        </div>
+        <div style="display:flex; gap:10px;">
+          <button class="ghost-btn">导出报告</button>
+          <button class="primary-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+            接入集群
+          </button>
+        </div>
+      </div>
+
+      <div class="stat-row">
+        <div class="stat-card"><div class="n">29</div><div class="l">Go 模块</div><div class="tick">✓ 全部构建通过</div></div>
+        <div class="stat-card"><div class="n">20</div><div class="l">cmd/ 二进制</div><div class="tick">✓ 全部构建通过</div></div>
+        <div class="stat-card"><div class="n">8</div><div class="l">pkg/ 共享库</div><div class="tick">✓ 全部构建通过</div></div>
+        <div class="stat-card"><div class="n">23</div><div class="l">数据库迁移</div><div class="tick">✓ 已定义</div></div>
+        <div class="stat-card"><div class="n">17+</div><div class="l">单元测试</div><div class="tick">✓ 全部通过</div></div>
+        <div class="stat-card"><div class="n">1+20</div><div class="l">Helm Chart</div><div class="tick">✓ 已定义</div></div>
+      </div>
+
+      <div class="grid-2" style="align-items:start;">
+        <div class="card">
+          <div class="card-head">
+            <div>
+              <h3>反向隧道拓扑</h3>
+              <div class="sub">apiserver → cluster-router / operation-worker → tunnel-server → cluster-agent</div>
+            </div>
+            <span class="pill ok"><span class="pd"></span>全部在线</span>
+          </div>
+          <div class="topology-wrap">
+            <svg viewBox="0 0 760 300" width="100%" height="300">
+              <!-- NATS bus -->
+              <line x1="60" y1="270" x2="700" y2="270" stroke="#22374E" stroke-width="1.4" stroke-dasharray="2 5"/>
+              <text x="60" y="288" fill="#5E7488" font-family="IBM Plex Mono" font-size="9.5">NATS JETSTREAM 消息总线</text>
+
+              <!-- apiserver hub -->
+              <rect x="330" y="20" width="100" height="34" rx="7" fill="#16263A" stroke="#2DD8C4" stroke-width="1.2"/>
+              <text x="380" y="41" text-anchor="middle" fill="#E8EEF5" font-family="IBM Plex Mono" font-size="11" font-weight="600">apiserver</text>
+
+              <!-- second row -->
+              <rect x="170" y="100" width="130" height="34" rx="7" fill="#16263A" stroke="#8888F7" stroke-width="1.1"/>
+              <text x="235" y="121" text-anchor="middle" fill="#E8EEF5" font-family="IBM Plex Mono" font-size="10.5">cluster-router</text>
+
+              <rect x="460" y="100" width="150" height="34" rx="7" fill="#16263A" stroke="#8888F7" stroke-width="1.1"/>
+              <text x="535" y="121" text-anchor="middle" fill="#E8EEF5" font-family="IBM Plex Mono" font-size="10.5">operation-worker</text>
+
+              <!-- tunnel-server -->
+              <rect x="170" y="170" width="130" height="34" rx="7" fill="#16263A" stroke="#2DD8C4" stroke-width="1.1"/>
+              <text x="235" y="191" text-anchor="middle" fill="#E8EEF5" font-family="IBM Plex Mono" font-size="10.5">tunnel-server</text>
+
+              <rect x="460" y="170" width="150" height="34" rx="7" fill="#16263A" stroke="#5E7488" stroke-width="1"/>
+              <text x="535" y="191" text-anchor="middle" fill="#93A7BB" font-family="IBM Plex Mono" font-size="10.5">extension / alert / market</text>
+
+              <!-- cluster agents -->
+              <rect x="90" y="230" width="80" height="30" rx="6" fill="#101C2C" stroke="#22374E"/>
+              <text x="130" y="249" text-anchor="middle" fill="#93A7BB" font-family="IBM Plex Mono" font-size="9.5">agent-01</text>
+              <rect x="185" y="230" width="80" height="30" rx="6" fill="#101C2C" stroke="#22374E"/>
+              <text x="225" y="249" text-anchor="middle" fill="#93A7BB" font-family="IBM Plex Mono" font-size="9.5">agent-02</text>
+              <rect x="280" y="230" width="80" height="30" rx="6" fill="#101C2C" stroke="#22374E"/>
+              <text x="320" y="249" text-anchor="middle" fill="#93A7BB" font-family="IBM Plex Mono" font-size="9.5">agent-03</text>
+
+              <!-- connecting lines -->
+              <path d="M380 54 L235 100" stroke="#22374E" stroke-width="1.3" fill="none"/>
+              <path d="M380 54 L535 100" stroke="#22374E" stroke-width="1.3" fill="none"/>
+              <path d="M235 134 L235 170" stroke="#22374E" stroke-width="1.3" fill="none"/>
+              <path d="M535 134 L535 170" stroke="#22374E" stroke-width="1.3" fill="none"/>
+              <path d="M235 204 L130 230" stroke="#22374E" stroke-width="1.3" fill="none"/>
+              <path d="M235 204 L225 230" stroke="#22374E" stroke-width="1.3" fill="none"/>
+              <path d="M235 204 L320 230" stroke="#22374E" stroke-width="1.3" fill="none"/>
+
+              <!-- animated flow pulses (tunnel = signature) -->
+              <path class="flow-dash" d="M380 54 L235 100 L235 170 L130 230" stroke="#2DD8C4" stroke-width="1.6" fill="none"
+                    stroke-dasharray="6 10" stroke-linecap="round">
+                <animate attributeName="stroke-dashoffset" from="0" to="-64" dur="2.4s" repeatCount="indefinite"/>
+              </path>
+              <path class="flow-dash" d="M380 54 L235 100 L235 170 L225 230" stroke="#2DD8C4" stroke-width="1.2" fill="none" opacity="0.55"
+                    stroke-dasharray="5 9" stroke-linecap="round">
+                <animate attributeName="stroke-dashoffset" from="0" to="-56" dur="3.1s" repeatCount="indefinite"/>
+              </path>
+              <path class="flow-dash" d="M380 54 L235 100 L235 170 L320 230" stroke="#2DD8C4" stroke-width="1.2" fill="none" opacity="0.4"
+                    stroke-dasharray="4 8" stroke-linecap="round">
+                <animate attributeName="stroke-dashoffset" from="0" to="-48" dur="2.8s" repeatCount="indefinite"/>
+              </path>
+
+              <circle r="3" fill="#2DD8C4">
+                <animateMotion dur="2.4s" repeatCount="indefinite" path="M380 54 L235 100 L235 170 L130 230"/>
+              </circle>
+            </svg>
+          </div>
+          <div class="topology-legend">
+            <div class="legend-item"><span class="legend-swatch" style="background:#2DD8C4"></span>控制面 / 隧道</div>
+            <div class="legend-item"><span class="legend-swatch" style="background:#8888F7"></span>编排 &amp; 路由</div>
+            <div class="legend-item"><span class="legend-swatch" style="background:#5E7488"></span>扩展生态服务</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <div><h3>模块构建状态</h3><div class="sub">cmd/ 精选</div></div>
+            <span class="link-more">查看全部 20 项</span>
+          </div>
+          <table>
+            <tbody>
+              <tr><td>apiserver</td><td class="dim mono" style="text-align:right">~500 行</td><td style="text-align:right"><span class="pill ok"><span class="pd"></span>OK</span></td></tr>
+              <tr><td>operation-worker</td><td class="dim mono" style="text-align:right">~900 行</td><td style="text-align:right"><span class="pill ok"><span class="pd"></span>OK</span></td></tr>
+              <tr><td>gateway-provider</td><td class="dim mono" style="text-align:right">~1500 行</td><td style="text-align:right"><span class="pill ok"><span class="pd"></span>OK</span></td></tr>
+              <tr><td>gslb-controller</td><td class="dim mono" style="text-align:right">~800 行</td><td style="text-align:right"><span class="pill ok"><span class="pd"></span>OK</span></td></tr>
+              <tr><td>cluster-router</td><td class="dim mono" style="text-align:right">~300 行</td><td style="text-align:right"><span class="pill ok"><span class="pd"></span>OK</span></td></tr>
+              <tr><td>rbac-syncer</td><td class="dim mono" style="text-align:right">~200 行</td><td style="text-align:right"><span class="pill ok"><span class="pd"></span>OK</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="section-title">交付路线图</div>
+      <div class="card">
+        <div class="road-group">
+          <div class="road-group-title"><span class="road-tag high">高优先级</span></div>
+          <div class="road-item"><div><div class="name">RKE2 / K3s Provider</div><div class="desc">集群自建能力 — 待确认是否继续</div></div><div class="eta">3–5 天</div></div>
+          <div class="road-item"><div><div class="name">前端控制台</div><div class="desc">React / TypeScript 管理界面</div></div><div class="eta">4–8 周</div></div>
+          <div class="road-item"><div><div class="name">E2E 集成测试</div><div class="desc">跨模块端到端测试，当前仅单元测试</div></div><div class="eta">2–3 天</div></div>
+          <div class="road-item"><div><div class="name">生产级 Helm Chart</div><div class="desc">补齐 HPA / PDB / Ingress / TLS</div></div><div class="eta">2–3 天</div></div>
+        </div>
+        <div class="road-group">
+          <div class="road-group-title"><span class="road-tag mid">中优先级</span></div>
+          <div class="road-item"><div><div class="name">多集群 Dashboard</div><div class="desc">跨集群资源统一视图</div></div><div class="eta">2–3 周</div></div>
+          <div class="road-item"><div><div class="name">应用商店完善</div><div class="desc">审批工作流、应用模板、版本对比</div></div><div class="eta">1–2 周</div></div>
+          <div class="road-item"><div><div class="name">告警规则增强</div><div class="desc">PromQL 表达式评估、静默、聚合</div></div><div class="eta">1 周</div></div>
+        </div>
+        <div class="road-group">
+          <div class="road-group-title"><span class="road-tag low">低优先级</span></div>
+          <div class="road-item"><div><div class="name">Extension SDK 前端</div><div class="desc">React 扩展开发框架</div></div><div class="eta">2–3 周</div></div>
+          <div class="road-item"><div><div class="name">安全扫描</div><div class="desc">依赖漏洞扫描、镜像扫描</div></div><div class="eta">2–3 天</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= CLUSTERS ================= -->
+    <section class="page" id="page-clusters">
+      <div class="page-head">
+        <div>
+          <div class="page-title">集群列表</div>
+          <div class="page-desc">经 tunnel-server 注册的成员集群，状态由 cluster-agent 心跳与 cluster-router 熔断策略共同评估。</div>
+        </div>
+        <button class="primary-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>接入集群</button>
+      </div>
+
+      <div class="card">
+        <table>
+          <thead><tr><th>集群名称</th><th>区域</th><th>状态</th><th>节点数</th><th>隧道延迟</th><th>K8s 版本</th><th>Agent 版本</th><th></th></tr></thead>
+          <tbody>
+            <tr><td><b>prod-cn-east-1</b><div class="dim" style="font-size:11px;">托管 · Karmada</div></td><td class="mono dim">cn-east-1</td><td><span class="pill ok"><span class="pd"></span>健康</span></td><td class="mono">48</td><td class="mono">12ms</td><td class="mono">v1.28.6</td><td class="mono">v0.9.2</td><td>⋯</td></tr>
+            <tr><td><b>prod-cn-north-2</b><div class="dim" style="font-size:11px;">托管 · Karmada</div></td><td class="mono dim">cn-north-2</td><td><span class="pill ok"><span class="pd"></span>健康</span></td><td class="mono">36</td><td class="mono">18ms</td><td class="mono">v1.28.6</td><td class="mono">v0.9.2</td><td>⋯</td></tr>
+            <tr><td><b>staging-edge-01</b><div class="dim" style="font-size:11px;">边缘 · edge-provider</div></td><td class="mono dim">cn-southwest-1</td><td><span class="pill warn"><span class="pd"></span>隧道抖动</span></td><td class="mono">6</td><td class="mono">86ms</td><td class="mono">v1.27.9</td><td class="mono">v0.9.1</td><td>⋯</td></tr>
+            <tr><td><b>dr-cn-east-2</b><div class="dim" style="font-size:11px;">灾备 · GSLB 只读</div></td><td class="mono dim">cn-east-2</td><td><span class="pill ok"><span class="pd"></span>健康</span></td><td class="mono">24</td><td class="mono">14ms</td><td class="mono">v1.28.4</td><td class="mono">v0.9.2</td><td>⋯</td></tr>
+            <tr><td><b>dev-sandbox</b><div class="dim" style="font-size:11px;">自建 · Kube-OVN</div></td><td class="mono dim">cn-east-1</td><td><span class="pill crit"><span class="pd"></span>失联</span></td><td class="mono">3</td><td class="mono">—</td><td class="mono">v1.29.0</td><td class="mono">v0.8.7</td><td>⋯</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section-title">GSLB 全局负载均衡</div>
+      <div class="card">
+        <table>
+          <thead><tr><th>域名</th><th>策略</th><th>健康端点</th><th>状态</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">api.hnb-platform.com</td><td>就近接入</td><td class="mono">4 / 4</td><td><span class="pill ok"><span class="pd"></span>正常</span></td></tr>
+            <tr><td class="mono">console.hnb-platform.com</td><td>权重轮询</td><td class="mono">3 / 4</td><td><span class="pill warn"><span class="pd"></span>降级</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================= NETWORK ================= -->
+    <section class="page" id="page-network">
+      <div class="page-head">
+        <div>
+          <div class="page-title">网关 &amp; 网络</div>
+          <div class="page-desc">gateway-provider 统一管理网关资源，network-provider 协调 CNI 专有实现。</div>
+        </div>
+        <button class="ghost-btn">新增网关</button>
+      </div>
+
+      <div class="grid-3">
+        <div class="card">
+          <div class="card-head"><div><h3>Cilium</h3><div class="sub">cilium-provider</div></div><span class="pill ok"><span class="pd"></span>就绪</span></div>
+          <div class="card-body">
+            <div class="dim" style="font-size:12px; line-height:1.7;">已接入集群：6<br>eBPF 数据面：启用<br>网络策略数：214</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div><h3>Calico</h3><div class="sub">calico-provider</div></div><span class="pill ok"><span class="pd"></span>就绪</span></div>
+          <div class="card-body">
+            <div class="dim" style="font-size:12px; line-height:1.7;">已接入集群：3<br>BGP 对等体：12<br>网络策略数：87</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div><h3>Kube-OVN</h3><div class="sub">kube-ovn-provider</div></div><span class="pill warn"><span class="pd"></span>部分降级</span></div>
+          <div class="card-body">
+            <div class="dim" style="font-size:12px; line-height:1.7;">已接入集群：2<br>子网数：18<br>Vlan 绑定异常：1</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-title">网关实例</div>
+      <div class="card">
+        <table>
+          <thead><tr><th>网关名称</th><th>所属集群</th><th>监听端口</th><th>路由数</th><th>测试覆盖</th><th>状态</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">ingress-gw-01</td><td>prod-cn-east-1</td><td class="mono">80 / 443</td><td class="mono">142</td><td class="mono">55/55</td><td><span class="pill ok"><span class="pd"></span>运行中</span></td></tr>
+            <tr><td class="mono">ingress-gw-02</td><td>prod-cn-north-2</td><td class="mono">80 / 443</td><td class="mono">96</td><td class="mono">55/55</td><td><span class="pill ok"><span class="pd"></span>运行中</span></td></tr>
+            <tr><td class="mono">edge-gw-sw1</td><td>staging-edge-01</td><td class="mono">443</td><td class="mono">18</td><td class="mono">55/55</td><td><span class="pill warn"><span class="pd"></span>限流告警</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================= APP MARKET ================= -->
+    <section class="page" id="page-market">
+      <div class="page-head">
+        <div>
+          <div class="page-title">应用市场</div>
+          <div class="page-desc">app-market 基于 OCI 存储与 Helm 同步，提供跨集群一键分发。</div>
+        </div>
+        <button class="primary-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>发布应用</button>
+      </div>
+
+      <div class="app-grid">
+        <div class="app-card">
+          <div class="app-icon" style="background:rgba(45,216,196,.15); color:#2DD8C4;">Pg</div>
+          <div class="app-name">PostgreSQL 集群</div>
+          <div class="app-cat">数据库 · 有状态</div>
+          <div class="app-desc">高可用 PostgreSQL Operator，支持自动故障转移与定时备份。</div>
+          <div class="app-foot"><span class="app-ver">v15.4.2</span><span class="app-install">238 次安装</span></div>
+        </div>
+        <div class="app-card">
+          <div class="app-icon" style="background:rgba(136,136,247,.16); color:#8888F7;">Ka</div>
+          <div class="app-name">Kafka 消息队列</div>
+          <div class="app-cat">中间件</div>
+          <div class="app-desc">多可用区 Kafka 集群模板，内置监控面板与告警规则。</div>
+          <div class="app-foot"><span class="app-ver">v3.6.0</span><span class="app-install">112 次安装</span></div>
+        </div>
+        <div class="app-card">
+          <div class="app-icon" style="background:rgba(242,169,59,.18); color:#F2A93B;">Gf</div>
+          <div class="app-name">Grafana 观测套件</div>
+          <div class="app-cat">可观测性</div>
+          <div class="app-desc">预置 HNB 平台仪表盘，覆盖网关、隧道与告警核心指标。</div>
+          <div class="app-foot"><span class="app-ver">v10.2.1</span><span class="app-install">301 次安装</span></div>
+        </div>
+        <div class="app-card">
+          <div class="app-icon" style="background:rgba(255,107,107,.15); color:#FF6B6B;">Ve</div>
+          <div class="app-name">Vault 密钥管理</div>
+          <div class="app-cat">安全</div>
+          <div class="app-desc">集中式密钥与证书托管，支持 IAM 联动的动态凭据签发。</div>
+          <div class="app-foot"><span class="app-ver">v1.15.2</span><span class="app-install">64 次安装</span></div>
+        </div>
+      </div>
+
+      <div class="section-title">待审批发布</div>
+      <div class="card">
+        <table>
+          <thead><tr><th>应用</th><th>提交者</th><th>目标集群</th><th>状态</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">redis-cluster v7.2</td><td>陈工</td><td>prod-cn-east-1</td><td><span class="pill neutral">待审批</span></td></tr>
+            <tr><td class="mono">nginx-ingress v1.10</td><td>李工</td><td>全部集群</td><td><span class="pill neutral">待审批</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================= ALERTS ================= -->
+    <section class="page" id="page-alerts">
+      <div class="page-head">
+        <div>
+          <div class="page-title">告警中心</div>
+          <div class="page-desc">alert-manager 汇总规则评估结果并按渠道分发。</div>
+        </div>
+        <button class="ghost-btn">新建规则</button>
+      </div>
+
+      <div class="stat-row" style="grid-template-columns:repeat(4,1fr);">
+        <div class="stat-card"><div class="n" style="color:#FF6B6B">2</div><div class="l">严重</div></div>
+        <div class="stat-card"><div class="n" style="color:#F2A93B">2</div><div class="l">警告</div></div>
+        <div class="stat-card"><div class="n" style="color:#2DD8C4">31</div><div class="l">规则运行中</div></div>
+        <div class="stat-card"><div class="n">6</div><div class="l">通知渠道</div></div>
+      </div>
+
+      <div class="card">
+        <table>
+          <thead><tr><th>级别</th><th>告警</th><th>集群</th><th>触发时间</th><th>状态</th></tr></thead>
+          <tbody>
+            <tr><td><span class="pill crit"><span class="pd"></span>严重</span></td><td>dev-sandbox 隧道连续 5 次心跳失败</td><td class="mono">dev-sandbox</td><td class="mono dim">08:14:02</td><td><span class="pill neutral">未处理</span></td></tr>
+            <tr><td><span class="pill crit"><span class="pd"></span>严重</span></td><td>edge-gw-sw1 请求延迟 P99 &gt; 2s</td><td class="mono">staging-edge-01</td><td class="mono dim">08:02:47</td><td><span class="pill neutral">处理中</span></td></tr>
+            <tr><td><span class="pill warn"><span class="pd"></span>警告</span></td><td>Kube-OVN 子网 IP 使用率 &gt; 85%</td><td class="mono">dev-sandbox</td><td class="mono dim">07:41:19</td><td><span class="pill neutral">已确认</span></td></tr>
+            <tr><td><span class="pill warn"><span class="pd"></span>警告</span></td><td>console.hnb-platform.com GSLB 端点降级</td><td class="mono">全局</td><td class="mono dim">07:20:05</td><td><span class="pill neutral">未处理</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section-title">通知渠道</div>
+      <div class="grid-3">
+        <div class="card"><div class="card-body" style="display:flex; align-items:center; justify-content:space-between;"><span>企业微信</span><span class="pill ok"><span class="pd"></span>已启用</span></div></div>
+        <div class="card"><div class="card-body" style="display:flex; align-items:center; justify-content:space-between;"><span>钉钉机器人</span><span class="pill ok"><span class="pd"></span>已启用</span></div></div>
+        <div class="card"><div class="card-body" style="display:flex; align-items:center; justify-content:space-between;"><span>SIEM Webhook</span><span class="pill neutral">规划中</span></div></div>
+      </div>
+    </section>
+
+    <!-- ================= IAM & AUDIT ================= -->
+    <section class="page" id="page-iam">
+      <div class="page-head">
+        <div>
+          <div class="page-title">权限与审计</div>
+          <div class="page-desc">IAM 负责认证 / 授权 / RBAC 同步；audit 持久化并支持全文检索。</div>
+        </div>
+        <button class="ghost-btn">邀请成员</button>
+      </div>
+
+      <div class="two-col-tables">
+        <div class="card">
+          <div class="card-head"><h3>成员与角色</h3></div>
+          <table>
+            <thead><tr><th>用户</th><th>角色</th><th>所属集群范围</th><th>状态</th></tr></thead>
+            <tbody>
+              <tr><td>王工</td><td><span class="pill info">平台管理员</span></td><td class="dim">全部</td><td><span class="pill ok"><span class="pd"></span>启用</span></td></tr>
+              <tr><td>陈工</td><td><span class="pill neutral">应用发布者</span></td><td class="dim">prod-cn-east-1</td><td><span class="pill ok"><span class="pd"></span>启用</span></td></tr>
+              <tr><td>李工</td><td><span class="pill neutral">网络运维</span></td><td class="dim">全部</td><td><span class="pill ok"><span class="pd"></span>启用</span></td></tr>
+              <tr><td>访客账号</td><td><span class="pill neutral">只读</span></td><td class="dim">dev-sandbox</td><td><span class="pill warn"><span class="pd"></span>已过期</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h3>最近审计事件</h3></div>
+          <div>
+            <div class="audit-item"><div class="audit-dot" style="background:#2DD8C4"></div><div><div class="audit-text"><b>王工</b> 批准了网关 <b>edge-gw-sw1</b> 限流策略变更</div><div class="audit-time">08:16:44</div></div></div>
+            <div class="audit-item"><div class="audit-dot" style="background:#F2A93B"></div><div><div class="audit-text"><b>系统</b> 检测到 dev-sandbox 隧道会话中断</div><div class="audit-time">08:14:02</div></div></div>
+            <div class="audit-item"><div class="audit-dot" style="background:#8888F7"></div><div><div class="audit-text"><b>陈工</b> 提交 redis-cluster v7.2 发布申请</div><div class="audit-time">07:58:11</div></div></div>
+            <div class="audit-item"><div class="audit-dot" style="background:#2DD8C4"></div><div><div class="audit-text"><b>rbac-syncer</b> 同步 3 个命名空间的角色绑定</div><div class="audit-time">07:50:30</div></div></div>
+            <div class="audit-item"><div class="audit-dot" style="background:#FF6B6B"></div><div><div class="audit-text"><b>李工</b> 撤销访客账号临时令牌</div><div class="audit-time">07:44:02</div></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= EXTENSIONS ================= -->
+    <section class="page" id="page-extensions">
+      <div class="page-head">
+        <div>
+          <div class="page-title">扩展中心</div>
+          <div class="page-desc">extension-controller 管理扩展全生命周期：安装、启用、灰度与卸载。</div>
+        </div>
+        <button class="primary-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>安装扩展</button>
+      </div>
+
+      <div class="grid-3">
+        <div class="ext-card">
+          <div class="ext-top"><div class="ext-name">多集群成本分析</div><span class="pill ok"><span class="pd"></span>运行中</span></div>
+          <div class="ext-desc">基于资源用量估算各集群成本，支持导出月度报表。</div>
+          <div class="ext-meta"><span>v2.1.0</span><span>3 个命名空间</span></div>
+        </div>
+        <div class="ext-card">
+          <div class="ext-top"><div class="ext-name">证书自动轮换</div><span class="pill ok"><span class="pd"></span>运行中</span></div>
+          <div class="ext-desc">监控网关证书有效期并触发自动续签流程。</div>
+          <div class="ext-meta"><span>v1.4.3</span><span>全部集群</span></div>
+        </div>
+        <div class="ext-card">
+          <div class="ext-top"><div class="ext-name">边缘节点巡检</div><span class="pill warn"><span class="pd"></span>灰度中</span></div>
+          <div class="ext-desc">周期性检测 edge-provider 节点健康与网络抖动。</div>
+          <div class="ext-meta"><span>v0.9.0-beta</span><span>1 个集群</span></div>
+        </div>
+        <div class="ext-card">
+          <div class="ext-top"><div class="ext-name">Extension SDK Playground</div><span class="pill neutral">未安装</span></div>
+          <div class="ext-desc">面向开发者的扩展调试沙箱，规划中的前端配套。</div>
+          <div class="ext-meta"><span>规划中</span><span>—</span></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+document.querySelectorAll('.nav-item[data-page]').forEach(function(item){
+  item.addEventListener('click', function(){
+    var target = item.getAttribute('data-page');
+    document.querySelectorAll('.nav-item[data-page]').forEach(function(n){ n.classList.remove('active'); });
+    // activate all nav items pointing to this page (topology + clusters share group visually distinct, but keep simple)
+    document.querySelectorAll('.nav-item[data-page="'+target+'"]').forEach(function(n){ n.classList.add('active'); });
+    document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
+    document.getElementById('page-'+target).classList.add('active');
+    document.getElementById('crumbText').textContent = item.textContent.trim().replace(/\s+\d+$/,'');
+  });
+});
+</script>
+
+</body>
+</html>

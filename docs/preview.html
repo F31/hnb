@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>HNB Console V6.1 Dashboard</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#0b0f14;color:#eef2f7;font-family:"Microsoft YaHei"}
+.header{height:64px;background:#121820;display:flex;align-items:center;border-bottom:1px solid #293341}
+.logo{width:220px;padding-left:25px;font-size:22px;font-weight:bold}.logo span{color:#7188ff}
+.space select{background:#202936;color:white;padding:8px;border-radius:6px;border:1px solid #3b4658}
+.plus{display:inline-block;margin-left:8px;background:#657dff;border-radius:50%;width:25px;height:25px;text-align:center;line-height:25px}
+.nav{display:flex;margin-left:20px;height:100%}.nav div{padding:22px 16px;color:#abb5c4;cursor:pointer}
+.nav .active{background:#27365f;color:#fff}
+.user{margin-left:auto;margin-right:20px}
+.main{display:flex;height:calc(100vh - 64px)}
+.side{width:250px;background:#11161d}.menu{padding:12px 18px;color:#bac3d0}.menu.active,.menu:hover{background:#27365f;color:#fff}
+.content{flex:1;padding:18px;overflow:auto}
+.card{background:#171d25;border:1px solid #293443;border-radius:10px;padding:15px}
+.topstats{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:12px}
+.num{font-size:30px;font-weight:bold}
+.resource{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:12px}
+.middle{display:grid;grid-template-columns:1fr 2fr;gap:12px;margin-top:12px}
+.bottom{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+.bar{height:8px;background:#364052;border-radius:8px;margin-top:8px}
+.inner{height:100%;background:#657dff;border-radius:8px}
+.alert{padding:7px;color:#ff8585}
+.node{height:180px;display:flex;align-items:center;justify-content:center;color:#8fdcff;font-size:18px}
+</style>
+</head>
+<body>
+
+<div class="header">
+<div class="logo"><span>HNB</span> 云原生平台</div>
+<div>
+<select><option>默认空间</option><option>高速业务空间</option><option>AI创新空间</option></select>
+<span class="plus">+</span>
+</div>
+<div class="nav">
+<div class="active">首页</div>
+<div>应用工厂</div>
+<div>容器</div>
+<div>资源</div>
+<div>云原生服务</div>
+<div>AI</div>
+<div>系统</div>
+</div>
+<div class="user">admin ▼</div>
+</div>
+
+<div class="main">
+<div class="side" id="side"></div>
+
+<div class="content">
+
+<h2>平台运行总览</h2>
+
+<div class="topstats">
+<div class="card">
+<h3>集群总览</h3>
+<div class="num">12</div>
+<p>生产集群 8　测试集群 4</p>
+</div>
+<div class="card">
+<h3>CPU</h3>
+<div class="num">600</div>
+<p>使用率 39%</p><div class="bar"><div class="inner" style="width:39%"></div></div>
+</div>
+<div class="card">
+<h3>GPU</h3>
+<div class="num">16</div>
+<p>显存使用 45%</p>
+</div>
+<div class="card">
+<h3>存储</h3>
+<div class="num">7.1TB</div>
+<p>已使用 1.5TB</p>
+</div>
+</div>
+
+<div class="resource">
+<div class="card">集群资源TOP5<br><br>default █████ 39%</div>
+<div class="card">节点资源TOP5<br><br>node01 █████ 57%</div>
+<div class="card">虚拟机资源TOP5<br><br>vm01 ███ 22%</div>
+<div class="card">应用资源TOP5<br><br>order-service ████</div>
+</div>
+
+
+<div class="middle">
+<div class="card">
+<h3>系统告警</h3>
+<div class="alert">● Running状态Pod数量超过阈值</div>
+<div class="alert">● 节点资源不足</div>
+<div class="alert">● 应用发布失败</div>
+</div>
+
+<div class="card">
+<h3>关键业务分布</h3>
+<div class="node">应用拓扑视图<br>Gateway → Service → Database</div>
+</div>
+</div>
+
+
+<div class="bottom">
+
+<div class="card">
+<h3>K8S集群详情</h3>
+<div class="node">节点拓扑<br>Master / Worker / Agent</div>
+</div>
+
+<div class="card">
+<h3>关键业务分布</h3>
+<div class="node">业务节点关系图<br>harbor / gateway / mysql / redis</div>
+</div>
+
+</div>
+
+</div>
+</div>
+
+<script>
+const menus={
+"首页":["平台总览","审批待办","最近操作"],
+"应用工厂":["应用管理","单体应用","微服务应用","环境管理","应用模板","应用市场"],
+"容器":["集群实例","工作负载","Pod","Namespace","服务访问","配置管理","日志查询","事件查询"],
+"资源":["容器集群","节点管理","GPU资源","网络","存储","GSLB"],
+"云原生服务":["数据服务","消息服务","微服务治理","网关服务"],
+"AI":["模型仓库","推理服务","AI网关"],
+"系统":["系统设置","权限管理","租户管理","操作审批","操作审计"]
+};
+document.querySelectorAll(".nav div").forEach(n=>n.onclick=()=>{
+let s=document.getElementById("side");s.innerHTML="";
+menus[n.innerText].forEach((x,i)=>{let d=document.createElement("div");d.className="menu "+(i==0?"active":"");d.innerHTML=x;s.appendChild(d)})
+});
+document.querySelector(".nav .active").click();
+</script>
+
+</body>
+</html>

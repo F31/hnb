@@ -1,0 +1,7 @@
+- [x] 1.1 Add `application/navigation` service with repository/client interfaces for plugin metadata, capabilities, feature/license state and permission versions.
+- [x] 1.2 Replace hardcoded navigation handler construction with service-backed aggregation while preserving current `NavigationResponse` shape.
+- [x] 1.3 Add tenant/subject/version scoped ETag and in-process L1 cache; include invalidation hooks for permission and plugin catalog changes.
+- [x] 1.4 Ensure platform-api has no public `/api/v1/menus` route and add a regression test that browser-facing navigation only targets apiserver.
+- [x] 1.5 Add authorization/filter tests for missing permission, missing capability, tenant switch, stale ETag and locale-specific title selection.
+- [x] 1.6 Add metrics/logs for generation latency, cache hit/miss, filtered item count and invalidation events without logging tokens or full permission sets.
+- [x] 1.7 Run apiserver Go tests, Web Shell navigation tests/typecheck, and an E2E login-to-navigation smoke test.

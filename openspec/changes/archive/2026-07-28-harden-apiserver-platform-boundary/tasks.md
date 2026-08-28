@@ -1,0 +1,8 @@
+- [x] 1.1 Add explicit resource/action constants in shared IAM or contract package and replace stringly-typed duplicates where practical.
+- [x] 1.2 Move remaining apiserver platform-domain handlers behind application services and platform-api client interfaces.
+- [x] 1.3 Add production-mode guard that rejects SQL fallback for platform-api-owned resources when `PLATFORM_API_URL` is configured or required.
+- [x] 1.4 Standardize `X-Trace-Id` handling across apiserver and platform-api; mirror `X-Correlation-ID` for compatibility.
+- [x] 1.5 Add common error response fields `code`, `message`, `traceId/requestId`, and compatibility wrappers for existing clients.
+- [x] 1.6 Add contract tests proving browser paths go through apiserver, platform-api re-authorizes resource instances, and platform-api does not call apiserver synchronously.
+- [x] 1.7 Update deploy compose/Helm values, OpenAPI contracts, and API client docs for the boundary.
+- [x] 1.8 Run Go tests/build/vet for apiserver/platform-api and Web API client contract tests.

@@ -1,0 +1,9 @@
+- [x] 1.1 Define Provider lifecycle command/event schemas with IDs, digests, operation IDs, capability IDs and SecretReferences only.
+- [x] 1.2 Add extension-controller skeleton with reconciliation loop, idempotency keys and bounded retry/backoff.
+- [x] 1.3 Implement install/enable flow: verify manifest, signature/digest, compatibility, permissions and create/correlate Operation.
+- [x] 1.4 Implement capability registry and raw navigation metadata snapshot updates after successful lifecycle transitions.
+- [x] 1.5 Implement upgrade candidate, health/conformance gate, promote and rollback behavior.
+- [x] 1.6 Implement uninstall refusal with dependency checks for Operations, RuntimeTargets, capabilities, release plans and navigation metadata.
+- [x] 1.7 Keep platform-api Provider endpoints catalog-only and add regression tests proving request paths do not deploy Bundles.
+- [x] 1.8 Add observability for lifecycle phase, duration, rollback, conformance expiry and health transitions without secret leakage.
+- [x] 1.9 Run controller unit tests, provider conformance tests, platform-api catalog tests and an install-upgrade-rollback E2E smoke test.

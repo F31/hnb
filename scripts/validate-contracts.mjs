@@ -13,13 +13,13 @@ import {
   jsonSchemaBreakingChanges,
   scanForbiddenFields,
   scanForbiddenProtoFields,
+  scanRuntimeIntentExecutionFields,
   validateWriteHeaders,
 } from "./contract-rules.mjs";
 
 const repositoryRoot = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const toolsRoot = path.join(repositoryRoot, ".tools/contracts");
 const binDirectory = path.join(toolsRoot, "bin");
-const openapiFile = path.join(repositoryRoot, "contracts/openapi/foundation/v1/openapi.yaml");
 const startedAt = performance.now();
 const stageTimings = new Map();
 
@@ -57,12 +57,14 @@ function run(command, args, options = {}) {
   return result;
 }
 
-async function jsonSchemaFiles() {
-  const directory = path.join(repositoryRoot, "contracts/schema/common/v1");
-  return (await readdir(directory))
-    .filter((name) => name.endsWith(".schema.json"))
-    .sort()
-    .map((name) => path.join(directory, name));
+async function filesNamed(directory, nameOrSuffix) {
+  const files = [];
+  for (const entry of await readdir(directory, { withFileTypes: true })) {
+    const target = path.join(directory, entry.name);
+    if (entry.isDirectory()) files.push(...await filesNamed(target, nameOrSuffix));
+    else if (entry.isFile() && (entry.name === nameOrSuffix || entry.name.endsWith(nameOrSuffix))) files.push(target);
+  }
+  return files.sort();
 }
 
 let temporaryDirectory;
@@ -83,17 +85,20 @@ try {
   });
 
   let schemas;
-  let specification;
+  let specifications;
   let proto;
   await stage("schema", "schema", async () => {
-    run(path.join(repositoryRoot, "node_modules/.bin/redocly"), ["lint", openapiFile]);
     run(path.join(binDirectory, "buf"), ["lint", path.join(repositoryRoot, "contracts/proto")]);
 
-    schemas = await jsonSchemaFiles();
+    schemas = await filesNamed(path.join(repositoryRoot, "contracts/schema"), ".schema.json");
+    const openapiFiles = await filesNamed(path.join(repositoryRoot, "contracts/openapi"), "openapi.yaml");
     const ajv = new Ajv2020({ allErrors: true, strict: true, strictRequired: false });
     addFormats(ajv);
     const parsedSchemas = await Promise.all(schemas.map(async (schema) => JSON.parse(await readFile(schema, "utf8"))));
     for (const schema of parsedSchemas) ajv.addSchema(schema);
+    for (const schema of parsedSchemas) {
+      if (!ajv.getSchema(schema.$id)) throw new Error(`JSON Schema did not compile: ${schema.$id}`);
+    }
     const envelopeSchema = parsedSchemas.find((schema) => schema.$id.endsWith("/event-envelope.schema.json"));
     const envelopeExample = JSON.parse(await readFile(
       path.join(repositoryRoot, "contracts/schema/examples/event-envelope.valid.json"),
@@ -103,34 +108,62 @@ try {
       throw new Error(`invalid event envelope example: ${ajv.errorsText(ajv.errors)}`);
     }
 
-    const bundledOpenapi = path.join(temporaryDirectory, "openapi.json");
-    run(path.join(repositoryRoot, "node_modules/.bin/redocly"), [
-      "bundle", openapiFile, "--output", bundledOpenapi, "--ext", "json",
-    ]);
-    specification = JSON.parse(await readFile(bundledOpenapi, "utf8"));
-    validateWriteHeaders(specification);
+    specifications = [];
+    for (const [index, openapiFile] of openapiFiles.entries()) {
+      run(path.join(repositoryRoot, "node_modules/.bin/redocly"), ["lint", openapiFile]);
+      const bundledOpenapi = path.join(temporaryDirectory, `openapi-${index}.json`);
+      run(path.join(repositoryRoot, "node_modules/.bin/redocly"), [
+        "bundle", openapiFile, "--output", bundledOpenapi, "--ext", "json",
+      ]);
+      const specification = JSON.parse(await readFile(bundledOpenapi, "utf8"));
+      validateWriteHeaders(specification);
+      specifications.push({ file: openapiFile, specification });
+    }
 
-    const forbidden = scanForbiddenFields(specification, "openapi");
-    for (const schema of schemas) {
-      forbidden.push(...scanForbiddenFields(JSON.parse(await readFile(schema, "utf8")), path.relative(repositoryRoot, schema)));
+    const forbidden = [];
+    const forbiddenRuntimeIntent = [];
+    for (const { file, specification } of specifications) {
+      const relative = path.relative(repositoryRoot, file);
+      forbidden.push(...scanForbiddenFields(specification, relative));
+      forbiddenRuntimeIntent.push(...scanRuntimeIntentExecutionFields(specification, relative));
+    }
+    for (const [index, schema] of schemas.entries()) {
+      const relative = path.relative(repositoryRoot, schema);
+      forbidden.push(...scanForbiddenFields(parsedSchemas[index], relative));
+      forbiddenRuntimeIntent.push(...scanRuntimeIntentExecutionFields(parsedSchemas[index], relative));
     }
     proto = await readFile(path.join(repositoryRoot, "contracts/proto/hnb/contracts/v1/contracts.proto"), "utf8");
     forbidden.push(...scanForbiddenProtoFields(proto));
     if (forbidden.length > 0) throw new Error(`forbidden contract fields: ${forbidden.join(", ")}`);
+    if (forbiddenRuntimeIntent.length > 0) {
+      throw new Error(`RuntimeIntent execution fields: ${forbiddenRuntimeIntent.join(", ")}`);
+    }
   });
 
   let compatibility = "no-baseline";
   await stage("compatibility", "compatibility", async () => {
-    const baseline = run("git", ["cat-file", "-e", "origin/main:contracts/openapi/foundation/v1/openapi.yaml"], {
+    const baseline = run("git", ["cat-file", "-e", "origin/main^{commit}"], {
       capture: true,
       allowFailure: true,
     });
     if (baseline.status === 0) {
       compatibility = "checked";
-      const baselineOpenapi = path.join(temporaryDirectory, "baseline-openapi.yaml");
-      const previous = run("git", ["show", "origin/main:contracts/openapi/foundation/v1/openapi.yaml"], { capture: true });
-      await writeFile(baselineOpenapi, previous.stdout);
-      run(path.join(binDirectory, "oasdiff"), ["breaking", "--fail-on", "ERR", baselineOpenapi, openapiFile]);
+      const baselineFiles = run("git", [
+        "ls-tree", "-r", "--name-only", "origin/main", "--", "contracts/schema", "contracts/openapi",
+      ], { capture: true }).stdout.trim().split("\n").filter(Boolean);
+      const baselineSchemas = baselineFiles.filter((name) => name.endsWith(".schema.json"));
+      const currentSchemaNames = new Set(schemas.map((schema) => path.relative(repositoryRoot, schema).split(path.sep).join("/")));
+      const deletedSchemas = baselineSchemas.filter((schema) => !currentSchemaNames.has(schema));
+      if (deletedSchemas.length > 0) throw new Error(`baseline JSON schemas deleted: ${deletedSchemas.join(", ")}`);
+
+      for (const { file: openapiFile } of specifications) {
+        const relative = path.relative(repositoryRoot, openapiFile).split(path.sep).join("/");
+        if (!baselineFiles.includes(relative)) continue;
+        const baselineOpenapi = path.join(temporaryDirectory, `baseline-${relative.replaceAll("/", "-")}`);
+        const previous = run("git", ["show", `origin/main:${relative}`], { capture: true });
+        await writeFile(baselineOpenapi, previous.stdout);
+        run(path.join(binDirectory, "oasdiff"), ["breaking", "--fail-on", "ERR", baselineOpenapi, openapiFile]);
+      }
       run(path.join(binDirectory, "buf"), [
         "breaking", path.join(repositoryRoot, "contracts/proto"),
         "--against", ".git#ref=origin/main,subdir=contracts/proto",
@@ -150,12 +183,13 @@ try {
     run(process.execPath, [path.join(repositoryRoot, "scripts/generate-contracts.mjs"), "--check"]);
   });
 
-  const operationCount = Object.values(specification.paths ?? {})
-    .reduce((count, item) => count + ["get", "post", "put", "patch", "delete"].filter((method) => item[method]).length, 0);
+  const operationCount = specifications.reduce((total, { specification }) => total
+    + Object.values(specification.paths ?? {})
+      .reduce((count, item) => count + ["get", "post", "put", "patch", "delete"].filter((method) => item[method]).length, 0), 0);
   const messageCount = [...proto.matchAll(/^message\s+\w+/gm)].length;
   const lock = JSON.parse(await readFile(path.join(repositoryRoot, "contracts/toolchain.lock.json"), "utf8"));
   console.log(
-    `Contract gate passed: ${operationCount} operations, ${messageCount} messages, `
+    `Contract gate passed: ${operationCount} operations across ${specifications.length} APIs, ${messageCount} messages, `
     + `${schemas.length} JSON schemas, compatibility=${compatibility}, `
     + `${Math.round(performance.now() - startedAt)} ms`,
   );

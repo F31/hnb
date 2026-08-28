@@ -14,6 +14,39 @@ const binDirectory = path.join(toolsRoot, "bin");
 const downloadsDirectory = path.join(toolsRoot, "downloads");
 const offline = process.argv.includes("--offline") || process.env.HNB_CONTRACT_TOOLS_OFFLINE === "1";
 
+/**
+ * 最小 semver 范围匹配：仅支持本项目使用的语法
+ *  - 精确版本："1.2.3"
+ *  - 脱字符范围："^1.2.3"（允许同主版本，且 0.x 锁到主+次、>=1.0.0 锁主版本）
+ *  - 或分隔的多个范围："^1.2.3 || ^2.0.0"
+ * 不支持通配符、预发布标识、-range 号等更复杂语法（本仓库锁文件不使用）。
+ */
+function satisfiesRange(version, range) {
+  const parts = String(version).split(".");
+  const groups = String(range).split("||").map((g) => g.trim()).filter(Boolean);
+  for (const group of groups) {
+    const caret = group.startsWith("^");
+    const target = caret ? group.slice(1) : group;
+    const targetParts = target.split(".");
+    let mismatch = false;
+    for (let i = 0; i < 3; i += 1) {
+      const v = Number(parts[i] ?? 0);
+      const t = Number(targetParts[i] ?? 0);
+      if (caret) {
+        // ^X.Y.Z：X 不同则不满足；X==0 时 Y 必须相同；X==0 && Y==0 时 Z 必须相同
+        if (i === 0 && v !== t) { mismatch = true; break; }
+        if (i === 1 && Number(targetParts[0]) === 0 && v !== t) { mismatch = true; break; }
+        if (i === 2 && Number(targetParts[0]) === 0 && Number(targetParts[1]) === 0 && v !== t) { mismatch = true; break; }
+        if (v < t) { mismatch = true; break; }
+      } else {
+        if (v !== t) { mismatch = true; break; }
+      }
+    }
+    if (!mismatch) return true;
+  }
+  return false;
+}
+
 function run(command, args, options = {}) {
   const result = spawnSync(command, args, {
     cwd: repositoryRoot,
@@ -72,8 +105,8 @@ async function download(url, destination, expectedSha256) {
 if (process.platform !== "linux" || process.arch !== "x64") {
   throw new Error(`unsupported contract tool platform: ${process.platform}/${process.arch}`);
 }
-if (process.versions.node !== lock.node) {
-  throw new Error(`Node.js ${lock.node} is required, current version is ${process.versions.node}`);
+if (!satisfiesRange(process.versions.node, lock.node)) {
+  throw new Error(`Node.js in range "${lock.node}" is required, current version is ${process.versions.node}`);
 }
 
 await mkdir(binDirectory, { recursive: true });
@@ -114,8 +147,8 @@ for (const [module, tool] of Object.entries(lock.goTools)) {
 }
 
 const npmVersion = run("npm", ["--version"], { capture: true });
-if (npmVersion !== lock.npm) {
-  throw new Error(`npm ${lock.npm} is required, current version is ${npmVersion}`);
+if (!satisfiesRange(npmVersion, lock.npm)) {
+  throw new Error(`npm in range "${lock.npm}" is required, current version is ${npmVersion}`);
 }
 const packageLock = path.join(repositoryRoot, "package-lock.json");
 const npmMarker = path.join(toolsRoot, "npm-lock.sha256");

@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>HNB Cloud Native Platform Console V4.1</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#0b0e13;color:#eef2f8;font-family:"Microsoft YaHei",Arial}
+.top{height:64px;background:#11151b;border-bottom:1px solid #28303a;display:flex;align-items:center}
+.logo{width:240px;padding-left:24px;font-size:20px;font-weight:700}
+.logo b{color:#6d86ff}
+.nav{display:flex;height:100%}
+.nav div{padding:22px 22px;color:#aeb7c5;cursor:pointer}
+.nav div:hover,.nav .active{background:#202a48;color:white;border-bottom:3px solid #7188ff}
+.user{margin-left:auto;padding-right:25px;color:#b9c2d0}
+.layout{display:flex;height:calc(100vh - 64px)}
+.side{width:240px;background:#11151a;border-right:1px solid #29303a;padding:15px}
+.side h4{font-size:12px;color:#788292;margin:18px 10px 8px}
+.menu{padding:11px 12px;color:#b7c0cc;border-radius:8px;margin:3px 0;cursor:pointer}
+.menu:hover,.menu.active{background:#26345d;color:#fff}
+.content{flex:1;padding:20px;overflow:auto}
+.title{display:flex;justify-content:space-between}
+button{background:#637bff;border:0;color:#fff;padding:10px 18px;border-radius:8px}
+.cards{display:grid;grid-template-columns:repeat(5,1fr);gap:15px;margin:20px 0}
+.card{background:#171c23;border:1px solid #29313c;border-radius:12px;padding:18px}
+.num{font-size:30px;font-weight:bold;margin-top:10px}
+.grid{display:grid;grid-template-columns:2fr 1fr;gap:15px;margin-bottom:15px}
+table{width:100%;border-collapse:collapse}
+th,td{padding:12px;border-bottom:1px solid #303640;text-align:left}
+.tag{padding:4px 10px;border-radius:20px;background:#123c34;color:#55ddb1}
+.bar{height:8px;background:#303743;border-radius:8px;margin:8px 0}
+.bar i{display:block;height:100%;background:#6b83ff;border-radius:8px}
+.hidden{display:none}
+.tree{line-height:2;color:#cbd4e1}
+</style>
+</head>
+
+<body>
+<div class="top">
+<div class="logo"><b>HNB</b> 云原生平台</div>
+<div class="nav">
+<div class="active" data-module="home">首页</div>
+<div data-module="factory">应用工厂</div>
+<div data-module="container">容器</div>
+<div data-module="resource">资源</div>
+<div data-module="service">云原生服务</div>
+<div data-module="ai">AI</div>
+<div data-module="system">系统</div>
+</div>
+<div class="user">admin ▼</div>
+</div>
+
+<div class="layout">
+<div class="side" id="side"></div>
+
+<div class="content">
+
+<div id="dashboard">
+<div class="title"><div><h1>平台运行总览</h1><p>HNB Cloud Native Application Platform</p></div><button>创建应用</button></div>
+
+<div class="cards">
+<div class="card">集群数量<div class="num">12</div></div>
+<div class="card">节点数量<div class="num">186</div></div>
+<div class="card">运行应用<div class="num">328</div></div>
+<div class="card">GPU资源<div class="num">64</div></div>
+<div class="card">告警<div class="num">5</div></div>
+</div>
+
+<div class="grid">
+<div class="card">
+<h3>应用运行状态</h3>
+<table>
+<tr><th>应用</th><th>类型</th><th>状态</th></tr>
+<tr><td>订单系统</td><td>微服务</td><td><span class="tag">Running</span></td></tr>
+<tr><td>AI推理服务</td><td>GPU应用</td><td><span class="tag">Running</span></td></tr>
+</table>
+</div>
+
+<div class="card">
+<h3>资源使用</h3>
+CPU 68%<div class="bar"><i style="width:68%"></i></div>
+Memory 74%<div class="bar"><i style="width:74%"></i></div>
+GPU 52%<div class="bar"><i style="width:52%"></i></div>
+</div>
+</div>
+
+<div class="grid">
+<div class="card">
+<h3>应用拓扑</h3>
+<div class="tree">
+Gateway<br>
+&nbsp;↓<br>
+order-web<br>
+&nbsp;↓<br>
+order-api<br>
+&nbsp;↓<br>
+MySQL / Redis
+</div>
+</div>
+
+<div class="card">
+<h3>应用生命周期</h3>
+<button>升级</button>
+<button>灰度</button>
+<button>扩容</button>
+<button>回滚</button>
+</div>
+</div>
+</div>
+
+</div>
+</div>
+
+<script>
+const menus={
+home:[
+"平台总览","集群状态","应用运行","资源监控","告警中心"
+],
+factory:[
+"应用管理","  ├ 单体应用","  └ 微服务应用","微服务引擎","应用商店"
+],
+container:[
+"集群实例","工作负载","Pod管理","命名空间","服务访问","配置管理","日志查询","事件查询","容器安全"
+],
+resource:[
+"容器集群","  ├ 集群管理","  ├ 节点管理","  │  ├ CPU/Memory","  │  ├ GPU资源","  │  └ HAMi配置","网络","存储","运维中心"
+],
+service:[
+"数据库服务","MySQL","PostgreSQL","Redis","消息服务","Kafka","RabbitMQ","网关服务","API Gateway","微服务引擎实例"
+],
+ai:[
+"模型服务","模型仓库","推理服务","Agent平台","AI网关","AI应用"
+],
+system:[
+"系统设置","基础设置","显示设置","消息服务","权限管理","用户管理","角色管理","租户管理","操作审计"
+]
+};
+
+function loadSide(module){
+let side=document.getElementById("side");
+side.innerHTML="<h4>"+module.toUpperCase()+"</h4>";
+menus[module].forEach((x,i)=>{
+let d=document.createElement("div");
+d.className="menu "+(i==0?"active":"");
+d.innerHTML=x;
+d.onclick=()=>{
+document.querySelectorAll(".menu").forEach(e=>e.classList.remove("active"));
+d.classList.add("active");
+};
+side.appendChild(d);
+});
+}
+
+document.querySelectorAll(".nav div").forEach(n=>{
+n.onclick=()=>{
+document.querySelectorAll(".nav div").forEach(e=>e.classList.remove("active"));
+n.classList.add("active");
+loadSide(n.dataset.module);
+}
+});
+
+loadSide("home");
+</script>
+
+</body>
+</html>
