@@ -1,0 +1,31 @@
+{
+  "name": "@hnb/shell",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "vue-tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@hnb/api-client": "workspace:*",
+    "@hnb/types": "workspace:*",
+    "@hnb/ui-kit": "workspace:*",
+    "naive-ui": "^2.42.0",
+    "pinia": "^4.0.2",
+    "vue": "^3.5.40",
+    "vue-i18n": "^10",
+    "vue-router": "^4.6.4"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.2.4",
+    "typescript": "^5.9.3",
+    "unplugin-auto-import": "^19.1.2",
+    "unplugin-vue-components": "^28.4.1",
+    "vite": "^6.4.3",
+    "vue-tsc": "^3.3.8"
+  }
+}

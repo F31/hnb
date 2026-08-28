@@ -1,0 +1,24 @@
+{
+  "name": "@hnb/schema-engine",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "typecheck": "vue-tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@hnb/types": "workspace:*",
+    "@hnb/ui-kit": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vue": "^3.5.40",
+    "vue-tsc": "^3.3.8"
+  },
+  "peerDependencies": {
+    "vue": "^3.5.40"
+  }
+}

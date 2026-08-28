@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "paths": {
+      "@hnb/types": ["../../packages/types/src"],
+      "@hnb/types/*": ["../../packages/types/src/*"],
+      "@hnb/ui-kit": ["../../packages/ui-kit/src"],
+      "@hnb/ui-kit/*": ["../../packages/ui-kit/src/*"],
+      "@hnb/contracts/console": ["../../../contracts/generated/typescript/console-openapi/index.ts"],
+      "@hnb/contracts/storage": ["../../../contracts/generated/typescript/storage-openapi/index.ts"]
+    },
+    "types": ["vite/client", "vue-i18n"]
+  },
+  "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.vue"],
+}

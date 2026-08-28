@@ -1,0 +1,1 @@
+export { createCapabilityManager } from './CapabilityManager'

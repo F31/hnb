@@ -1,0 +1,37 @@
+# MySQL Extension 示例
+# backend + frontend 统一清单
+name: mysql-extension
+version: 1.0.0
+tier: T1
+
+backend:
+  services:
+    - name: mysql-provider
+      image: hnb/mysql-provider:1.0.0
+      replicaCount: 1
+      dependencies:
+        - kubernetes
+    - name: mysql-controller
+      image: hnb/mysql-controller:1.0.0
+      replicaCount: 1
+
+frontend:
+  plugin:
+    name: mysql-service
+    parent: service
+    displayName: MySQL
+    bundle: hnb/plugin-mysql-service:1.0.0
+    manifest: /config/plugin-mysql-service.json
+
+capabilities:
+  provides:
+    - database-service
+  requires:
+    - kubernetes
+
+enabledByDefault: false
+
+menu:
+  parent: service/data
+  title: MySQL
+  path: /service/data/mysql

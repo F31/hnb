@@ -1,0 +1,28 @@
+{
+  "name": "@hnb/plugin-resource",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "scripts": {
+    "build": "vite build",
+    "clean": "rm -rf dist",
+    "typecheck": "vue-tsc --noEmit"
+  },
+  "dependencies": {
+    "@hnb/plugin-sdk": "workspace:*",
+    "@hnb/types": "workspace:*",
+    "@hnb/ui-kit": "workspace:*",
+    "echarts": "^5.5.1",
+    "vue": "^3.5.40",
+    "yaml": "^2.7.0"
+  },
+  "devDependencies": {
+    "@hnb/schema-engine": "workspace:*",
+    "@vitejs/plugin-vue": "^5.2.4",
+    "vite": "^6.4.3",
+    "typescript": "^5.9.3",
+    "vue-tsc": "^3.3.8",
+    "vue-i18n": "^10.0.7"
+  }
+}

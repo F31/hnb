@@ -1,0 +1,56 @@
+# HNB Web Console Frontend
+frontend:
+  enabled: true
+
+  shell:
+    replicaCount: 2
+    image:
+      repository: hnb/frontend-shell
+      tag: latest
+    service:
+      port: 80
+    resources:
+      requests:
+        cpu: 200m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 256Mi
+
+  # 插件注册表，控制哪些模块启用
+  modules:
+    dashboard:
+      enabled: true
+      mode: local
+    application:
+      enabled: true
+      mode: local
+    container:
+      enabled: true
+      mode: local
+    resource:
+      enabled: true
+      mode: local
+    service:
+      enabled: true
+      mode: local
+    ai:
+      enabled: false
+      mode: local
+    system:
+      enabled: true
+      mode: local
+
+  # 远程插件（高级场景）
+  remoteModules:
+    # ai:
+    #   enabled: false
+    #   mode: remote
+    #   entry: https://ai.plugin.hnb.cloud/remoteEntry.js
+
+  # 扩展自动注册的前端插件
+  extensions:
+    mysql-extension:
+      enabled: false
+    kafka-extension:
+      enabled: false

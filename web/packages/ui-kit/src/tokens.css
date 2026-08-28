@@ -1,0 +1,102 @@
+/**
+ * HNB Design Tokens（UI 规范 V2.5 §17）
+ *
+ * 所有视觉值必须语义化；组件与插件引用 --hnb-* 变量，
+ * 不得直接写死色值。暗色主题经 [data-hnb-theme='dark'] 切换。
+ */
+
+:root {
+  /* Color — Light（V2.5 §17.2） */
+  --hnb-color-primary: #2f6fed;
+  --hnb-color-primary-hover: #4f85f0;
+  --hnb-color-primary-pressed: #2458c7;
+  --hnb-color-status-success: #12b76a;
+  --hnb-color-status-warning: #f79009;
+  --hnb-color-status-danger: #f04438;
+  --hnb-color-status-info: #2f6fed;
+  --hnb-color-bg-surface: #ffffff;
+  --hnb-color-bg-elevated: #f6f8fb;
+  --hnb-color-bg-page: #f0f3f8;
+  --hnb-color-text-primary: #12172a;
+  --hnb-color-text-secondary: #5b6675;
+  --hnb-color-text-tertiary: #8a94a3;
+  --hnb-color-text-on-accent: #ffffff;
+  --hnb-color-border: #e2e7ef;
+  --hnb-color-divider: #edf0f5;
+  --hnb-color-focus: #175cd3;
+  --hnb-color-overlay: rgba(18, 23, 42, 0.56);
+  --hnb-color-status-success-surface: #ecfdf3;
+  --hnb-color-status-warning-surface: #fffaeb;
+  --hnb-color-status-danger-surface: #fef3f2;
+  --hnb-color-status-info-surface: #eff4ff;
+
+  /* Typography */
+  --hnb-font-size-body: 14px;
+  --hnb-font-size-caption: 12px;
+  --hnb-font-size-title: 20px;
+  --hnb-font-weight-regular: 400;
+  --hnb-font-weight-semibold: 600;
+
+  /* Spacing */
+  --hnb-space-xs: 4px;
+  --hnb-space-sm: 8px;
+  --hnb-space-md: 16px;
+  --hnb-space-lg: 24px;
+  --hnb-space-xl: 32px;
+
+  /* Radius */
+  --hnb-radius-sm: 4px;
+  --hnb-radius-md: 6px;
+  --hnb-radius-lg: 10px;
+
+  /* Elevation */
+  --hnb-shadow-1: 0 1px 2px rgba(18, 23, 42, 0.06);
+  --hnb-shadow-2: 0 2px 8px rgba(18, 23, 42, 0.08);
+  --hnb-shadow-3: 0 6px 16px rgba(18, 23, 42, 0.12);
+  --hnb-shadow-4: 0 12px 32px rgba(18, 23, 42, 0.16);
+
+  /* Motion（尊重 prefers-reduced-motion，见文末） */
+  --hnb-duration-fast: 120ms;
+  --hnb-duration-normal: 220ms;
+
+  /* Breakpoint（供 JS 读取，与 V2.5 §5.2 对齐） */
+  --hnb-breakpoint-md: 768px;
+  --hnb-breakpoint-xl: 1440px;
+}
+
+[data-hnb-theme='dark'] {
+  --hnb-color-primary: #5b8dff;
+  --hnb-color-primary-hover: #7aa2ff;
+  --hnb-color-primary-pressed: #4374e0;
+  --hnb-color-status-success: #12b76a;
+  --hnb-color-status-warning: #f79009;
+  --hnb-color-status-danger: #f04438;
+  --hnb-color-status-info: #5b8dff;
+  --hnb-color-bg-surface: #101425;
+  --hnb-color-bg-elevated: #171d31;
+  --hnb-color-bg-page: #0b0f1c;
+  --hnb-color-text-primary: #edeff5;
+  --hnb-color-text-secondary: #a9b2c2;
+  --hnb-color-text-tertiary: #6b7a8a;
+  --hnb-color-text-on-accent: #ffffff;
+  --hnb-color-border: #29344a;
+  --hnb-color-divider: #222b3d;
+  --hnb-color-focus: #84adff;
+  --hnb-color-overlay: rgba(0, 0, 0, 0.72);
+  --hnb-color-status-success-surface: #102a21;
+  --hnb-color-status-warning-surface: #30240d;
+  --hnb-color-status-danger-surface: #321817;
+  --hnb-color-status-info-surface: #152544;
+
+  --hnb-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --hnb-shadow-2: 0 2px 8px rgba(0, 0, 0, 0.45);
+  --hnb-shadow-3: 0 6px 16px rgba(0, 0, 0, 0.5);
+  --hnb-shadow-4: 0 12px 32px rgba(0, 0, 0, 0.55);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --hnb-duration-fast: 0ms;
+    --hnb-duration-normal: 0ms;
+  }
+}

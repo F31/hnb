@@ -3,13 +3,16 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": "20.20.2",
-    "npm": "10.8.2"
+    "node": "^20.20.2 || ^22.0.0",
+    "npm": "^10.8.2 || ^11.0.0"
   },
   "scripts": {
     "contracts:bootstrap": "node scripts/bootstrap-contract-tools.mjs",
     "contracts:generate": "node scripts/generate-contracts.mjs",
-    "contracts:validate": "node scripts/validate-contracts.mjs"
+    "contracts:check:cluster-management": "node scripts/generate-contracts.mjs --check --cluster-management",
+    "contracts:validate": "node scripts/validate-contracts.mjs",
+    "contracts:test": "node --test scripts/contracts.test.mjs",
+    "contracts:check": "npm run contracts:test && npm run contracts:validate"
   },
   "devDependencies": {
     "@bufbuild/protobuf": "2.12.1",
