@@ -1,0 +1,72 @@
+{
+  "approvedParameters": {},
+  "artifactDigests": [
+    "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  ],
+  "capabilitySnapshotDigest": "sha256:b332bb07b2b4b49c6c491a4b9b773900b5b2fa12c3ef71fe1a56466397e983d6",
+  "compatibilityDecision": {
+    "matrixVersion": "1.0.0",
+    "providerProtocolVersion": "2.0.0",
+    "targetKind": "KubernetesTarget",
+    "action": "upgrade",
+    "status": "REQUIRED",
+    "providerId": "runtime-target.lifecycle.kubernetes",
+    "observationSource": "Agent",
+    "effectiveAt": "2026-08-01T00:00:00Z",
+    "expiresAt": "2027-08-01T00:00:00Z"
+  },
+  "intentId": "actor-1",
+  "planId": "plan-k8s-upgrade-1",
+  "policyDecisionRefs": [
+    "matrix:1.0.0",
+    "evidence://kubernetes/upgrade"
+  ],
+  "providerVersions": {
+    "runtime-target.lifecycle.kubernetes": "1.0.0"
+  },
+  "releaseRef": "target:018f6c2a-4a64-7b58-9cc3-9f70462f36c2",
+  "secretReferences": [],
+  "semanticDigest": "sha256:ecb2f19a85be752632f688395514e8914928a3a0729e85723b2d59ed401fd416",
+  "steps": [
+    {
+      "stepId": "runtime_target.kubernetes.upgrade",
+      "stepType": "runtime_target.kubernetes.upgrade",
+      "providerId": "runtime-target.lifecycle.kubernetes",
+      "providerVersion": "1.0.0",
+      "providerDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "providerProtocolVersion": "2.0.0",
+      "dependsOn": [],
+      "targetRef": "018f6c2a-4a64-7b58-9cc3-9f70462f36c2",
+      "targetKind": "KubernetesTarget",
+      "inputSchema": "https://schemas.hnb.cloud/runtime-target/v1/kubernetes-lifecycle-step-input.schema.json",
+      "inputs": {
+        "action": "upgrade",
+        "desiredVersion": "v1.32.0",
+        "fencingGeneration": 1,
+        "idempotencyKey": "step:62d015c044a3f78c10071f407e0633424fd6ea5f8831a9b2211c544e8566844d",
+        "observationVersion": 7,
+        "schemaVersion": "1.0.0",
+        "targetId": "018f6c2a-4a64-7b58-9cc3-9f70462f36c2",
+        "targetKind": "KubernetesTarget"
+      },
+      "idempotencyKey": "step:62d015c044a3f78c10071f407e0633424fd6ea5f8831a9b2211c544e8566844d",
+      "fencingPolicy": "monotonic-worker-lease-v2",
+      "retryPolicy": {
+        "maxAttempts": 3,
+        "backoff": "exponential"
+      },
+      "timeoutSeconds": 900,
+      "compensation": {
+        "type": "none",
+        "ownershipScope": "none"
+      }
+    }
+  ],
+  "targetRef": "018f6c2a-4a64-7b58-9cc3-9f70462f36c2",
+  "targetSnapshot": {
+    "targetId": "018f6c2a-4a64-7b58-9cc3-9f70462f36c2",
+    "targetKind": "KubernetesTarget",
+    "projectionVersion": 7,
+    "observationSource": "Agent"
+  }
+}

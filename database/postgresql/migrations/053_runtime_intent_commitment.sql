@@ -1,0 +1,6 @@
+BEGIN;
+ALTER TABLE runtime_intents
+    ADD COLUMN IF NOT EXISTS commitment_action TEXT NOT NULL DEFAULT 'create',
+    ADD COLUMN IF NOT EXISTS accepted_status TEXT NOT NULL DEFAULT 'accepted',
+    ADD COLUMN IF NOT EXISTS response_http_status INTEGER NOT NULL DEFAULT 202;
+COMMIT;

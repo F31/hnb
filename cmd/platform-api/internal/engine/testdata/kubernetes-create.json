@@ -1,0 +1,94 @@
+{
+  "approvedParameters": {},
+  "artifactDigests": [
+    "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  ],
+  "capabilitySnapshotDigest": "sha256:840e1d3c7c03c002579f906568b0ef85a8556ea2a50a129ff0d43752193c1edd",
+  "compatibilityDecision": {
+    "matrixVersion": "1.0.0",
+    "providerProtocolVersion": "2.0.0",
+    "targetKind": "KubernetesTarget",
+    "action": "create",
+    "status": "REQUIRED",
+    "providerId": "runtime-target.lifecycle.kubernetes",
+    "observationSource": "Agent",
+    "effectiveAt": "2026-08-01T00:00:00Z",
+    "expiresAt": "2027-08-01T00:00:00Z"
+  },
+  "intentId": "actor-1",
+  "planId": "plan-k8s-create-1",
+  "policyDecisionRefs": [
+    "matrix:1.0.0",
+    "evidence://kubernetes/create"
+  ],
+  "providerVersions": {
+    "runtime-target.lifecycle.kubernetes": "1.0.0"
+  },
+  "releaseRef": "target:eb39a65f-3171-51a5-9198-139f8a54d059",
+  "secretReferences": [
+    {
+      "provider": "vault",
+      "scope": "tenant",
+      "name": "cluster-credential",
+      "version": "1"
+    }
+  ],
+  "semanticDigest": "sha256:9f403d7df7407ef9540c65c8fdab72e3fcb95685d1616a3385d260fcaea0c2de",
+  "steps": [
+    {
+      "stepId": "runtime_target.kubernetes.provision-and-register",
+      "stepType": "runtime_target.kubernetes.provision-and-register",
+      "providerId": "runtime-target.lifecycle.kubernetes",
+      "providerVersion": "1.0.0",
+      "providerDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "providerProtocolVersion": "2.0.0",
+      "dependsOn": [],
+      "targetRef": "eb39a65f-3171-51a5-9198-139f8a54d059",
+      "targetKind": "KubernetesTarget",
+      "inputSchema": "https://schemas.hnb.cloud/runtime-target/v1/kubernetes-lifecycle-step-input.schema.json",
+      "inputs": {
+        "action": "create",
+        "credentialSecretRef": {
+          "provider": "vault",
+          "scope": "tenant",
+          "name": "cluster-credential",
+          "version": "1"
+        },
+        "desiredVersion": "v1.31.0",
+        "displayName": "prod-cluster",
+        "fencingGeneration": 1,
+        "idempotencyKey": "step:6d0533806a6c99b2609df93f74e8123a125f658de286f944f30cc642277f9e01",
+        "observationVersion": 0,
+        "schemaVersion": "1.0.0",
+        "targetId": "eb39a65f-3171-51a5-9198-139f8a54d059",
+        "targetKind": "KubernetesTarget"
+      },
+      "secretReferences": [
+        {
+          "provider": "vault",
+          "scope": "tenant",
+          "name": "cluster-credential",
+          "version": "1"
+        }
+      ],
+      "idempotencyKey": "step:6d0533806a6c99b2609df93f74e8123a125f658de286f944f30cc642277f9e01",
+      "fencingPolicy": "monotonic-worker-lease-v2",
+      "retryPolicy": {
+        "maxAttempts": 3,
+        "backoff": "exponential"
+      },
+      "timeoutSeconds": 1800,
+      "compensation": {
+        "type": "unregister",
+        "ownershipScope": "operation-owned-only"
+      }
+    }
+  ],
+  "targetRef": "eb39a65f-3171-51a5-9198-139f8a54d059",
+  "targetSnapshot": {
+    "targetId": "eb39a65f-3171-51a5-9198-139f8a54d059",
+    "targetKind": "KubernetesTarget",
+    "projectionVersion": 0,
+    "observationSource": "Agent"
+  }
+}

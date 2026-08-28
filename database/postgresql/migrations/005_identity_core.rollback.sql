@@ -1,0 +1,5 @@
+-- Rollback: 005_identity_core
+
+DROP TABLE IF EXISTS environments CASCADE;
+DROP TABLE IF EXISTS projects CASCADE;
+DROP TABLE IF EXISTS tenants CASCADE;

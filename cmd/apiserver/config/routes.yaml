@@ -1,0 +1,22 @@
+routes:
+  # Extension and proxy routes only (core routes are code-registered)
+  - path: /extensions/{name}/**
+    methods: [GET, POST, PUT, DELETE]
+    handler: extension.proxy
+    auth: true
+    upstream:
+      type: nats
+      subject: hnb.gateway.extension.{name}
+    desc: "Extension proxy routes"
+
+middleware:
+  global:
+    - recovery
+    - request_id
+    - cors
+    - auth
+    - tenant_context
+    - authorization
+    - rate_limit
+    - audit
+    - tracing

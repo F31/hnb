@@ -1,0 +1,3 @@
+-- Rollback: 049_console_routes_clear_permissions
+-- No automated rollback; original permission values are unknown.
+-- To restore, re-INSERT the desired permission values manually.

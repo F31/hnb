@@ -1,0 +1,31 @@
+{
+  "schemaVersion": "1.0.0",
+  "matrixVersion": "1.0.0",
+  "providerProtocolVersion": "2.0.0",
+  "effectiveAt": "2026-08-01T00:00:00Z",
+  "expiresAt": "2027-08-01T00:00:00Z",
+  "rows": [
+    {
+      "targetKind": "KubernetesTarget",
+      "providerId": "runtime-target.lifecycle.kubernetes",
+      "observationSource": "Agent",
+      "actions": {
+        "create": "REQUIRED",
+        "import": "REQUIRED",
+        "upgrade": "REQUIRED",
+        "unmanage": "REQUIRED"
+      }
+    },
+    {
+      "targetKind": "EdgeRuntimeTarget",
+      "providerId": "runtime-target.lifecycle.edge",
+      "observationSource": "CloudCore",
+      "actions": {
+        "create": "UNSUPPORTED",
+        "import": "REQUIRED",
+        "upgrade": "REQUIRED",
+        "unmanage": "REQUIRED"
+      }
+    }
+  ]
+}

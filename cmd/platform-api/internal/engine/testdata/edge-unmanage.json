@@ -1,0 +1,71 @@
+{
+  "approvedParameters": {},
+  "artifactDigests": [
+    "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  ],
+  "capabilitySnapshotDigest": "sha256:11c03e381e628a53dd70f606f6d8ebd090af5ea7d7bcf00fae2875d887b0e602",
+  "compatibilityDecision": {
+    "matrixVersion": "1.0.0",
+    "providerProtocolVersion": "2.0.0",
+    "targetKind": "EdgeRuntimeTarget",
+    "action": "unmanage",
+    "status": "REQUIRED",
+    "providerId": "runtime-target.lifecycle.edge",
+    "observationSource": "CloudCore",
+    "effectiveAt": "2026-08-01T00:00:00Z",
+    "expiresAt": "2027-08-01T00:00:00Z"
+  },
+  "intentId": "actor-1",
+  "planId": "plan-edge-unmanage-1",
+  "policyDecisionRefs": [
+    "matrix:1.0.0",
+    "evidence://edge/unmanage"
+  ],
+  "providerVersions": {
+    "runtime-target.lifecycle.edge": "1.0.0"
+  },
+  "releaseRef": "target:018f6c2a-4a64-7b58-9cc3-9f70462f36c3",
+  "secretReferences": [],
+  "semanticDigest": "sha256:d16083c0ad20a0ec42eab1a697eb553eecca10ac6805c7f11b944d61aac7e639",
+  "steps": [
+    {
+      "stepId": "runtime_target.edge.unregister",
+      "stepType": "runtime_target.edge.unregister",
+      "providerId": "runtime-target.lifecycle.edge",
+      "providerVersion": "1.0.0",
+      "providerDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "providerProtocolVersion": "2.0.0",
+      "dependsOn": [],
+      "targetRef": "018f6c2a-4a64-7b58-9cc3-9f70462f36c3",
+      "targetKind": "EdgeRuntimeTarget",
+      "inputSchema": "https://schemas.hnb.cloud/runtime-target/v1/edge-lifecycle-step-input.schema.json",
+      "inputs": {
+        "action": "unmanage",
+        "fencingGeneration": 1,
+        "idempotencyKey": "step:d56ab173e8a9e042ccffd73f2975f1a02aabfd50c295e3380b38dcd38a803584",
+        "observationVersion": 3,
+        "schemaVersion": "1.0.0",
+        "targetId": "018f6c2a-4a64-7b58-9cc3-9f70462f36c3",
+        "targetKind": "EdgeRuntimeTarget"
+      },
+      "idempotencyKey": "step:d56ab173e8a9e042ccffd73f2975f1a02aabfd50c295e3380b38dcd38a803584",
+      "fencingPolicy": "monotonic-worker-lease-v2",
+      "retryPolicy": {
+        "maxAttempts": 3,
+        "backoff": "exponential"
+      },
+      "timeoutSeconds": 900,
+      "compensation": {
+        "type": "none",
+        "ownershipScope": "none"
+      }
+    }
+  ],
+  "targetRef": "018f6c2a-4a64-7b58-9cc3-9f70462f36c3",
+  "targetSnapshot": {
+    "targetId": "018f6c2a-4a64-7b58-9cc3-9f70462f36c3",
+    "targetKind": "EdgeRuntimeTarget",
+    "projectionVersion": 3,
+    "observationSource": "CloudCore"
+  }
+}

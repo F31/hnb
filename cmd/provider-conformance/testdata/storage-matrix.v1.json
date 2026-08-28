@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "1.0.0",
+  "matrixVersion": "1.0.0",
+  "suiteVersion": "1.0.0",
+  "hnbCoreVersion": "1.0.0",
+  "providerProtocolVersion": "2.0.0",
+  "tiers": [
+    {"id":"generic-csi","initialTier":"T1","capabilities":{"block":"Supported","file":"Supported","expansion":"Supported","snapshot":"Supported","capacity":"Supported","topology":"Supported"},"lifecycle":{"install":"Supported","upgrade":"Supported","uninstall":"Supported"}},
+    {"id":"nfs-static-pv","initialTier":"T1","capabilities":{"block":"Unsupported","file":"Supported","expansion":"Unsupported","snapshot":"Unsupported","capacity":"Supported","topology":"Unsupported"},"lifecycle":{"install":"Supported","upgrade":"Unsupported","uninstall":"Supported"}},
+    {"id":"ceph","initialTier":"T2","capabilities":{"block":"Supported","file":"Supported","expansion":"Supported","snapshot":"Supported","capacity":"Supported","topology":"Supported"},"lifecycle":{"install":"Supported","upgrade":"Supported","uninstall":"Supported"}},
+    {"id":"cloud-disk","initialTier":"T2","capabilities":{"block":"Supported","file":"Unsupported","expansion":"Supported","snapshot":"Supported","capacity":"Supported","topology":"Supported"},"lifecycle":{"install":"Supported","upgrade":"Supported","uninstall":"Supported"}},
+    {"id":"local-pv","initialTier":"T2","capabilities":{"block":"Supported","file":"Supported","expansion":"Unsupported","snapshot":"Unsupported","capacity":"Supported","topology":"Supported"},"lifecycle":{"install":"Supported","upgrade":"Unsupported","uninstall":"Supported"}}
+  ]
+}

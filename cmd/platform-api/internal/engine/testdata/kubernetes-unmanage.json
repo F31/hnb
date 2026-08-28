@@ -1,0 +1,71 @@
+{
+  "approvedParameters": {},
+  "artifactDigests": [
+    "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  ],
+  "capabilitySnapshotDigest": "sha256:1977e1a72264fb1b4bd3fec3a2e30a151e8dbada0c86abc6e6b77bdaa2ed5a22",
+  "compatibilityDecision": {
+    "matrixVersion": "1.0.0",
+    "providerProtocolVersion": "2.0.0",
+    "targetKind": "KubernetesTarget",
+    "action": "unmanage",
+    "status": "REQUIRED",
+    "providerId": "runtime-target.lifecycle.kubernetes",
+    "observationSource": "Agent",
+    "effectiveAt": "2026-08-01T00:00:00Z",
+    "expiresAt": "2027-08-01T00:00:00Z"
+  },
+  "intentId": "actor-1",
+  "planId": "plan-k8s-unmanage-1",
+  "policyDecisionRefs": [
+    "matrix:1.0.0",
+    "evidence://kubernetes/unmanage"
+  ],
+  "providerVersions": {
+    "runtime-target.lifecycle.kubernetes": "1.0.0"
+  },
+  "releaseRef": "target:018f6c2a-4a64-7b58-9cc3-9f70462f36c2",
+  "secretReferences": [],
+  "semanticDigest": "sha256:dea266904b4b6f3371cc503155f657704ad33389c7842212c70722e1d6f4f1e4",
+  "steps": [
+    {
+      "stepId": "runtime_target.kubernetes.unregister",
+      "stepType": "runtime_target.kubernetes.unregister",
+      "providerId": "runtime-target.lifecycle.kubernetes",
+      "providerVersion": "1.0.0",
+      "providerDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "providerProtocolVersion": "2.0.0",
+      "dependsOn": [],
+      "targetRef": "018f6c2a-4a64-7b58-9cc3-9f70462f36c2",
+      "targetKind": "KubernetesTarget",
+      "inputSchema": "https://schemas.hnb.cloud/runtime-target/v1/kubernetes-lifecycle-step-input.schema.json",
+      "inputs": {
+        "action": "unmanage",
+        "fencingGeneration": 1,
+        "idempotencyKey": "step:920961f734e0720de586b36fa87435a0a54d165778435cc0bbf2ab4be3a30c3b",
+        "observationVersion": 7,
+        "schemaVersion": "1.0.0",
+        "targetId": "018f6c2a-4a64-7b58-9cc3-9f70462f36c2",
+        "targetKind": "KubernetesTarget"
+      },
+      "idempotencyKey": "step:920961f734e0720de586b36fa87435a0a54d165778435cc0bbf2ab4be3a30c3b",
+      "fencingPolicy": "monotonic-worker-lease-v2",
+      "retryPolicy": {
+        "maxAttempts": 3,
+        "backoff": "exponential"
+      },
+      "timeoutSeconds": 900,
+      "compensation": {
+        "type": "none",
+        "ownershipScope": "none"
+      }
+    }
+  ],
+  "targetRef": "018f6c2a-4a64-7b58-9cc3-9f70462f36c2",
+  "targetSnapshot": {
+    "targetId": "018f6c2a-4a64-7b58-9cc3-9f70462f36c2",
+    "targetKind": "KubernetesTarget",
+    "projectionVersion": 7,
+    "observationSource": "Agent"
+  }
+}

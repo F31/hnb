@@ -1,0 +1,72 @@
+{
+  "approvedParameters": {},
+  "artifactDigests": [
+    "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  ],
+  "capabilitySnapshotDigest": "sha256:bfc22940bcdc313acafea88021e44f04213848bf18e5c8212ddabd059b19b014",
+  "compatibilityDecision": {
+    "matrixVersion": "1.0.0",
+    "providerProtocolVersion": "2.0.0",
+    "targetKind": "EdgeRuntimeTarget",
+    "action": "upgrade",
+    "status": "REQUIRED",
+    "providerId": "runtime-target.lifecycle.edge",
+    "observationSource": "CloudCore",
+    "effectiveAt": "2026-08-01T00:00:00Z",
+    "expiresAt": "2027-08-01T00:00:00Z"
+  },
+  "intentId": "actor-1",
+  "planId": "plan-edge-upgrade-1",
+  "policyDecisionRefs": [
+    "matrix:1.0.0",
+    "evidence://edge/upgrade"
+  ],
+  "providerVersions": {
+    "runtime-target.lifecycle.edge": "1.0.0"
+  },
+  "releaseRef": "target:018f6c2a-4a64-7b58-9cc3-9f70462f36c3",
+  "secretReferences": [],
+  "semanticDigest": "sha256:93b326d0d4931c0592cb4ad4f2100acceb51175b7f51438a43acfebd822b73c8",
+  "steps": [
+    {
+      "stepId": "runtime_target.edge.upgrade",
+      "stepType": "runtime_target.edge.upgrade",
+      "providerId": "runtime-target.lifecycle.edge",
+      "providerVersion": "1.0.0",
+      "providerDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "providerProtocolVersion": "2.0.0",
+      "dependsOn": [],
+      "targetRef": "018f6c2a-4a64-7b58-9cc3-9f70462f36c3",
+      "targetKind": "EdgeRuntimeTarget",
+      "inputSchema": "https://schemas.hnb.cloud/runtime-target/v1/edge-lifecycle-step-input.schema.json",
+      "inputs": {
+        "action": "upgrade",
+        "desiredVersion": "v1.20.0",
+        "fencingGeneration": 1,
+        "idempotencyKey": "step:3d43f2aba59aee76b3391cfdafab4a0ea7c2cb6dbf864f3b4f762072b148dc5f",
+        "observationVersion": 3,
+        "schemaVersion": "1.0.0",
+        "targetId": "018f6c2a-4a64-7b58-9cc3-9f70462f36c3",
+        "targetKind": "EdgeRuntimeTarget"
+      },
+      "idempotencyKey": "step:3d43f2aba59aee76b3391cfdafab4a0ea7c2cb6dbf864f3b4f762072b148dc5f",
+      "fencingPolicy": "monotonic-worker-lease-v2",
+      "retryPolicy": {
+        "maxAttempts": 3,
+        "backoff": "exponential"
+      },
+      "timeoutSeconds": 900,
+      "compensation": {
+        "type": "none",
+        "ownershipScope": "none"
+      }
+    }
+  ],
+  "targetRef": "018f6c2a-4a64-7b58-9cc3-9f70462f36c3",
+  "targetSnapshot": {
+    "targetId": "018f6c2a-4a64-7b58-9cc3-9f70462f36c3",
+    "targetKind": "EdgeRuntimeTarget",
+    "projectionVersion": 3,
+    "observationSource": "CloudCore"
+  }
+}
