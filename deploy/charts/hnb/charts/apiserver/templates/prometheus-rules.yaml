@@ -1,0 +1,31 @@
+{{- if .Values.clusterReadProjection.alerts.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ .Chart.Name }}-cluster-projection
+  labels:
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  groups:
+    - name: cluster-projection
+      rules:
+        - alert: HNBClusterProjectionCutoverBlocked
+          expr: increase(hnb_cluster_read_cutover_blocked_total[5m]) > 0
+          for: 1m
+          labels:
+            severity: critical
+            team: platform
+          annotations:
+            summary: Cluster read projection cutover is blocked
+            description: The fail-closed cluster projection gate detected a comparison error or count, status, or tenant mismatch.
+        - alert: HNBClusterProjectionShadowMismatch
+          expr: increase(hnb_cluster_read_shadow_comparisons_total{result="mismatch"}[15m]) > 0
+          for: 5m
+          labels:
+            severity: warning
+            team: platform
+          annotations:
+            summary: Cluster read shadow projection differs from the legacy projection
+            description: Investigate count, status, and tenant mismatch metrics before enabling cutover mode.
+{{- end }}

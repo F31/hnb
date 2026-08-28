@@ -1,0 +1,333 @@
+global:
+  imageRegistry: ""
+  imageTag: "latest"
+  imagePullPolicy: IfNotPresent
+  nats:
+    url: tls://nats:4222
+  postgresql:
+    dsn: postgres://postgres:postgres@postgres:5432/hnb?sslmode=disable
+
+apiserver:
+  enabled: true
+  replicaCount: 2
+  image:
+    repository: hnb/apiserver
+  nats:
+    existingClientTLSSecret: nats-apiserver-client-tls
+  service:
+    port: 8080
+  identity:
+    issuer: ""
+    audiences: "hnb-apiserver,hnb-platform-api,hnb-app-market"
+    reloadInterval: 5s
+    existingManifestSecret: ""
+    manifestKey: manifest.json
+    existingPrivateKeySecret: ""
+    privateKeyKey: "tls.key"
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+operation-worker:
+  enabled: true
+  replicaCount: 2
+  image:
+    repository: hnb/operation-worker
+  nats:
+    existingClientTLSSecret: nats-operation-worker-client-tls
+  runtimeProviders: ""
+  serviceTokenSecret: ""
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+extension-controller:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: hnb/extension-controller
+  nats:
+    existingClientTLSSecret: nats-extension-controller-client-tls
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+tunnel-server:
+  enabled: true
+  replicaCount: 2
+  image:
+    repository: hnb/tunnel-server
+  service:
+    port: 9443
+  identity:
+    issuer: ""
+    reloadInterval: 5s
+    existingManifestSecret: ""
+    manifestKey: manifest.json
+  resources:
+    requests:
+      cpu: 300m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+cluster-router:
+  enabled: true
+  replicaCount: 2
+  image:
+    repository: hnb/cluster-router
+  service:
+    port: 8080
+  resources:
+    requests:
+      cpu: 300m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+cluster-agent:
+  enabled: false
+  replicaCount: 1
+  image:
+    repository: hnb/cluster-agent
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+gateway-provider:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: hnb/gateway-provider
+  nats:
+    existingClientTLSSecret: nats-gateway-provider-client-tls
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+cilium-provider:
+  enabled: false
+  replicaCount: 1
+  image:
+    repository: hnb/cilium-provider
+  nats:
+    existingClientTLSSecret: nats-cilium-provider-client-tls
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+calico-provider:
+  enabled: false
+  replicaCount: 1
+  image:
+    repository: hnb/calico-provider
+  nats:
+    existingClientTLSSecret: nats-calico-provider-client-tls
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+kube-ovn-provider:
+  enabled: false
+  replicaCount: 1
+  image:
+    repository: hnb/kube-ovn-provider
+  nats:
+    existingClientTLSSecret: nats-kube-ovn-provider-client-tls
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+network-provider:
+  enabled: false
+  replicaCount: 1
+  image:
+    repository: hnb/network-provider
+  nats:
+    existingClientTLSSecret: nats-network-provider-client-tls
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+network-registry:
+  enabled: false
+  replicaCount: 1
+  image:
+    repository: hnb/network-registry
+  nats:
+    existingClientTLSSecret: nats-network-registry-client-tls
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+kubernetes-provider:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: hnb/kubernetes-provider
+  identity:
+    issuer: ""
+    reloadInterval: 5s
+    existingManifestSecret: ""
+    manifestKey: manifest.json
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+karmada-provider:
+  enabled: false
+  replicaCount: 1
+  image:
+    repository: hnb/karmada-provider
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+edge-provider:
+  enabled: false
+  replicaCount: 1
+  image:
+    repository: hnb/edge-provider
+  identity:
+    issuer: ""
+    reloadInterval: 5s
+    existingManifestSecret: ""
+    manifestKey: manifest.json
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+app-market:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: hnb/app-market
+  nats:
+    existingClientTLSSecret: nats-app-market-client-tls
+  identity:
+    issuer: ""
+    reloadInterval: 5s
+    existingManifestSecret: ""
+    manifestKey: manifest.json
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+gslb-controller:
+  enabled: false
+  replicaCount: 1
+  image:
+    repository: hnb/gslb-controller
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+rbac-syncer:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: hnb/rbac-syncer
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+platform-api:
+  enabled: true
+  replicaCount: 2
+  image:
+    repository: hnb/platform-api
+  service:
+    port: 8080
+  identity:
+    issuer: ""
+    reloadInterval: 5s
+    existingManifestSecret: ""
+    manifestKey: manifest.json
+  resources:
+    requests:
+      cpu: 300m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+alert-manager:
+  enabled: false
+  replicaCount: 1
+  image:
+    repository: hnb/alert-manager
+  nats:
+    existingClientTLSSecret: nats-alert-manager-client-tls
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi

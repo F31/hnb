@@ -1,0 +1,23 @@
+replicaCount: 1
+serviceAccount:
+  create: true
+  name: ""
+  observerName: ""
+  executorName: ""
+rbac:
+  create: true
+image:
+  repository: hnb/{{ .Chart.Name }}
+  tag: ""
+  pullPolicy: ""
+nats:
+  url: ""
+db:
+  dsn: ""
+resources:
+  requests:
+    cpu: 200m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi

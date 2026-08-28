@@ -1,0 +1,11 @@
+services:
+  frontend:
+    build:
+      context: ./web
+      dockerfile: shell/Dockerfile
+    ports:
+      - "8080:80"
+    depends_on:
+      - apiserver
+    environment:
+      - API_BASE_URL=http://apiserver:8080

@@ -1,0 +1,225 @@
+# NATS JetStream - Lite HA Deployment
+# 3-node cluster, anti-affinity, PodDisruptionBudget, persistent volumes, majority quorum
+# Requires at least 3 Kubernetes worker nodes for anti-affinity
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: hnb-messaging
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nats-config
+  namespace: hnb-messaging
+data:
+  nats.conf: |
+    port: 4222
+    http_port: 8222
+    cluster {
+      port: 7422
+      name: "hnb-jetstream"
+    }
+    tls {
+      cert_file: "/etc/nats/tls/tls.crt"
+      key_file: "/etc/nats/tls/tls.key"
+      ca_file: "/etc/nats/tls/ca.crt"
+      verify: true
+      verify_and_map: true
+      timeout: 5
+    }
+    authorization {
+      timeout: 5
+      users = [
+        { user: "outbox-relay", permissions: { publish: "hnb.>", subscribe: "" } }
+        { user: "operation-worker", permissions: { publish: ["hnb.>", "$JS.API.>"], subscribe: ["hnb.command.>", "hnb.failed.>", "_INBOX.>"] } }
+        { user: "app-market", permissions: { publish: ["hnb.market.>", "$JS.API.>"], subscribe: ["hnb.market.>", "_INBOX.>"] } }
+        { user: "gateway-provider", permissions: { publish: ["hnb.gateway.>", "$JS.API.>"], subscribe: ["hnb.gateway.>", "_INBOX.>"] } }
+        { user: "apiserver", permissions: { publish: ["$JS.API.>", "$KV.HNB_LEADER.>"], subscribe: ["_INBOX.>", "$KV.HNB_LEADER.>"] } }
+        { user: "alert-manager", permissions: { publish: "", subscribe: ["hnb.alert.fire", "hnb.alert.resolve"] } }
+        { user: "extension-controller", permissions: { publish: ["hnb.extension.provider.>", "_INBOX.>"], subscribe: ["hnb.extension.install", "hnb.extension.upgrade", "hnb.extension.uninstall", "hnb.extension.health", "_INBOX.>"] } }
+        { user: "calico-provider", permissions: { publish: ["hnb.network.calico.*.result", "$JS.API.>", "$JS.ACK.>"], subscribe: ["hnb.network.calico.>", "_INBOX.>"] } }
+        { user: "cilium-provider", permissions: { publish: ["hnb.network.cilium.*.result", "$JS.API.>", "$JS.ACK.>"], subscribe: ["hnb.network.cilium.>", "_INBOX.>"] } }
+        { user: "kube-ovn-provider", permissions: { publish: ["hnb.network.kube-ovn.*.result", "$JS.API.>", "$JS.ACK.>"], subscribe: ["hnb.network.kube-ovn.>", "_INBOX.>"] } }
+        { user: "network-provider", permissions: { publish: ["hnb.network.*.*.result", "$JS.API.>", "$JS.ACK.>"], subscribe: ["hnb.network.>", "_INBOX.>"] } }
+        { user: "network-registry", permissions: { publish: ["hnb.network.*.*", "$JS.API.>", "$JS.ACK.>"], subscribe: ["hnb.network.>", "_INBOX.>"] } }
+        { user: "projector", permissions: { publish: "", subscribe: "hnb.event.>" } }
+        { user: "audit", permissions: { publish: "", subscribe: "hnb.event.>" } }
+        { user: "notification-dispatcher", permissions: { publish: "", subscribe: "hnb.notification.>" } }
+        { user: "admin", permissions: { publish: ">", subscribe: ">" } }
+      ]
+    }
+    jetstream {
+      max_memory_store: 536870912
+      max_file_store: 53687091200
+      store_dir: "/data/jetstream"
+    }
+    websocket {
+      port: -1
+    }
+    health_check {
+      listen: "0.0.0.0:8222"
+    }
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: nats-tls
+  namespace: hnb-messaging
+type: kubernetes.io/tls
+data:
+  ca.crt: <base64-ca-cert>
+  tls.crt: <base64-server-cert>
+  tls.key: <base64-server-key>
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: nats-route-tls
+  namespace: hnb-messaging
+type: kubernetes.io/tls
+data:
+  ca.crt: <base64-ca-cert>
+  tls.crt: <base64-route-cert>
+  tls.key: <base64-route-key>
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: nats-jetstream
+  namespace: hnb-messaging
+spec:
+  serviceName: nats
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nats-jetstream
+  template:
+    metadata:
+      labels:
+        app: nats-jetstream
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - nats-jetstream
+                topologyKey: kubernetes.io/hostname
+      terminationGracePeriodSeconds: 60
+      containers:
+        - name: nats
+          image: nats:2.11.1-scratch
+          imagePullPolicy: IfNotPresent
+          args:
+            - "-c"
+            - "/etc/nats/nats.conf"
+            - "--routes=nats-route://nats-jetstream-0.nats.hnb-messaging:7422,nats-route://nats-jetstream-1.nats.hnb-messaging:7422,nats-route://nats-jetstream-2.nats.hnb-messaging:7422"
+          ports:
+            - containerPort: 4222
+              name: client
+            - containerPort: 7422
+              name: cluster
+            - containerPort: 8222
+              name: http
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          resources:
+            requests:
+              cpu: "2"
+              memory: "1Gi"
+            limits:
+              cpu: "4"
+              memory: "2Gi"
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: config
+              mountPath: /etc/nats
+            - name: tls
+              mountPath: /etc/nats/tls
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8222
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8222
+            initialDelaySeconds: 10
+            periodSeconds: 5
+      volumes:
+        - name: config
+          configMap:
+            name: nats-config
+        - name: tls
+          secret:
+            secretName: nats-tls
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 50Gi
+        storageClassName: standard
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nats
+  namespace: hnb-messaging
+spec:
+  ports:
+    - name: client
+      port: 4222
+      targetPort: 4222
+    - name: cluster
+      port: 7422
+      targetPort: 7422
+    - name: http
+      port: 8222
+      targetPort: 8222
+  selector:
+    app: nats-jetstream
+  clusterIP: None
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nats-mgmt
+  namespace: hnb-messaging
+spec:
+  ports:
+    - name: client
+      port: 4222
+      targetPort: 4222
+    - name: http
+      port: 8222
+      targetPort: 8222
+  selector:
+    app: nats-jetstream
+  type: ClusterIP
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: nats-jetstream-pdb
+  namespace: hnb-messaging
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: nats-jetstream

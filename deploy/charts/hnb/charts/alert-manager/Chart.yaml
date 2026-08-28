@@ -1,0 +1,6 @@
+apiVersion: v2
+name: alert-manager
+description: HNB alert manager
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

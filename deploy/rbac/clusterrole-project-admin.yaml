@@ -1,0 +1,21 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: hnb:project-admin
+  labels:
+    app.kubernetes.io/name: hnb-cloud
+    app.kubernetes.io/component: rbac
+    hnb.cloud/role: project-admin
+  annotations:
+    hnb.cloud/role-description: "Platform role mapping for project_admin. Edit access + secrets management + workload lifecycle."
+    hnb.cloud/inherits-from: "operator"
+rules:
+  - apiGroups: ["*"]
+    resources: ["*"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["apps", "extensions"]
+    resources: ["deployments", "statefulsets", "daemonsets"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]

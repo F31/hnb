@@ -1,0 +1,24 @@
+apiVersion: hnb.io/v1alpha1
+kind: ProviderManifest
+metadata:
+  name: kubernetes-deployment
+spec:
+  version: 0.2.0
+  protocolVersion: 2.0.0
+  tier: T1
+  runtimeTargets: [kubernetes]
+  capabilities: [deployment]
+  actions: [deploy, delete]
+  actionDescriptions:
+    deploy: Create or generation-CAS-adopt a Deployment.
+    delete: Logically delete by scaling to zero and retaining the Deployment tombstone.
+  compatibility:
+    kubernetes: ">=1.34 <1.37"
+  permissions:
+    - apiGroups: [apps]
+      resources: [deployments]
+      verbs: [get, list, watch, create, update]
+  healthPath: /healthz
+  resources:
+    requests: {cpu: 25m, memory: 48Mi}
+    limits: {cpu: 250m, memory: 128Mi}

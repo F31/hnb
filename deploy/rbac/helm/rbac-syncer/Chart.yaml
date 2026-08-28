@@ -1,0 +1,10 @@
+apiVersion: v2
+name: rbac-syncer
+description: HNB Cloud RBAC Syncer - synchronizes platform roles to K8s RoleBindings
+type: application
+version: 0.1.0
+appVersion: 0.1.0
+keywords:
+  - hnb-cloud
+  - rbac
+  - authorization

@@ -1,0 +1,38 @@
+replicaCount: 1
+
+image:
+  repository: hnb.cloud/kubernetes-provider
+  tag: latest
+  pullPolicy: Always
+
+config:
+  listenAddress: ":18080"
+  allowedNamespaces: "hnb-workloads"
+  maxReplicas: 10
+
+k8s:
+  qps: 50
+  burst: 100
+
+resources:
+  limits:
+    cpu: 250m
+    memory: 128Mi
+  requests:
+    cpu: 25m
+    memory: 48Mi
+
+serviceAccount:
+  create: true
+  name: kubernetes-provider
+
+service:
+  port: 18080
+
+podAnnotations: {}
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

@@ -1,0 +1,18 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: hnb:operator
+  labels:
+    app.kubernetes.io/name: hnb-cloud
+    app.kubernetes.io/component: rbac
+    hnb.cloud/role: operator
+  annotations:
+    hnb.cloud/role-description: "Platform role mapping for operator. Edit access to all resources, excluding secrets."
+    hnb.cloud/inherits-from: "publisher"
+rules:
+  - apiGroups: ["*"]
+    resources: ["*"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: []

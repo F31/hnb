@@ -1,0 +1,49 @@
+replicaCount: 1
+
+image:
+  repository: hnb.cloud/rbac-syncer
+  tag: latest
+  pullPolicy: Always
+
+config:
+  shadowMode: true
+  pollInterval: 30s
+  syncTimeout: 10s
+  maxRetries: 3
+  metricsAddr: ":8080"
+  healthAddr: ":8081"
+
+database:
+  host: localhost
+  port: 5432
+  name: hnb
+  user: hnb
+  password: ""
+
+k8s:
+  qps: 50
+  burst: 100
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 64Mi
+
+serviceAccount:
+  create: true
+  name: hnb-rbac-syncer
+
+service:
+  metricsPort: 8080
+  healthPort: 8081
+
+podAnnotations: {}
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

@@ -1,0 +1,95 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: hnb-system
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: hnb-workloads
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kubernetes-provider
+  namespace: hnb-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: hnb-deployment-provider
+  namespace: hnb-workloads
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "watch", "create", "update"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: hnb-deployment-provider
+  namespace: hnb-workloads
+subjects:
+  - kind: ServiceAccount
+    name: kubernetes-provider
+    namespace: hnb-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: hnb-deployment-provider
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kubernetes-provider
+  namespace: hnb-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: kubernetes-provider
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: kubernetes-provider
+    spec:
+      serviceAccountName: kubernetes-provider
+      containers:
+        - name: provider
+          image: ghcr.io/f31/hnb-kubernetes-provider:0.2.0
+          env:
+            - name: ALLOWED_NAMESPACES
+              value: hnb-workloads
+          ports:
+            - name: http
+              containerPort: 18080
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+          resources:
+            requests:
+              cpu: 25m
+              memory: 48Mi
+            limits:
+              cpu: 250m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities:
+              drop: ["ALL"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kubernetes-provider
+  namespace: hnb-system
+spec:
+  selector:
+    app.kubernetes.io/name: kubernetes-provider
+  ports:
+    - name: http
+      port: 18080
+      targetPort: http

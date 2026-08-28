@@ -1,0 +1,399 @@
+name: hnb
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: hnb
+      POSTGRES_PASSWORD: hnb123
+      POSTGRES_DB: hnb
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hnb"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  nats:
+    image: nats:2.11.1-scratch
+    command: ["-js", "-DV"]
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+
+  platform-api:
+    build:
+      context: ../..
+      dockerfile: cmd/platform-api/Dockerfile
+      args:
+        GOLANG_IMAGE: ${GOLANG_IMAGE:-golang:1.24}
+        HTTP_PROXY: ""
+        HTTPS_PROXY: ""
+        ALL_PROXY: ""
+        http_proxy: ""
+        https_proxy: ""
+        all_proxy: ""
+    image: hnb/platform-api:latest
+    pull_policy: build
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_USER: hnb
+      DB_PASSWORD: hnb123
+      DB_NAME: hnb
+      DB_SSLMODE: disable
+      LISTEN_ADDR: ":8080"
+      LOG_LEVEL: debug
+      # Dev-only placeholder master key (must match the runtime-target-lifecycle-provider).
+      HNB_MASTER_KEY: ${HNB_MASTER_KEY:-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef}
+      API_TOKEN_ISSUER: ${API_TOKEN_ISSUER:?set API_TOKEN_ISSUER}
+      API_TOKEN_AUDIENCE: hnb-platform-api
+      API_TOKEN_KEY_MANIFEST_FILE: /var/run/hnb-identity/manifest.json
+      API_TOKEN_KEY_RELOAD_INTERVAL: ${HNB_IDENTITY_KEY_RELOAD_INTERVAL:-5s}
+      STALE_CHALLENGE_KEY_FILE: /var/run/hnb-stale/challenge.key
+      STALE_CHALLENGE_TTL: 5m
+      STALE_UPGRADE_POLICY: ${STALE_UPGRADE_POLICY:-require_approval}
+      STALE_UNMANAGE_POLICY: ${STALE_UNMANAGE_POLICY:-require_approval}
+    expose:
+      - "8080"
+    volumes:
+      - ${HNB_IDENTITY_KEYSET_DIR:?set HNB_IDENTITY_KEYSET_DIR containing manifest.json and public keys}:/var/run/hnb-identity:ro
+      - ${HNB_STALE_CHALLENGE_KEY_FILE:?set HNB_STALE_CHALLENGE_KEY_FILE}:/var/run/hnb-stale/challenge.key:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  apiserver:
+    build:
+      context: ../..
+      dockerfile: cmd/apiserver/Dockerfile
+      args:
+        GOLANG_IMAGE: ${GOLANG_IMAGE:-golang:1.24}
+        HTTP_PROXY: ""
+        HTTPS_PROXY: ""
+        ALL_PROXY: ""
+        http_proxy: ""
+        https_proxy: ""
+        all_proxy: ""
+    image: hnb/apiserver:latest
+    pull_policy: build
+    environment:
+      DB_DSN: postgres://hnb:hnb123@postgres:5432/hnb?sslmode=disable
+      NATS_URL: nats://nats:4222
+      NATS_INSECURE: "true"
+      PLATFORM_API_URL: http://platform-api:8080
+      APP_MARKET_URL: http://app-market:8080
+      REQUIRE_PLATFORM_API: "true"
+      LISTEN_ADDR: ":8080"
+      API_TOKEN_ISSUER: ${API_TOKEN_ISSUER:?set API_TOKEN_ISSUER}
+      API_TOKEN_AUDIENCES: ${API_TOKEN_AUDIENCES:-hnb-apiserver,hnb-platform-api,hnb-app-market}
+      API_TOKEN_PRIVATE_KEY_FILE: /var/run/hnb-identity/private.pem
+      API_TOKEN_KEY_MANIFEST_FILE: /var/run/hnb-identity/manifest.json
+      API_TOKEN_KEY_RELOAD_INTERVAL: ${HNB_IDENTITY_KEY_RELOAD_INTERVAL:-5s}
+      HNB_BOOTSTRAP_ADMIN_PASSWORD: ${HNB_BOOTSTRAP_ADMIN_PASSWORD:-hnb123}
+      AGENT_IMAGE: ${AGENT_IMAGE:-hnb/cluster-agent:latest}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-}
+    ports:
+      - "8080:8080"
+    volumes:
+      - ${HNB_IDENTITY_KEYSET_DIR:?set HNB_IDENTITY_KEYSET_DIR containing manifest.json and private.pem}:/var/run/hnb-identity:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      nats:
+        condition: service_started
+      platform-api:
+        condition: service_started
+
+  shell:
+    image: nginx:latest
+    ports:
+      - "3000:80"
+    volumes:
+      - ../../web/shell/dist:/usr/share/nginx/html/shell:ro
+      - ../../web/plugins/dashboard/dist:/usr/share/nginx/html/modules/dashboard:ro
+      - ../../web/plugins/application/dist:/usr/share/nginx/html/modules/application:ro
+      - ../../web/plugins/container/dist:/usr/share/nginx/html/modules/container:ro
+      - ../../web/plugins/resource/dist:/usr/share/nginx/html/modules/resource:ro
+      - ../../web/plugins/service/dist:/usr/share/nginx/html/modules/service:ro
+      - ../../web/plugins/ai/dist:/usr/share/nginx/html/modules/ai:ro
+      - ../../web/plugins/system/dist:/usr/share/nginx/html/modules/system:ro
+      - ../../web/shell/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      apiserver:
+        condition: service_started
+
+  operation-worker:
+    build:
+      context: ../cmd/operation-worker
+    image: hnb/operation-worker:latest
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_USER: hnb
+      DB_PASSWORD: hnb123
+      DB_NAME: hnb
+      DB_SSLMODE: disable
+      NATS_URL: nats://nats:4222
+      # Local development only. Production manifests mount per-service credentials.
+      NATS_INSECURE: "true"
+      LEASE_DURATION_SECONDS: "60"
+      WORKER_POOL_SIZE: "5"
+      RUNTIME_PROVIDERS: '{"k8s":{"endpoint":"http://kubernetes-provider:18080/v2/steps:execute","audience":"hnb-kubernetes-provider","tokenFile":"/var/run/hnb-service-tokens/kubernetes-provider.jwt"},"edge":{"endpoint":"http://edge-provider:18081/v2/steps:execute","audience":"hnb-edge-provider","tokenFile":"/var/run/hnb-service-tokens/edge-provider.jwt"},"runtime-target.lifecycle.kubernetes":{"endpoint":"http://runtime-target-lifecycle-provider:18082/v2/steps:execute","audience":"hnb-runtime-target-lifecycle-provider","tokenFile":"/var/run/hnb-service-tokens/runtime-target-lifecycle-provider.jwt","requiredProvider":"runtime-target.lifecycle.kubernetes","providerVersion":"1.0.0","providerDigest":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},"runtime-target.lifecycle.edge":{"endpoint":"http://runtime-target-lifecycle-provider:18082/v2/steps:execute","audience":"hnb-runtime-target-lifecycle-provider","tokenFile":"/var/run/hnb-service-tokens/runtime-target-lifecycle-provider.jwt","requiredProvider":"runtime-target.lifecycle.edge","providerVersion":"1.0.0","providerDigest":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}}'
+      LOG_LEVEL: debug
+    volumes:
+      - ${HNB_KUBERNETES_PROVIDER_TOKEN_FILE:?set a mode-0600 workload token file}:/var/run/hnb-service-tokens/kubernetes-provider.jwt:ro
+      - ${HNB_EDGE_PROVIDER_TOKEN_FILE:?set a mode-0600 workload token file}:/var/run/hnb-service-tokens/edge-provider.jwt:ro
+      - ${HNB_RUNTIME_TARGET_LIFECYCLE_PROVIDER_TOKEN_FILE:?set a mode-0600 workload token file}:/var/run/hnb-service-tokens/runtime-target-lifecycle-provider.jwt:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      nats:
+        condition: service_started
+    profiles:
+      - runtime
+
+  kubernetes-provider:
+    build:
+      context: ../cmd/kubernetes-provider
+    image: hnb/kubernetes-provider:latest
+    environment:
+      LISTEN_ADDRESS: ":18080"
+      KUBECONFIG: /etc/kubernetes/admin.conf
+      ALLOWED_NAMESPACES: default,hnb-workloads
+      MAX_REPLICAS: "10"
+      API_TOKEN_ISSUER: ${API_TOKEN_ISSUER:?set API_TOKEN_ISSUER}
+      API_TOKEN_AUDIENCE: hnb-kubernetes-provider
+      API_TOKEN_KEY_MANIFEST_FILE: /var/run/hnb-identity/manifest.json
+      API_TOKEN_KEY_RELOAD_INTERVAL: ${HNB_IDENTITY_KEY_RELOAD_INTERVAL:-5s}
+    ports:
+      - "18080:18080"
+    volumes:
+      - ~/.kube/config:/etc/kubernetes/admin.conf:ro
+      - ${HNB_IDENTITY_KEYSET_DIR:?set HNB_IDENTITY_KEYSET_DIR containing manifest.json and public keys}:/var/run/hnb-identity:ro
+    depends_on:
+      - postgres
+    profiles:
+      - runtime
+
+  runtime-target-lifecycle-provider:
+    build:
+      context: ../..
+      dockerfile: cmd/runtime-target-lifecycle-provider/Dockerfile
+      args:
+        GOLANG_IMAGE: ${GOLANG_IMAGE:-golang:1.24}
+    image: hnb/runtime-target-lifecycle-provider:latest
+    pull_policy: build
+    environment:
+      LISTEN_ADDRESS: ":18082"
+      PROVIDER_ID: ${RUNTIME_TARGET_LIFECYCLE_PROVIDER_ID:-runtime-target.lifecycle.kubernetes}
+      DB_DSN: postgres://hnb:hnb123@postgres:5432/hnb?sslmode=disable
+      # Dev-only placeholder; mount a per-environment key in production.
+      HNB_MASTER_KEY: ${HNB_MASTER_KEY:-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef}
+    ports:
+      - "18082:18082"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles:
+      - runtime
+
+  edge-provider:
+    build:
+      context: ../cmd/edge-provider
+    image: hnb/edge-provider:latest
+    environment:
+      LISTEN_ADDRESS: ":18081"
+      CLOUDCORE_ENDPOINT: https://cloudcore:10002
+      KUBECONFIG: /etc/kubernetes/admin.conf
+      ALLOWED_NAMESPACES: default,hnb-workloads
+      MAX_REPLICAS: "10"
+      API_TOKEN_ISSUER: ${API_TOKEN_ISSUER:?set API_TOKEN_ISSUER}
+      API_TOKEN_AUDIENCE: hnb-edge-provider
+      API_TOKEN_KEY_MANIFEST_FILE: /var/run/hnb-identity/manifest.json
+      API_TOKEN_KEY_RELOAD_INTERVAL: ${HNB_IDENTITY_KEY_RELOAD_INTERVAL:-5s}
+    ports:
+      - "18081:18081"
+    profiles:
+      - edge
+    volumes:
+      - ${HNB_IDENTITY_KEYSET_DIR:?set HNB_IDENTITY_KEYSET_DIR containing manifest.json and public keys}:/var/run/hnb-identity:ro
+
+  rbac-syncer:
+    build:
+      context: ../cmd/rbac-syncer
+    image: hnb/rbac-syncer:latest
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_USER: hnb
+      DB_PASSWORD: hnb123
+      DB_NAME: hnb
+      SHADOW_MODE: "true"
+      POLL_INTERVAL: 30s
+      SYNC_TIMEOUT: 10s
+      MAX_RETRIES: "3"
+      NAMESPACE: hnb-system
+      METRICS_ADDR: ":8080"
+      HEALTH_ADDR: ":8081"
+      KUBECONFIG: /etc/kubernetes/admin.conf
+      KUBE_QPS: "50"
+      KUBE_BURST: "100"
+    ports:
+      - "8082:8080"
+      - "8083:8081"
+    volumes:
+      - ~/.kube/config:/etc/kubernetes/admin.conf:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles:
+      - rbac
+
+  app-market:
+    build:
+      context: ../..
+      dockerfile: cmd/app-market/Dockerfile
+    image: hnb/app-market:latest
+    environment:
+      DB_DSN: ${APP_MARKET_DB_DSN:?set APP_MARKET_DB_DSN to the independent App Market database}
+      NATS_URL: nats://nats:4222
+      NATS_INSECURE: "true"
+      LOG_LEVEL: debug
+      API_TOKEN_ISSUER: ${API_TOKEN_ISSUER:?set API_TOKEN_ISSUER}
+      API_TOKEN_AUDIENCE: hnb-app-market
+      API_TOKEN_KEY_MANIFEST_FILE: /var/run/hnb-identity/manifest.json
+      API_TOKEN_KEY_RELOAD_INTERVAL: ${HNB_IDENTITY_KEY_RELOAD_INTERVAL:-5s}
+      ARTIFACT_TRANSFER_BACKEND: ${ARTIFACT_TRANSFER_BACKEND:-local}
+      ARTIFACT_TRANSFER_STAGING_DIR: /var/lib/hnb/artifact-transfer
+      ARTIFACT_TRANSFER_REPLICA_COUNT: ${ARTIFACT_TRANSFER_REPLICA_COUNT:-1}
+      ARTIFACT_TRANSFER_READONLY: ${ARTIFACT_TRANSFER_READONLY:-false}
+      HARBOR_URL: ${HARBOR_URL:-}
+      HARBOR_USER: ${HARBOR_USER:-}
+      HARBOR_PASS: ${HARBOR_PASS:-}
+      HTTP_PROXY: ""
+      HTTPS_PROXY: ""
+      ALL_PROXY: ""
+      http_proxy: ""
+      https_proxy: ""
+      all_proxy: ""
+      NO_PROXY: localhost,127.0.0.1,172.17.0.1
+      no_proxy: localhost,127.0.0.1,172.17.0.1
+    expose:
+      - "8080"
+    volumes:
+      - ${HNB_IDENTITY_KEYSET_DIR:?set HNB_IDENTITY_KEYSET_DIR containing manifest.json and public keys}:/var/run/hnb-identity:ro
+      - app-market-artifact-transfer:/var/lib/hnb/artifact-transfer
+    depends_on:
+      postgres:
+        condition: service_healthy
+      nats:
+        condition: service_started
+    profiles:
+      - nats-worker
+
+  gslb-controller:
+    build:
+      context: ../../cmd/gslb-controller
+    image: hnb/gslb-controller:latest
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_USER: hnb
+      DB_PASSWORD: hnb123
+      DB_NAME: hnb
+      DB_SSLMODE: disable
+      NATS_URL: nats://nats:4222
+      DNS_DOMAIN: ${GSLB_DNS_DOMAIN:-gslb.dev.hnb.cloud}
+      GSLB_HEALTH_SOURCES: ${GSLB_HEALTH_SOURCES:-http}
+      RECONCILE_INTERVAL: ${GSLB_RECONCILE_INTERVAL:-15s}
+      PROBE_INTERVAL: ${GSLB_PROBE_INTERVAL:-10s}
+      # 仅用于启动期 client-go 配置解析；DNS 数据面执行（ExternalDNS）需真实集群。
+      KUBECONFIG: /var/run/hnb-identity/dev.kubeconfig
+      HTTP_PROXY: ""
+      HTTPS_PROXY: ""
+      ALL_PROXY: ""
+      http_proxy: ""
+      https_proxy: ""
+      all_proxy: ""
+      NO_PROXY: "*"
+      no_proxy: "*"
+    volumes:
+      - ${HNB_IDENTITY_KEYSET_DIR:?set HNB_IDENTITY_KEYSET_DIR containing dev.kubeconfig}:/var/run/hnb-identity:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      nats:
+        condition: service_started
+
+  # 开发演示用假集群端点：/healthz 恒 200，供 gslb-controller HTTP 探活。
+  gslb-fake-cluster-a:
+    image: nginx:latest
+    volumes:
+      - ./gslb-fake-healthz.conf:/etc/nginx/conf.d/default.conf:ro
+
+  gslb-fake-cluster-b:
+    image: nginx:latest
+    volumes:
+      - ./gslb-fake-healthz.conf:/etc/nginx/conf.d/default.conf:ro
+
+  extension-controller:
+    build:
+      context: ../..
+      dockerfile: cmd/extension-controller/Dockerfile
+      args:
+        GOLANG_IMAGE: ${GOLANG_IMAGE:-golang:1.24}
+        HTTP_PROXY: ""
+        HTTPS_PROXY: ""
+        ALL_PROXY: ""
+        http_proxy: ""
+        https_proxy: ""
+        all_proxy: ""
+    image: hnb/extension-controller:latest
+    pull_policy: build
+    environment:
+      DB_DSN: postgres://hnb:hnb123@postgres:5432/hnb?sslmode=disable
+      NATS_URL: nats://nats:4222
+      NATS_INSECURE: "true"
+      LISTEN_ADDR: ":8080"
+      RECONCILE_INTERVAL: "30"
+    ports:
+      - "8084:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      nats:
+        condition: service_started
+    profiles:
+      - lifecycle
+
+  gateway-provider:
+    build:
+      context: ../cmd/gateway-provider
+    image: hnb/gateway-provider:latest
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_USER: hnb
+      DB_PASSWORD: hnb123
+      DB_NAME: hnb
+      DB_SSLMODE: disable
+      NATS_URL: nats://nats:4222
+      NATS_INSECURE: "true"
+      KUBECONFIG: /etc/kubernetes/admin.conf
+      LOG_LEVEL: debug
+    volumes:
+      - ~/.kube/config:/etc/kubernetes/admin.conf:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      nats:
+        condition: service_started
+    profiles:
+      - gateway
+
+volumes:
+  pgdata:
+  app-market-artifact-transfer:

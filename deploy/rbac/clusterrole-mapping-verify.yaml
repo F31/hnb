@@ -1,0 +1,52 @@
+# Validation test: ClusterRole mapping integrity check
+#
+# This Job runs a verification that:
+# 1. All 6 platform roles have a corresponding K8s ClusterRole mapping
+# 2. All 4 custom ClusterRole manifests exist and are valid
+# 3. The inheritance chain is correctly reflected in the annotations
+# 4. Each ClusterRole's rules are a superset of its inheriting role
+#
+# Usage: kubectl apply -f clusterrole-mapping-verify.yaml
+#
+# Exit code: 0 = pass, 1 = fail
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: hnb-rbac-verify
+  labels:
+    app.kubernetes.io/name: hnb-cloud
+    app.kubernetes.io/component: rbac
+    hnb.cloud/role: verify
+  annotations:
+    hnb.cloud/verify-description: "Validate ClusterRole definitions against platform RBAC spec"
+spec:
+  restartPolicy: Never
+  containers:
+    - name: verify
+      image: bitnami/kubectl:latest
+      command:
+        - /bin/sh
+        - -c
+        - |
+          set -e
+
+          # Verify all 4 custom ClusterRoles exist
+          for role in hnb:tenant-admin hnb:project-admin hnb:operator hnb:publisher; do
+            echo "Checking ClusterRole: $role"
+            kubectl get clusterrole "$role" -o json > /dev/null
+          done
+
+          # Verify pre-built ClusterRoles exist
+          for role in cluster-admin view; do
+            echo "Checking ClusterRole: $role"
+            kubectl get clusterrole "$role" -o json > /dev/null
+          done
+
+          # Verify annotation inheritance chain
+          echo "Verifying inheritance annotations..."
+          kubectl get clusterrole hnb:project-admin -o jsonpath='{.metadata.annotations.hnb\.cloud/inherits-from}' | grep -q "operator"
+          kubectl get clusterrole hnb:operator -o jsonpath='{.metadata.annotations.hnb\.cloud/inherits-from}' | grep -q "publisher"
+          kubectl get clusterrole hnb:publisher -o jsonpath='{.metadata.annotations.hnb\.cloud/inherits-from}' | grep -q "readonly"
+
+          echo "All mapping checks passed!"

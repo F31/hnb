@@ -1,0 +1,16 @@
+replicaCount: 1
+image:
+  repository: hnb/{{ .Chart.Name }}
+  tag: ""
+  pullPolicy: ""
+nats:
+  url: ""
+db:
+  dsn: ""
+resources:
+  requests:
+    cpu: 200m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi

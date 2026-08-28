@@ -1,0 +1,56 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: hnb-rbac-syncer-alerts
+  namespace: hnb-system
+  labels:
+    app.kubernetes.io/name: hnb-cloud
+    app.kubernetes.io/component: rbac
+spec:
+  groups:
+    - name: hnb-rbac-syncer
+      interval: 30s
+      rules:
+        - alert: RBACSyncFailure
+          expr: |
+            rate(rbac_sync_total{status="failed"}[5m]) > 0
+          for: 60s
+          labels:
+            severity: warning
+            team: platform
+          annotations:
+            summary: "RBAC sync failures detected"
+            description: "RBAC Syncer has {{ $value | humanize }} sync failures in the last 5 minutes."
+
+        - alert: RBACSyncLatencyHigh
+          expr: |
+            rbac_sync_latency_seconds{quantile="0.99"} > 30
+          for: 5m
+          labels:
+            severity: warning
+            team: platform
+          annotations:
+            summary: "RBAC sync latency exceeds 30s (P99)"
+            description: "P99 sync latency is {{ $value }}s, threshold is 30s."
+
+        - alert: RBACSyncerDown
+          expr: |
+            up{job="hnb-rbac-syncer"} == 0
+          for: 5m
+          labels:
+            severity: critical
+            team: platform
+          annotations:
+            summary: "RBAC Syncer is down"
+            description: "RBAC Syncer has been unreachable for more than 5 minutes."
+
+        - alert: RBACManagedRoleBindingsLow
+          expr: |
+            rbac_managed_rolebindings < 1
+          for: 30m
+          labels:
+            severity: warning
+            team: platform
+          annotations:
+            summary: "No managed RoleBindings"
+            description: "RBAC Syncer reports 0 managed RoleBindings. Possible sync issue."

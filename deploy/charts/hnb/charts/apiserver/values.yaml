@@ -1,0 +1,35 @@
+replicaCount: 1
+image:
+  repository: hnb/{{ .Chart.Name }}
+  tag: ""
+  pullPolicy: ""
+nats:
+  url: ""
+  existingClientTLSSecret: ""
+db:
+  dsn: ""
+clusterReadProjection:
+  mode: shadow
+  alerts:
+    enabled: false
+identity:
+  issuer: ""
+  audiences: "hnb-apiserver,hnb-platform-api,hnb-app-market"
+  reloadInterval: 5s
+  existingManifestSecret: ""
+  manifestKey: manifest.json
+  existingPrivateKeySecret: ""
+  privateKeyKey: "tls.key"
+agentOnboarding:
+  # apiserver 对外可达地址（渲染 cluster-agent 隧道回连地址 TUNNEL_URL 用）；
+  # 留空则按请求协议/Host 推导（适合单域名反代部署）。
+  publicBaseURL: ""
+  # 接入清单中引用的 cluster-agent 镜像
+  image: hnb/cluster-agent:latest
+resources:
+  requests:
+    cpu: 200m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi

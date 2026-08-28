@@ -1,0 +1,14 @@
+replicaCount: 2
+image:
+  repository: hnb/cluster-router
+  tag: ""
+  pullPolicy: ""
+tunnelAPIURL: "http://tunnel-server:9443"
+balancerType: "round_robin"
+resources:
+  requests:
+    cpu: 300m
+    memory: 512Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi

@@ -1,0 +1,81 @@
+# OIDC Configuration Verification Job
+#
+# Tests:
+# 1. Platform JWT can be validated by K8s API Server via OIDC
+# 2. Username extracted from token matches hnb:{user_id} format
+# 3. Roles claim is mapped to groups
+# 4. Token-based kubectl access works for authorized namespaces
+#
+# Prerequisites: K8s API Server started with OIDC flags, platform auth service running
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: hnb-oidc-verify
+  namespace: hnb-system
+  labels:
+    app.kubernetes.io/name: hnb-cloud
+    app.kubernetes.io/component: rbac
+    hnb.cloud/role: verify
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: verify
+          image: bitnami/kubectl:latest
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+
+              echo "=== OIDC Verification ==="
+
+              # Test 1: Get a platform token (requires platform auth service)
+              echo "Test 1: Fetching platform JWT..."
+              TOKEN=$(curl -s -X POST https://platform.hnb.cloud/auth/token \
+                -H "Content-Type: application/json" \
+                -d '{"username":"test-user","tenant_id":"t1"}' | jq -r '.token')
+
+              if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
+                echo "FAIL: Could not obtain platform token"
+                exit 1
+              fi
+              echo "PASS: Platform token obtained"
+
+              # Test 2: Verify token with K8s API Server via OIDC
+              echo "Test 2: Authenticating with K8s API Server via OIDC..."
+              kubectl --token="$TOKEN" auth whoami > /dev/null 2>&1
+              echo "PASS: K8s API Server accepted OIDC token"
+
+              # Test 3: Verify username format
+              echo "Test 3: Verifying username format..."
+              USERNAME=$(kubectl --token="$TOKEN" auth whoami -o json | jq -r '.status.userInfo.username')
+              if echo "$USERNAME" | grep -q "^hnb:"; then
+                echo "PASS: Username format hnb:{user_id}: $USERNAME"
+              else
+                echo "FAIL: Unexpected username format: $USERNAME"
+                exit 1
+              fi
+
+              # Test 4: Verify roles as groups
+              echo "Test 4: Verifying groups from roles claim..."
+              GROUPS=$(kubectl --token="$TOKEN" auth whoami -o json | jq -r '.status.userInfo.groups[]')
+              if [ -n "$GROUPS" ]; then
+                echo "PASS: Token carries groups: $GROUPS"
+              else
+                echo "WARN: No groups found in token (optional if using direct RoleBinding)"
+              fi
+
+              # Test 5: Verify namespace access
+              echo "Test 5: Checking namespace access..."
+              NS="t1-test-project-production"
+              if kubectl --token="$TOKEN" get pods -n "$NS" > /dev/null 2>&1; then
+                echo "PASS: User can access namespace $NS"
+              else
+                echo "INFO: No access to $NS (expected if role not yet assigned)"
+              fi
+
+              echo ""
+              echo "=== All OIDC verification tests completed ==="

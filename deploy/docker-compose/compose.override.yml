@@ -1,0 +1,10 @@
+services:
+  platform-api:
+    environment:
+      STALE_CHALLENGE_KEY_FILE: /challenge.key
+    volumes:
+      - ${HNB_STALE_CHALLENGE_KEY_FILE:?set HNB_STALE_CHALLENGE_KEY_FILE}:/challenge.key:ro
+
+  apiserver:
+    volumes:
+      - ${HNB_IDENTITY_KEYSET_DIR:?set HNB_IDENTITY_KEYSET_DIR containing manifest.json and private.pem}:/var/run/hnb-identity:ro

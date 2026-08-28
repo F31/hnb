@@ -1,0 +1,68 @@
+apiVersion: v2
+name: hnb
+description: HNB Cloud Platform - Multi-cloud container management platform
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+
+dependencies:
+  - name: apiserver
+    version: 0.1.0
+    condition: apiserver.enabled
+  - name: operation-worker
+    version: 0.1.0
+    condition: operation-worker.enabled
+  - name: extension-controller
+    version: 0.1.0
+    condition: extension-controller.enabled
+  - name: tunnel-server
+    version: 0.1.0
+    condition: tunnel-server.enabled
+  - name: cluster-router
+    version: 0.1.0
+    condition: cluster-router.enabled
+  - name: cluster-agent
+    version: 0.1.0
+    condition: cluster-agent.enabled
+  - name: gateway-provider
+    version: 0.1.0
+    condition: gateway-provider.enabled
+  - name: cilium-provider
+    version: 0.1.0
+    condition: cilium-provider.enabled
+  - name: calico-provider
+    version: 0.1.0
+    condition: calico-provider.enabled
+  - name: kube-ovn-provider
+    version: 0.1.0
+    condition: kube-ovn-provider.enabled
+  - name: network-provider
+    version: 0.1.0
+    condition: network-provider.enabled
+  - name: network-registry
+    version: 0.1.0
+    condition: network-registry.enabled
+  - name: kubernetes-provider
+    version: 0.1.0
+    condition: kubernetes-provider.enabled
+  - name: karmada-provider
+    version: 0.1.0
+    condition: karmada-provider.enabled
+  - name: edge-provider
+    version: 0.1.0
+    condition: edge-provider.enabled
+  - name: app-market
+    version: 0.1.0
+    condition: app-market.enabled
+  - name: gslb-controller
+    version: 0.1.0
+    condition: gslb-controller.enabled
+  - name: rbac-syncer
+    version: 0.1.0
+    condition: rbac-syncer.enabled
+  - name: platform-api
+    version: 0.1.0
+    condition: platform-api.enabled
+  - name: alert-manager
+    version: 0.1.0
+    condition: alert-manager.enabled

@@ -1,0 +1,40 @@
+# Platform-to-K8s ClusterRole Inheritance Mapping
+#
+# Platform RBAC inheritance chain:
+#   platform_admin → tenant_admin → project_admin → operator → publisher → readonly
+#
+# K8s ClusterRole mapping:
+#   cluster-admin → hnb:tenant-admin → hnb:project-admin → hnb:operator → hnb:publisher → view
+#
+# Each K8s ClusterRole includes permissions of all roles below it.
+# RoleBindings use the leaf ClusterRole for the assigned platform role.
+# Inheritance is resolved at the platform level; the Syncer maps the
+# platform role to the correct K8s ClusterRole directly.
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hnb-clusterrole-mapping
+  labels:
+    app.kubernetes.io/name: hnb-cloud
+    app.kubernetes.io/component: rbac
+    hnb.cloud/role: mapping
+data:
+  mapping.json: |
+    {
+      "platform_admin": "cluster-admin",
+      "tenant_admin": "hnb:tenant-admin",
+      "project_admin": "hnb:project-admin",
+      "operator": "hnb:operator",
+      "publisher": "hnb:publisher",
+      "readonly": "view"
+    }
+  inheritance.json: |
+    {
+      "platform_admin": null,
+      "tenant_admin": "platform_admin",
+      "project_admin": "tenant_admin",
+      "operator": "project_admin",
+      "publisher": "operator",
+      "readonly": "publisher"
+    }

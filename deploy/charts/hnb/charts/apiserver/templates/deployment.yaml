@@ -1,0 +1,86 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Chart.Name }}
+  labels:
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ .Chart.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ .Chart.Name }}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8081"
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default $.Values.global.imageTag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy | default $.Values.global.imagePullPolicy }}
+          env:
+            - name: NATS_URL
+              value: {{ .Values.nats.url | default $.Values.global.nats.url }}
+            - name: NATS_TLS_CERT_FILE
+              value: /var/run/hnb-nats/tls.crt
+            - name: NATS_TLS_KEY_FILE
+              value: /var/run/hnb-nats/tls.key
+            - name: NATS_TLS_CA_FILE
+              value: /var/run/hnb-nats/ca.crt
+            - name: DB_DSN
+              value: {{ .Values.db.dsn | default $.Values.global.postgresql.dsn }}
+            - name: CLUSTER_READ_PROJECTION_MODE
+              value: {{ .Values.clusterReadProjection.mode | quote }}
+            - name: API_TOKEN_ISSUER
+              value: {{ required "apiserver.identity.issuer is required" .Values.identity.issuer | quote }}
+            - name: API_TOKEN_AUDIENCES
+              value: {{ required "apiserver.identity.audiences is required" .Values.identity.audiences | quote }}
+            - name: API_TOKEN_PRIVATE_KEY_FILE
+              value: /var/run/hnb-signing/active-private.pem
+            - name: API_TOKEN_KEY_MANIFEST_FILE
+              value: /var/run/hnb-identity/{{ .Values.identity.manifestKey }}
+            - name: API_TOKEN_KEY_RELOAD_INTERVAL
+              value: {{ .Values.identity.reloadInterval | quote }}
+            - name: AGENT_IMAGE
+              value: {{ .Values.agentOnboarding.image | default "hnb/cluster-agent:latest" | quote }}
+            {{- with .Values.agentOnboarding.publicBaseURL }}
+            - name: PUBLIC_BASE_URL
+              value: {{ . | quote }}
+            {{- end }}
+          ports:
+            - containerPort: 8080
+              name: http
+            - containerPort: 8081
+              name: metrics
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: identity-keys
+              mountPath: /var/run/hnb-identity
+              readOnly: true
+            - name: active-signing-key
+              mountPath: /var/run/hnb-signing
+              readOnly: true
+            - name: nats-client-tls
+              mountPath: /var/run/hnb-nats
+              readOnly: true
+      volumes:
+        - name: identity-keys
+          secret:
+            secretName: {{ required "apiserver.identity.existingManifestSecret is required" .Values.identity.existingManifestSecret }}
+            defaultMode: 0400
+        - name: active-signing-key
+          secret:
+            secretName: {{ required "apiserver.identity.existingPrivateKeySecret is required" .Values.identity.existingPrivateKeySecret }}
+            defaultMode: 0400
+            items:
+              - key: {{ .Values.identity.privateKeyKey }}
+                path: active-private.pem
+        - name: nats-client-tls
+          secret:
+            secretName: {{ required "apiserver.nats.existingClientTLSSecret is required" .Values.nats.existingClientTLSSecret }}
+            defaultMode: 0400

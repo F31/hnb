@@ -1,0 +1,21 @@
+replicaCount: 1
+image:
+  repository: hnb/{{ .Chart.Name }}
+  tag: ""
+  pullPolicy: ""
+nats:
+  url: ""
+db:
+  dsn: ""
+identity:
+  issuer: ""
+  reloadInterval: 5s
+  existingManifestSecret: ""
+  manifestKey: manifest.json
+resources:
+  requests:
+    cpu: 200m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi

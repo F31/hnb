@@ -1,0 +1,45 @@
+# K8s API Server OIDC Configuration Reference
+#
+# Platform JWT is used as the identity for both platform API and K8s API.
+# K8s API Server must be started with the following OIDC flags.
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hnb-oidc-config-reference
+  namespace: hnb-system
+  labels:
+    app.kubernetes.io/name: hnb-cloud
+    app.kubernetes.io/component: rbac
+    hnb.cloud/role: oidc
+data:
+  # K8s API Server startup flags
+  kube-apiserver-flags: |
+    --oidc-issuer-url=https://platform.hnb.cloud/auth
+    --oidc-client-id=hnb-platform
+    --oidc-username-claim=sub
+    --oidc-groups-claim=roles
+    --oidc-username-prefix=hnb:
+
+  # Platform JWT claims mapping
+  jwt-claims-mapping: |
+    {
+      "sub": "hnb:{user_id}",
+      "tenant_id": "t1",
+      "project_id": "p1",
+      "environment_id": "e1",
+      "namespace_id": "ns-1",
+      "roles": ["operator", "publisher"],
+      "iat": 1516239022,
+      "exp": 1516242622
+    }
+
+  # OIDC notes
+  notes: |
+    1. The platform auth service must expose a valid OIDC discovery endpoint at
+       https://platform.hnb.cloud/auth/.well-known/openid-configuration
+    2. The 'sub' claim must use the format 'hnb:{user_id}' to match the Subject
+       name in RoleBinding resources created by the RBAC Syncer.
+    3. The 'roles' claim is mapped to K8s groups for potential group-based binding.
+    4. Platform tokens must be signed with RS256 and have a public JWKS endpoint.
+    5. Token expiration should be aligned between platform and K8s (default 1h).
