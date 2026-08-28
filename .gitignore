@@ -1,2 +1,31 @@
 .tools/
 node_modules/
+*.o
+*.log
+.dev/
+.pnpm-store/
+
+# Go build artifacts
+*.test
+out/
+
+# Top-level stray Go binaries built into the repo root
+/apiserver
+/app-market
+/calico-provider
+/cilium-provider
+/cluster-agent
+/kube-ovn-provider
+/network-registry
+/platform-api
+/provider-conformance
+/tunnel-server
+/staging/
+
+# Go binaries built directly into module dirs (non-Makefile builds)
+/cmd/ai-extension/ai-extension
+/cmd/calico-provider/calico-provider
+/cmd/cilium-provider/cilium-provider
+/cmd/kube-ovn-provider/kube-ovn-provider
+/cmd/network-registry/network-registry
+/cmd/provider-conformance/provider-conformance

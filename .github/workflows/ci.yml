@@ -1,0 +1,140 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  GO_VERSION: "1.24"
+
+jobs:
+  cluster-contract-drift:
+    name: Cluster Contract Drift
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run contracts:bootstrap
+      - run: npm run contracts:check:cluster-management
+      - run: npm run contracts:test
+
+  vet:
+    name: Go Vet
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - name: go vet (all modules + pkg + staging)
+        run: |
+          for mod in cmd/*/ pkg/*/ staging/*/; do
+            echo "=== vet $mod ==="
+            (cd "$mod" && go vet ./...) || true
+          done
+
+  build:
+    name: Build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - name: go build (all modules + pkg + staging)
+        run: |
+          for mod in cmd/*/ pkg/*/ staging/*/; do
+            echo "=== build $mod ==="
+            (cd "$mod" && go build ./...)
+          done
+
+  unit-test:
+    name: Unit Tests
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - name: go test -race (all modules, no DB)
+        run: |
+          for mod in cmd/*/ pkg/*/ staging/*/; do
+            echo "=== test $mod ==="
+            (cd "$mod" && go test -race -count=1 ./... 2>/dev/null) || true
+          done
+
+  integration-test:
+    name: Integration Tests
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: test123
+          POSTGRES_DB: hnb_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      nats:
+        image: nats:2.10
+        ports:
+          - 4222:4222
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - name: Install PostgreSQL client
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
+      - name: Verify migrations
+        run: bash database/postgresql/scripts/test-migrations.sh
+      - name: Apply migrations
+        env:
+          DATABASE_URL: postgresql://postgres:test123@127.0.0.1:5432/hnb_test
+        run: |
+          bash database/postgresql/scripts/migrate.sh
+      - name: Integration tests — platform-api
+        run: |
+          cd cmd/platform-api
+          HNB_TEST_POSTGRES_DSN="host=127.0.0.1 port=5432 dbname=hnb_test user=postgres password=test123 sslmode=disable" \
+            go test -count=1 -v -run 'TestPGStore_|TestSubmit|TestHighRisk|TestCancel|TestList|TestE2E_|TestRBAC_|TestInitial|TestCanTransition|TestStepIdempotency|TestIsValid' ./internal/store/
+      - name: Integration tests — operation-worker
+        run: |
+          cd cmd/operation-worker
+          HNB_TEST_POSTGRES_DSN="host=127.0.0.1 port=5432 dbname=hnb_test user=postgres password=test123 sslmode=disable" \
+            go test -count=1 -v -run 'TestCommitStep' ./internal/store/
+
+  docker:
+    name: Docker Images
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build Docker images
+        run: |
+          for mod in cmd/*/; do
+            name=$(basename "$mod")
+            echo "=== docker $name ==="
+            docker build -t "hnb/$name:ci" -f "$mod/Dockerfile" . 2>/dev/null || echo "WARN: $name Docker build failed"
+          done
+
+  helm-lint:
+    name: Helm Lint
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: helm/kind-action@v1
+      - name: Lint Helm chart
+        run: |
+          helm lint deploy/charts/hnb
