@@ -69,10 +69,20 @@ export_env() {
   export HNB_BOOTSTRAP_ADMIN_PASSWORD="${HNB_BOOTSTRAP_ADMIN_PASSWORD:-hnb123}"
   export HNB_KUBERNETES_PROVIDER_TOKEN_FILE="${IDENTITY_DIR}/dev-kubernetes-provider.jwt"
   export HNB_EDGE_PROVIDER_TOKEN_FILE="${IDENTITY_DIR}/dev-edge-provider.jwt"
+  export HNB_RUNTIME_TARGET_LIFECYCLE_PROVIDER_TOKEN_FILE="${IDENTITY_DIR}/dev-runtime-target-lifecycle-provider.jwt"
+  export HNB_STALE_CHALLENGE_KEY_FILE="${IDENTITY_DIR}/stale-challenge.key"
   export APP_MARKET_DB_DSN="postgres://hnb:hnb123@postgres:5432/hnb?sslmode=disable"
   : >"${HNB_KUBERNETES_PROVIDER_TOKEN_FILE}"
   : >"${HNB_EDGE_PROVIDER_TOKEN_FILE}"
-  chmod 600 "${HNB_KUBERNETES_PROVIDER_TOKEN_FILE}" "${HNB_EDGE_PROVIDER_TOKEN_FILE}"
+  : >"${HNB_RUNTIME_TARGET_LIFECYCLE_PROVIDER_TOKEN_FILE}"
+  if [[ ! -s "${HNB_STALE_CHALLENGE_KEY_FILE}" ]]; then
+    openssl rand -base64 48 >"${HNB_STALE_CHALLENGE_KEY_FILE}"
+  fi
+  chmod 600 "${HNB_KUBERNETES_PROVIDER_TOKEN_FILE}" "${HNB_EDGE_PROVIDER_TOKEN_FILE}" "${HNB_RUNTIME_TARGET_LIFECYCLE_PROVIDER_TOKEN_FILE}"
+  # platform-api runs as UID 65532 and reads the stale-challenge key directly; make it
+  # readable by that user (dev-only disposable key, like the identity private.pem).
+  chown 65532:65532 "${HNB_STALE_CHALLENGE_KEY_FILE}" 2>/dev/null || true
+  chmod 600 "${HNB_STALE_CHALLENGE_KEY_FILE}"
 }
 
 apply_migrations() {

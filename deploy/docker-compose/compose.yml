@@ -26,6 +26,7 @@ services:
   platform-api:
     build:
       context: ../..
+      network: host
       dockerfile: cmd/platform-api/Dockerfile
       args:
         GOLANG_IMAGE: ${GOLANG_IMAGE:-golang:1.24}
@@ -68,6 +69,7 @@ services:
   apiserver:
     build:
       context: ../..
+      network: host
       dockerfile: cmd/apiserver/Dockerfile
       args:
         GOLANG_IMAGE: ${GOLANG_IMAGE:-golang:1.24}
@@ -128,6 +130,7 @@ services:
   operation-worker:
     build:
       context: ../cmd/operation-worker
+      network: host
     image: hnb/operation-worker:latest
     environment:
       DB_HOST: postgres
@@ -158,6 +161,7 @@ services:
   kubernetes-provider:
     build:
       context: ../cmd/kubernetes-provider
+      network: host
     image: hnb/kubernetes-provider:latest
     environment:
       LISTEN_ADDRESS: ":18080"
@@ -181,6 +185,7 @@ services:
   runtime-target-lifecycle-provider:
     build:
       context: ../..
+      network: host
       dockerfile: cmd/runtime-target-lifecycle-provider/Dockerfile
       args:
         GOLANG_IMAGE: ${GOLANG_IMAGE:-golang:1.24}
@@ -203,6 +208,7 @@ services:
   edge-provider:
     build:
       context: ../cmd/edge-provider
+      network: host
     image: hnb/edge-provider:latest
     environment:
       LISTEN_ADDRESS: ":18081"
@@ -224,6 +230,7 @@ services:
   rbac-syncer:
     build:
       context: ../cmd/rbac-syncer
+      network: host
     image: hnb/rbac-syncer:latest
     environment:
       DB_HOST: postgres
@@ -255,6 +262,7 @@ services:
   app-market:
     build:
       context: ../..
+      network: host
       dockerfile: cmd/app-market/Dockerfile
     image: hnb/app-market:latest
     environment:
@@ -297,6 +305,7 @@ services:
   gslb-controller:
     build:
       context: ../../cmd/gslb-controller
+      network: host
     image: hnb/gslb-controller:latest
     environment:
       DB_HOST: postgres
@@ -342,6 +351,7 @@ services:
   extension-controller:
     build:
       context: ../..
+      network: host
       dockerfile: cmd/extension-controller/Dockerfile
       args:
         GOLANG_IMAGE: ${GOLANG_IMAGE:-golang:1.24}
@@ -372,6 +382,7 @@ services:
   gateway-provider:
     build:
       context: ../cmd/gateway-provider
+      network: host
     image: hnb/gateway-provider:latest
     environment:
       DB_HOST: postgres
