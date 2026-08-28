@@ -195,7 +195,7 @@ func renderAgentOnboardingManifest(namespace, tenantID, clusterID, tunnelURL, to
 	b.WriteString("  - apiGroups: [\"snapshot.storage.k8s.io\"]\n    resources: [\"volumesnapshots\", \"volumesnapshotclasses\", \"volumesnapshotcontents\"]\n    verbs: [\"get\", \"list\", \"watch\"]\n")
 	b.WriteString("---\napiVersion: rbac.authorization.k8s.io/v1\nkind: ClusterRoleBinding\nmetadata:\n  name: " + roleName + "\nroleRef:\n  apiGroup: rbac.authorization.k8s.io\n  kind: ClusterRole\n  name: " + roleName + "\nsubjects:\n  - kind: ServiceAccount\n    name: hnb-cluster-agent\n    namespace: " + namespace + "\n")
 	b.WriteString("---\napiVersion: v1\nkind: Secret\nmetadata:\n  name: hnb-cluster-agent-token\n  namespace: " + namespace + "\ntype: Opaque\nstringData:\n  agent-token: " + quoteYAMLValue(token) + "\n")
-	b.WriteString("---\napiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: hnb-cluster-agent\n  namespace: " + namespace + "\n  labels:\n    app.kubernetes.io/name: hnb-cluster-agent\nspec:\n  replicas: 1\n  selector:\n    matchLabels:\n      app.kubernetes.io/name: hnb-cluster-agent\n  template:\n    metadata:\n      labels:\n        app.kubernetes.io/name: hnb-cluster-agent\n    spec:\n      serviceAccountName: hnb-cluster-agent\n      containers:\n        - name: agent\n          image: " + quoteYAMLValue(agentImage) + "\n          env:\n")
+	b.WriteString("---\napiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: hnb-cluster-agent\n  namespace: " + namespace + "\n  labels:\n    app.kubernetes.io/name: hnb-cluster-agent\nspec:\n  replicas: 1\n  selector:\n    matchLabels:\n      app.kubernetes.io/name: hnb-cluster-agent\n  template:\n    metadata:\n      labels:\n        app.kubernetes.io/name: hnb-cluster-agent\n    spec:\n      serviceAccountName: hnb-cluster-agent\n      securityContext:\n        runAsUser: 0\n        runAsGroup: 0\n      containers:\n        - name: agent\n          image: " + quoteYAMLValue(agentImage) + "\n          imagePullPolicy: IfNotPresent\n          env:\n")
 	b.WriteString("            - name: TUNNEL_URL\n              value: " + quoteYAMLValue(tunnelURL) + "\n")
 	b.WriteString("            - name: AGENT_TOKEN_FILE\n              value: /etc/hnb/agent-token/agent-token\n")
 	b.WriteString("            - name: TENANT_ID\n              value: " + quoteYAMLValue(tenantID) + "\n")
@@ -207,7 +207,7 @@ func renderAgentOnboardingManifest(namespace, tenantID, clusterID, tunnelURL, to
 	b.WriteString("            - name: OBSERVATION_INTERVAL\n              value: \"60s\"\n")
 	b.WriteString("          volumeMounts:\n            - name: agent-token\n              mountPath: /etc/hnb/agent-token\n              readOnly: true\n")
 	b.WriteString("          resources:\n            requests:\n              cpu: 100m\n              memory: 128Mi\n            limits:\n              cpu: 500m\n              memory: 512Mi\n")
-	b.WriteString("      volumes:\n        - name: agent-token\n          secret:\n            secretName: hnb-cluster-agent-token\n")
+	b.WriteString("      volumes:\n        - name: agent-token\n          secret:\n            secretName: hnb-cluster-agent-token\n            defaultMode: 0600\n")
 	return b.String()
 }
 

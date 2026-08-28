@@ -119,6 +119,9 @@ func TestAgentOnboardingHappyPath(t *testing.T) {
 		`agent-token: "`,
 		"KUBE_TOKEN_FILE",
 		"serviceAccountName: hnb-cluster-agent",
+		"defaultMode: 0600",
+		"securityContext:\n        runAsUser: 0",
+		"imagePullPolicy: IfNotPresent",
 	} {
 		if !strings.Contains(payload.Manifest, want) {
 			t.Fatalf("manifest missing %q\n%s", want, payload.Manifest)

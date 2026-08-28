@@ -42,4 +42,8 @@
   - 授权语义钉死：`middleware/authorization.go` 将 `kubeconfig:download` 与 `agent-onboarding` 固定为 `cluster/ActionRead`（对齐 design.md readGate 语义），测试矩阵 deny-execute 场景随之通过。
   - 全量回归：platform-api 全部内网包、apiserver 全部包（含 DSN 集成）、pkg/iam、pkg/tunnel 全绿；web 321 tests / 64 files + `vue-tsc --noEmit` 全绿。
   - 巡检副产物：`TestEveryProtectedRouteDeniesBeforeStoreWithoutPermission` 暴露 `handleCreateRuntimeIntentBatch` 缺失 `s.authorize`（越权批量删除风险）已补；前端移除 `ClusterStatus` 中已废弃的 `SUSPENDED` 比较并注入 clusterMonitoringApi 测试的 apiClient mock。
-  - live-stack 手工项（导入 k8s → apply → agent 经隧道回连 → 列表收敛）仍可作为部署侧选做，服务端与镜像侧已闭环。
+  - live-stack 实测闭环（kind 真实目标集群，替代此前「选做」项）：
+    - dev-live-stack-smoke.sh 补全 `HNB_RUNTIME_TARGET_LIFECYCLE_PROVIDER_TOKEN_FILE`/`HNB_STALE_CHALLENGE_KEY_FILE`（mode-0600、UID 65532 可读）等必填变量，冒烟全绿（postgres/nats/platform-api/apiserver/extension-controller）。
+    - docker-compose 各 build 段加 `network: host`，修复本环境 goproxy 拉取被 reset 的问题。
+    - 走通真实闭环：登录 admin → 插入 kubernetes 目标 → `POST /agent-onboarding` 签发 agent-tunnel 令牌 → 渲染清单 → `kind load` + `kubectl apply` → cluster-agent 容器经 `ws://172.20.0.1:8080/tunnel` 回连 → apiserver 隧道注册 `(total: 1)` → 心跳持续。
+    - 实测暴露并修复 3 个部署缺陷：① Secret 卷 token 文件需 `defaultMode: 0600`（FileTokenSource 强制 owner-only）；② scratch 非 root 容器读 root 所有 0600 secret 卷文件需 `securityContext.runAsUser: 0`（agent 无特权操作，RBAC 仍由 SA/ClusterRole 服务端强制）；③ `imagePullPolicy: IfNotPresent`（:latest tag 默认 Always，内网目标集群无法拉取）。对应 `agent_onboarding.go` 与 `agent_onboarding_test.go` 断言更新。
