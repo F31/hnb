@@ -12,7 +12,7 @@ import { isCniCapabilityAvailable } from '../types/capability'
 import { cniCapabilityMatricesFixture } from './fixtures/capability'
 import { getPluginMarketCatalog } from './p4Api'
 
-const CNI_NAMES: CniName[] = ['Kube-OVN', 'Cilium', 'Calico']
+const CNI_NAMES: CniName[] = ['kube-ovn', 'cilium', 'calico']
 
 /** 能力总览：全部 CNI 矩阵 + 已安装 CNI（由插件市场目录推导） */
 export async function getCniCapabilityOverview(): Promise<CniCapabilityOverview> {

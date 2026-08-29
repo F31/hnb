@@ -9,7 +9,7 @@ import { useI18n } from 'vue-i18n'
 import { HNBTable, StatusBadge, HNBConfirmation, HNBButton } from '@hnb/ui-kit'
 import type { HNBTableColumn } from '@hnb/ui-kit'
 import { getPluginMarketCatalog, installPlugin, uninstallPlugin } from './api/p4Api'
-import { getClusterPermissionStore } from './api/clusterApi'
+import { getClusterContextStore, getClusterPermissionStore } from './api/clusterApi'
 import { usePluginContext } from './composables/usePluginContext'
 import { useClusterCapabilities } from './composables/useClusterCapabilities'
 import type { CapabilityLevel, CniCapabilityMatrix, CniFeature } from './types/capability'
@@ -18,12 +18,16 @@ import type { MarketPlugin } from './types/p4'
 const { t } = useI18n()
 const pluginCtx = usePluginContext()
 const permissionStore = getClusterPermissionStore()
+const contextStore = getClusterContextStore()
 const caps = useClusterCapabilities()
 
 const plugins = ref<MarketPlugin[]>([])
 const loading = ref(true)
 const error = ref('')
 const keyword = ref('')
+
+/** 当前目标集群（进入集群详情时 context 已带 clusterId；无则留空） */
+const clusterId = computed(() => contextStore.current.clusterId ?? '')
 
 const canUpdate = computed(() => permissionStore.hasPermission('cluster:update') || permissionStore.hasPermission('*'))
 
@@ -75,7 +79,7 @@ async function load(): Promise<void> {
   loading.value = true
   error.value = ''
   try {
-    const all = await getPluginMarketCatalog()
+    const all = await getPluginMarketCatalog(clusterId.value || undefined)
     const kw = keyword.value.trim().toLowerCase()
     plugins.value = kw
       ? all.filter((p) => p.name.toLowerCase().includes(kw) || p.category.toLowerCase().includes(kw))
@@ -90,9 +94,13 @@ async function load(): Promise<void> {
 
 async function doInstall(p: MarketPlugin): Promise<void> {
   if (!canUpdate.value) return
+  if (!clusterId.value) {
+    actionError.value = t('resource.clusterMgmt.pluginMarket.requireCluster')
+    return
+  }
   actionError.value = ''
   try {
-    await installPlugin(p.name, p.version)
+    await installPlugin(p.name, p.version, clusterId.value)
     pluginCtx.notify(t('resource.clusterMgmt.pluginMarket.installedMsg', { name: p.name }))
     await load()
   } catch (err) {
@@ -110,9 +118,13 @@ function requestUninstall(p: MarketPlugin): void {
 async function onConfirmUninstall(): Promise<void> {
   const target = uninstallTarget.value
   if (!target) return
+  if (!clusterId.value) {
+    actionError.value = t('resource.clusterMgmt.pluginMarket.requireCluster')
+    return
+  }
   actionError.value = ''
   try {
-    await uninstallPlugin(target.name)
+    await uninstallPlugin(target.name, clusterId.value)
     confirmUninstall.value = false
     pluginCtx.notify(t('resource.clusterMgmt.pluginMarket.uninstalledMsg', { name: target.name }))
     await load()

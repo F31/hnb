@@ -20,6 +20,7 @@ import {
   vulnerabilityDbStatusFixture,
 } from './fixtures/p4'
 import { pluginT } from './pluginI18n'
+import { getClusterApiClient } from './clusterApi'
 
 const USE_FIXTURES = import.meta.env.VITE_CLUSTER_DETAIL_USE_FIXTURES === 'true'
 
@@ -118,30 +119,37 @@ export async function deletePluginInstance(_clusterId: string, applicationName: 
 // 插件市场
 // ---------------------------------------------------------------------------
 
-/** 插件市场目录（当前后端暂缺 → 开发 fixture，生产空态） */
-export async function getPluginMarketCatalog(): Promise<MarketPlugin[]> {
-  if (!USE_FIXTURES) return []
-  return pluginMarketCatalogFixture
+/** 插件市场目录：平台级目录 + 按集群的 installed 状态 */
+export async function getPluginMarketCatalog(clusterId?: string): Promise<MarketPlugin[]> {
+  if (USE_FIXTURES) return pluginMarketCatalogFixture
+  const params = clusterId ? `?clusterId=${encodeURIComponent(clusterId)}` : ''
+  return getClusterApiClient().get<MarketPlugin[]>(`/api/v1/plugin-catalog${params}`)
 }
 
-/** 安装插件（fixture 更新目录 installed；生产暂未实现 → 抛"未开放"） */
-export async function installPlugin(pluginName: string, _version: string): Promise<void> {
+/** 安装插件：为 clusterId 集群创建 Extension（extension-controller 驱动落地） */
+export async function installPlugin(pluginName: string, version: string, clusterId: string): Promise<void> {
   if (USE_FIXTURES) {
     const target = pluginMarketCatalogFixture.find((p) => p.name === pluginName)
     if (target) target.installed = true
     return
   }
-  throw new Error(pluginT('resource.clusterMgmt.error.pluginInstallUnavailable'))
+  await getClusterApiClient().post('/api/v1/plugin-catalog/installs', {
+    name: pluginName,
+    version,
+    clusterId,
+  })
 }
 
-/** 卸载插件（fixture 更新目录 installed；生产暂未实现 → 抛"未开放"） */
-export async function uninstallPlugin(pluginName: string): Promise<void> {
+/** 卸载插件：删除 clusterId 集群上该插件的 Extension */
+export async function uninstallPlugin(pluginName: string, clusterId: string): Promise<void> {
   if (USE_FIXTURES) {
     const target = pluginMarketCatalogFixture.find((p) => p.name === pluginName)
     if (target) target.installed = false
     return
   }
-  throw new Error(pluginT('resource.clusterMgmt.error.pluginUninstallUnavailable'))
+  await getClusterApiClient().delete(
+    `/api/v1/plugin-catalog/installs/${encodeURIComponent(pluginName)}?clusterId=${encodeURIComponent(clusterId)}`,
+  )
 }
 
 // ---------------------------------------------------------------------------

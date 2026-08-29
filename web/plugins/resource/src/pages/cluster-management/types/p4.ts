@@ -80,4 +80,7 @@ export interface MarketPlugin {
   description: string
   category: string
   installed: boolean
+  displayName?: string
+  kind?: string
+  provider?: string
 }

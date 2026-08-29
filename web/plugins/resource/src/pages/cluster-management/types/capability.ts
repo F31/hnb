@@ -4,7 +4,7 @@
  * RDMA / 可观测等能力是否可用（CNI 无关原则的前提）。
  */
 
-export type CniName = 'Kube-OVN' | 'Cilium' | 'Calico'
+export type CniName = 'kube-ovn' | 'cilium' | 'calico'
 
 /** 能力级别 */
 export type CapabilityLevel = 'strong' | 'medium' | 'weak' | 'none'

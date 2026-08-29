@@ -17,7 +17,7 @@ describe('capability 能力判定', () => {
   })
 
   it('Kube-OVN 支持 RDMA 与子网隔离，不支持异常检测', () => {
-    const kubeOvn = matrixForCni(cniCapabilityMatricesFixture, 'Kube-OVN')
+    const kubeOvn = matrixForCni(cniCapabilityMatricesFixture, 'kube-ovn')
     expect(kubeOvn).not.toBeNull()
     expect(cniHasCapability(kubeOvn, 'rdma')).toBe(true)
     expect(cniHasCapability(kubeOvn, 'subnetIsolation')).toBe(true)
@@ -25,15 +25,15 @@ describe('capability 能力判定', () => {
   })
 
   it('Cilium 支持 QoS 与异常检测；Calico 不支持 RDMA', () => {
-    const cilium = matrixForCni(cniCapabilityMatricesFixture, 'Cilium')
+    const cilium = matrixForCni(cniCapabilityMatricesFixture, 'cilium')
     expect(cniHasCapability(cilium, 'qosBandwidth')).toBe(true)
     expect(cniHasCapability(cilium, 'networkAnomalyDetection')).toBe(true)
-    const calico = matrixForCni(cniCapabilityMatricesFixture, 'Calico')
+    const calico = matrixForCni(cniCapabilityMatricesFixture, 'calico')
     expect(cniHasCapability(calico, 'rdma')).toBe(false)
   })
 
   it('未收录 CNI / 空矩阵返回不可用', () => {
     expect(cniHasCapability(null, 'networkPolicy')).toBe(false)
-    expect(matrixForCni([], 'Kube-OVN')).toBeNull()
+    expect(matrixForCni([], 'kube-ovn')).toBeNull()
   })
 })

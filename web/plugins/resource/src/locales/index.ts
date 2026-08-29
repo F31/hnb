@@ -429,6 +429,7 @@ export default definePluginMessages({
         uninstalledMsg: '插件 {name} 已卸载',
         keywordPlaceholder: '输入插件名称或分类',
         empty: '暂无插件',
+        requireCluster: '请先选择目标集群（进入集群详情页后重试）',
       },
       capability: {
         title: 'CNI 插件能力矩阵',
@@ -1291,6 +1292,7 @@ export default definePluginMessages({
         uninstalledMsg: 'Plugin {name} uninstalled',
         keywordPlaceholder: 'Enter plugin name or category',
         empty: 'No plugins',
+        requireCluster: 'Select a target cluster first (open from the cluster detail page)',
       },
       capability: {
         title: 'CNI Plugin Capability Matrix',

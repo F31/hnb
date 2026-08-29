@@ -5,6 +5,8 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest'
 import { validateYaml } from '../utils/yaml'
 import { setPluginI18nT } from '../api/pluginI18n'
+import { setClusterApiClient } from '../api/clusterApi'
+import type { ApiClient } from '@hnb/types'
 
 const OLD_ENV = { ...import.meta.env }
 
@@ -31,11 +33,42 @@ describe('p4Api 生产路径（无 fixture 标志）', () => {
     expect(await mod.getVulnerabilityDbStatus()).toBeNull()
   })
 
-  it('插件市场目录为空，安装/卸载抛未开放', async () => {
+  it('插件市场生产路径调用后端目录/安装/卸载端点（无 client 时报错）', async () => {
     const mod = await import('../api/p4Api')
-    expect(await mod.getPluginMarketCatalog()).toEqual([])
-    await expect(mod.installPlugin('hami', 'v1.0.2')).rejects.toThrow(/Unavailable/)
-    await expect(mod.uninstallPlugin('hami')).rejects.toThrow(/Unavailable/)
+    // 未注入 client → 拉目录应报未初始化，而非静默空态
+    await expect(mod.getPluginMarketCatalog('c1')).rejects.toThrow(/client is not initialized/)
+    // 未配置 client 时安装/卸载同样报未初始化（而非"未开放"）
+    await expect(mod.installPlugin('hami', 'v2.10.0', 'c1')).rejects.toThrow(/client is not initialized/)
+    await expect(mod.uninstallPlugin('hami', 'c1')).rejects.toThrow(/client is not initialized/)
+  })
+
+  it('插件市场接入后端端点（注入 mock client）', async () => {
+    const get = vi.fn<ApiClient['get']>()
+    const post = vi.fn<ApiClient['post']>()
+    const del = vi.fn<ApiClient['delete']>()
+    get.mockResolvedValue([
+      { name: 'calico', version: 'v3.32.1', description: 'Calico CNI', category: '网络', installed: true },
+    ])
+    post.mockResolvedValue({ id: 'ext-1', status: 'pending' })
+    del.mockResolvedValue({ status: 'uninstalled' })
+    // 与被测模块同一实例注入（afterEach 会 resetModules）
+    const { setClusterApiClient } = await import('../api/clusterApi')
+    setClusterApiClient({ get, post, delete: del } as unknown as ApiClient)
+
+    const mod = await import('../api/p4Api')
+    const catalog = await mod.getPluginMarketCatalog('c1')
+    expect(get).toHaveBeenCalledWith('/api/v1/plugin-catalog?clusterId=c1')
+    expect(catalog[0]?.installed).toBe(true)
+
+    await mod.installPlugin('hami', 'v2.10.0', 'c1')
+    expect(post).toHaveBeenCalledWith('/api/v1/plugin-catalog/installs', {
+      name: 'hami',
+      version: 'v2.10.0',
+      clusterId: 'c1',
+    })
+
+    await mod.uninstallPlugin('hami', 'c1')
+    expect(del).toHaveBeenCalledWith('/api/v1/plugin-catalog/installs/hami?clusterId=c1')
   })
 })
 

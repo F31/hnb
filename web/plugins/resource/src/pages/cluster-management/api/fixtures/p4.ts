@@ -65,14 +65,19 @@ export const vulnerabilityDbStatusFixture = {
   updatedAt: '2026-08-01 00:00:00',
 }
 
-/** 插件市场目录（GPU / 边缘计算 / 网络 / 存储 / 监控） */
+/** 插件市场目录（GPU / 网络 / 边缘计算 / 监控 / 存储 / 多集群 / 弹性伸缩 / 安全） */
 export const pluginMarketCatalogFixture: MarketPlugin[] = [
-  { name: 'hami', version: 'v1.0.2', description: 'HAMI GPU 虚拟化与显存调度', category: 'GPU', installed: false },
-  { name: 'gpu-operator', version: 'v24.9.0', description: 'NVIDIA GPU Operator', category: 'GPU', installed: false },
-  { name: 'kubeEdge', version: 'v1.18.0', description: 'KubeEdge 边缘计算框架', category: '边缘计算', installed: false },
-  { name: 'Kube-OVN', version: 'v1.12.0', description: 'Kube-OVN 容器网络（含安全组/多网卡）', category: '网络', installed: true },
-  { name: 'Cilium', version: 'v1.15.0', description: 'Cilium eBPF 容器网络', category: '网络', installed: false },
-  { name: 'Rook-Ceph', version: 'v1.14.0', description: 'Rook Ceph 分布式存储', category: '存储', installed: false },
-  { name: 'Longhorn', version: 'v1.6.0', description: 'Longhorn 块存储', category: '存储', installed: false },
-  { name: 'Prometheus Operator', version: 'v0.73.0', description: 'Prometheus 监控与告警', category: '监控', installed: true },
+  { name: 'hami', version: 'v2.10.0', description: 'HAMi GPU 虚拟化与显存调度（多厂商 vGPU / MIG / NPU）', category: 'GPU', installed: false },
+  { name: 'gpu-operator', version: 'v26.7.0', description: 'NVIDIA GPU Operator（驱动 / Device Plugin / DCGM）', category: 'GPU', installed: false },
+  { name: 'calico', version: 'v3.32.1', description: 'Calico CNI：网络策略、BGP 路由、可选 eBPF 数据面', category: '网络', installed: false },
+  { name: 'cilium', version: 'v1.20.1', description: 'Cilium eBPF CNI：L7 策略、Hubble、带宽管理', category: '网络', installed: false },
+  { name: 'kube-ovn', version: 'v1.16.2', description: 'Kube-OVN：子网、固定 IP、安全组、多网卡与 QoS', category: '网络', installed: true },
+  { name: 'multus-sriov', version: '', description: 'Multus + SR-IOV / RDMA / DPDK 高性能多网卡', category: '网络', installed: false },
+  { name: 'kubeedge', version: 'v1.23.1', description: 'KubeEdge 云边协同：CloudCore / EdgeCore、离线自治', category: '边缘计算', installed: false },
+  { name: 'prometheus-operator', version: 'v0.93.1', description: 'Prometheus 监控与告警（kube-prometheus-stack）', category: '监控', installed: true },
+  { name: 'rook-ceph', version: 'v1.20.6', description: 'Rook Ceph 分布式存储（块 / 文件 / 对象 + CSI）', category: '存储', installed: false },
+  { name: 'longhorn', version: 'v1.12.1', description: 'Longhorn 块存储（快照 / 克隆 / 备份）', category: '存储', installed: false },
+  { name: 'karmada', version: 'v1.18.2', description: 'Karmada 联邦多集群编排', category: '多集群', installed: false },
+  { name: 'keda', version: 'v2.20.2', description: 'KEDA 事件驱动弹性伸缩', category: '弹性伸缩', installed: false },
+  { name: 'falco', version: '0.44.1', description: 'Falco 运行时安全异常检测', category: '安全', installed: false },
 ]

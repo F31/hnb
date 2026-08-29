@@ -6,7 +6,7 @@ import type { CniCapabilityMatrix } from '../../types/capability'
 
 export const cniCapabilityMatricesFixture: CniCapabilityMatrix[] = [
   {
-    cni: 'Kube-OVN',
+    cni: 'kube-ovn',
     version: 'v1.12.0',
     capabilities: {
       networkPolicy: 'medium',
@@ -20,7 +20,7 @@ export const cniCapabilityMatricesFixture: CniCapabilityMatrix[] = [
     },
   },
   {
-    cni: 'Cilium',
+    cni: 'cilium',
     version: 'v1.15.0',
     capabilities: {
       networkPolicy: 'strong',
@@ -34,7 +34,7 @@ export const cniCapabilityMatricesFixture: CniCapabilityMatrix[] = [
     },
   },
   {
-    cni: 'Calico',
+    cni: 'calico',
     version: 'v3.27.0',
     capabilities: {
       networkPolicy: 'strong',
