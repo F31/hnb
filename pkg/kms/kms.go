@@ -27,3 +27,15 @@ func MasterKeyFromHex(keyHex string) ([]byte, error) {
 func MasterKeyFromEnv() ([]byte, error) {
 	return MasterKeyFromHex(os.Getenv("HNB_MASTER_KEY"))
 }
+
+// Decrypter opens AES-GCM sealed payloads (base64 nonce||ciphertext) sealed by
+// the platform's master-key cipher. It is the narrow surface service workers
+// need to read stored kubeconfig secrets.
+type Decrypter interface {
+	Decrypt(sealed string) ([]byte, error)
+}
+
+// Decrypt opens a sealed payload through the given decrypter.
+func Decrypt(d Decrypter, sealed string) ([]byte, error) {
+	return d.Decrypt(sealed)
+}

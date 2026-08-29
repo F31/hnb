@@ -77,6 +77,7 @@ func (m *ExtensionManager) Install(ctx context.Context, ext *core.Extension) err
 		"version":      ext.Version,
 		"provider":     ext.Manifest.Provider,
 		"action":       "install",
+		"target_id":    ext.TargetID,
 	}
 
 	subject := fmt.Sprintf("hnb.extension.provider.%s.install", ext.Manifest.Provider)
@@ -125,12 +126,13 @@ func (m *ExtensionManager) Upgrade(ctx context.Context, ext *core.Extension, new
 	extPhaseTransitions.WithLabelValues(ext.Name, string(core.ExtReady), string(core.ExtInstalling)).Inc()
 
 	payload := map[string]string{
-		"extension_id":  ext.ID,
-		"name":          ext.Name,
-		"version":       newVersion,
-		"prev_version":  prevVersion,
-		"provider":      ext.Manifest.Provider,
-		"action":        "upgrade",
+		"extension_id": ext.ID,
+		"name":         ext.Name,
+		"version":      newVersion,
+		"prev_version": prevVersion,
+		"provider":     ext.Manifest.Provider,
+		"action":       "upgrade",
+		"target_id":    ext.TargetID,
 	}
 
 	subject := fmt.Sprintf("hnb.extension.provider.%s.upgrade", ext.Manifest.Provider)
@@ -181,6 +183,7 @@ func (m *ExtensionManager) Uninstall(ctx context.Context, ext *core.Extension) e
 		"version":      ext.Version,
 		"provider":     ext.Manifest.Provider,
 		"action":       "uninstall",
+		"target_id":    ext.TargetID,
 	}
 
 	subject := fmt.Sprintf("hnb.extension.provider.%s.uninstall", ext.Manifest.Provider)
@@ -217,6 +220,7 @@ func (m *ExtensionManager) HealthCheck(ctx context.Context, ext *core.Extension)
 		"version":      ext.Version,
 		"provider":     ext.Manifest.Provider,
 		"action":       "health",
+		"target_id":    ext.TargetID,
 	}
 
 	subject := fmt.Sprintf("hnb.extension.provider.%s.health", ext.Manifest.Provider)
