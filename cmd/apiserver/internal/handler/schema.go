@@ -32,6 +32,9 @@ func (h *SchemaHandler) Page(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 
 	// 先按 revision 派生 ETag：命中则 304，避免全量读取。
+	// no-cache 强制客户端每次重验证（携带 If-None-Match），防止启发式缓存
+	// 复用旧 schema（尤其 revision 提升前缓存的旧端点路径）。
+	w.Header().Set("Cache-Control", "no-cache")
 	if revision, found := h.service.ActiveRevision(r.Context(), id); found {
 		etag := schemaEtag(id, revision)
 		if r.Header.Get("If-None-Match") == etag {

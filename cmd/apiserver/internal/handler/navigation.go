@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/F31/hnb/cmd/apiserver/internal/capability"
 	navapp "github.com/F31/hnb/cmd/apiserver/internal/application/navigation"
+	"github.com/F31/hnb/cmd/apiserver/internal/capability"
 	navinfra "github.com/F31/hnb/cmd/apiserver/internal/infrastructure/navigation"
 	"github.com/F31/hnb/cmd/apiserver/internal/response"
 	"github.com/F31/hnb/pkg/iam"
@@ -56,5 +56,7 @@ func (h *NavigationHandler) Menus(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("ETag", nav.ETag)
+	// no-cache 强制每次重验证（If-None-Match），防止启发式缓存复用旧导航。
+	w.Header().Set("Cache-Control", "no-cache")
 	_ = json.NewEncoder(w).Encode(nav)
 }
