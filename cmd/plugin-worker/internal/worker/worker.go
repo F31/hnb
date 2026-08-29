@@ -27,6 +27,10 @@ type Request struct {
 	Provider    string `json:"provider,omitempty"`
 	Action      string `json:"action,omitempty"`
 	TargetID    string `json:"target_id,omitempty"`
+	// Chart optionally overrides the default chart reference (a remote repo
+	// name such as "cilium/cilium" or a local path). When empty the built-in
+	// catalog mapping is used.
+	Chart string `json:"chart,omitempty"`
 }
 
 // Response is the reply extension-controller awaits; status must be
@@ -171,11 +175,16 @@ func (w *Worker) Install(ctx context.Context, req *Request) Response {
 	if err != nil {
 		return Response{Status: "failed", Message: err.Error()}
 	}
-	out, err := helmRun(ctx, w.helmPath, kubeconfig, "upgrade", "--install", req.Name,
-		chartName(req.Name),
+	args := []string{"upgrade", "--install", req.Name, chartArg(req),
 		"--namespace", namespaceFor(req.Name),
-		"--version", req.Version,
-		"--wait", "--timeout", "15m")
+		"--create-namespace",
+		"--wait", "--timeout", "15m"}
+	// --version only applies to remote chart references; local chart paths
+	// carry their own version in Chart.yaml.
+	if req.Chart == "" && req.Version != "" {
+		args = append(args, "--version", req.Version)
+	}
+	out, err := helmRun(ctx, w.helmPath, kubeconfig, args...)
 	if err != nil {
 		return Response{Status: "failed", Message: fmt.Sprintf("helm install: %v (%s)", err, truncate(out))}
 	}
@@ -233,6 +242,16 @@ func (w *Worker) respond(msg *nats.Msg, resp Response) {
 	if err := msg.Respond(data); err != nil {
 		log.Printf("[plugin-worker] respond error: %v", err)
 	}
+}
+
+// chartArg resolves the chart reference to install: an explicit request
+// override (local path or remote repo name) wins, otherwise the built-in
+// catalog mapping for the plugin name is used.
+func chartArg(req *Request) string {
+	if req.Chart != "" {
+		return req.Chart
+	}
+	return chartName(req.Name)
 }
 
 func chartName(name string) string {

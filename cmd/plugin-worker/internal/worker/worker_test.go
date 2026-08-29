@@ -192,3 +192,70 @@ func indexOf(hay, needle string) int {
 	}
 	return -1
 }
+
+// TestWorkerInstallWithRealHelm exercises the full path against a live cluster
+// using the real helm binary: it seeds a kubeconfig secret backed by the
+// HNB_TEST_REAL_HELM_KUBECONFIG file, installs a minimal local chart through
+// the worker, asserts the release is deployed, then uninstalls it.
+//
+// This test is opt-in: set HNB_TEST_REAL_HELM=1 and
+// HNB_TEST_REAL_HELM_KUBECONFIG to a kubeconfig for a reachable cluster, and
+// HNB_TEST_REAL_HELM_HELM to the helm binary path. A minimal chart is created
+// under the temp dir.
+func TestWorkerInstallWithRealHelm(t *testing.T) {
+	if os.Getenv("HNB_TEST_REAL_HELM") != "1" {
+		t.Skip("set HNB_TEST_REAL_HELM=1 to run the real-helm integration test")
+	}
+	kubeconfigPath := os.Getenv("HNB_TEST_REAL_HELM_KUBECONFIG")
+	helmPath := os.Getenv("HNB_TEST_REAL_HELM_HELM")
+	if kubeconfigPath == "" || helmPath == "" {
+		t.Skip("set HNB_TEST_REAL_HELM_KUBECONFIG and HNB_TEST_REAL_HELM_HELM")
+	}
+	db := openTestDB(t)
+	defer db.Close()
+	ctx := context.Background()
+
+	// Minimal local chart (no remote repository / image pulls needed).
+	chartDir := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(chartDir, "templates"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	chartYAML := "apiVersion: v2\nname: worker-e2e\ndescription: minimal\nversion: 0.1.0\n"
+	if err := os.WriteFile(filepath.Join(chartDir, "Chart.yaml"), []byte(chartYAML), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(chartDir, "templates", "configmap.yaml"), []byte("apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: worker-e2e-cm\ndata:\n  from: worker\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	tenantID := "plugin-worker-" + uuid.NewString()
+	targetID := uuid.NewString()
+	resourcesDir := t.TempDir()
+
+	cipher, _ := kms.NewAESGCMFromHex("0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef")
+	kcRaw, err := os.ReadFile(kubeconfigPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sealed, err := cipher.Encrypt(kcRaw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	seeded := sealForRef(t, db, ctx, tenantID, sealed, targetID)
+
+	w := worker.New(db, cipher, nil, helmPath, resourcesDir)
+	req := worker.Request{
+		Name: "worker-e2e", Version: "0.1.0", Provider: "plugin", Action: "install",
+		TargetID: targetID, Chart: chartDir,
+	}
+	if resp := w.Install(ctx, &req); resp.Status != "succeeded" {
+		t.Fatalf("real install = %s (%s)", resp.Status, resp.Message)
+	}
+	if resp := w.Health(ctx, &worker.Request{Name: "worker-e2e", TargetID: targetID, Action: "health"}); resp.Status != "succeeded" {
+		t.Fatalf("real health = %s (%s)", resp.Status, resp.Message)
+	}
+	if resp := w.Uninstall(ctx, &worker.Request{Name: "worker-e2e", TargetID: targetID, Action: "uninstall"}); resp.Status != "succeeded" {
+		t.Fatalf("real uninstall = %s (%s)", resp.Status, resp.Message)
+	}
+	cleanupWorkerResources(t, db, ctx, tenantID, seeded, targetID)
+}
