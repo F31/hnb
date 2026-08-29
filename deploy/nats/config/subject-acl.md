@@ -95,6 +95,13 @@ authorization {
       }
     }
     {
+      user: "plugin-worker"
+      permissions: {
+        publish: ["_INBOX.>"]
+        subscribe: ["hnb.extension.provider.>", "_INBOX.>"]
+      }
+    }
+    {
       user: "calico-provider"
       permissions: { publish: ["hnb.network.calico.*.result", "$JS.API.>", "$JS.ACK.>"], subscribe: ["hnb.network.calico.>", "_INBOX.>"] }
     }

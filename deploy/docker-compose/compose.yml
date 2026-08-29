@@ -379,6 +379,41 @@ services:
     profiles:
       - lifecycle
 
+  plugin-worker:
+    build:
+      context: ../..
+      network: host
+      dockerfile: cmd/plugin-worker/Dockerfile
+      args:
+        GOLANG_IMAGE: ${GOLANG_IMAGE:-golang:1.24}
+        HELM_VERSION: ${HELM_VERSION:-v3.16.2}
+        HTTP_PROXY: ""
+        HTTPS_PROXY: ""
+        ALL_PROXY: ""
+        http_proxy: ""
+        https_proxy: ""
+        all_proxy: ""
+    image: hnb/plugin-worker:latest
+    pull_policy: build
+    environment:
+      DB_DSN: postgres://hnb:hnb123@postgres:5432/hnb?sslmode=disable
+      NATS_URL: nats://nats:4222
+      NATS_INSECURE: "true"
+      LISTEN_ADDR: ":8080"
+      # Must match platform-api's key so stored kubeconfig secrets can be opened.
+      HNB_MASTER_KEY: ${HNB_MASTER_KEY:-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef}
+      HELM_PATH: /usr/local/bin/helm
+      KUBECONFIG_DIR: /tmp/hnb-plugin-worker
+    expose:
+      - "8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      nats:
+        condition: service_started
+    profiles:
+      - lifecycle
+
   gateway-provider:
     build:
       context: ../cmd/gateway-provider

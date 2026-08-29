@@ -34,6 +34,8 @@ cmd/*
 !cmd/cluster-agent/**
 !cmd/tunnel-server
 !cmd/tunnel-server/**
+!cmd/plugin-worker
+!cmd/plugin-worker/**
 calico-provider
 cilium-provider
 kube-ovn-provider
