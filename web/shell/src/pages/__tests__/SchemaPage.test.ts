@@ -27,7 +27,7 @@ function schemaFixture(minShellVersion?: string) {
       template: 'list',
       titleKey: 'title',
       layout: { type: 'grid' },
-      endpoints: [{ id: 'clusters.list', path: '/api/v1/clusters', method: 'GET' }],
+      endpoints: [{ id: 'clusters.list', path: '/api/v1/resources/clusters', method: 'GET' }],
       dataSources: [{ id: 'clusters', type: 'paginatedQuery', endpointId: 'clusters.list', responseMapping: { items: 'data.items', total: 'data.total' } }],
       actions: [{ id: 'refresh', type: 'api', labelKey: 'refresh', permission: 'schema:read', request: { method: 'GET', endpointId: 'clusters.list' } }],
       regions: [{ id: 'table', componentType: 'DataTable', span: 12, props: { columns: [{ key: 'name', title: 'Name' }], dataSource: 'clusters', actions: ['refresh'] }, condition: { all: [{ permission: 'schema:read' }] } }],
@@ -60,8 +60,8 @@ describe('SchemaPage', () => {
 
     expect(wrapper.text()).toContain('Clusters')
     expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/v1/schema/page/cluster-list', expect.objectContaining({ method: 'GET' }))
-    expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/v1/clusters?page=1&pageSize=20', expect.objectContaining({ method: 'GET' }))
-    expect(fetchMock).toHaveBeenNthCalledWith(3, '/api/v1/clusters', expect.objectContaining({ method: 'GET' }))
+    expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/v1/resources/clusters?page=1&pageSize=20', expect.objectContaining({ method: 'GET' }))
+    expect(fetchMock).toHaveBeenNthCalledWith(3, '/api/v1/resources/clusters', expect.objectContaining({ method: 'GET' }))
   })
 
   it('shows upgrade guidance for incompatible schema', async () => {

@@ -62,7 +62,6 @@ for (const prefix of [
   '/api/v1/operations',
   '/api/v1/runtime-intents',
   '/api/v1/dictionaries/cluster.status',
-  '/api/v1/clusters',
 ]) {
   dataSources.allowEndpoint(prefix)
 }

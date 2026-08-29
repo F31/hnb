@@ -53,7 +53,7 @@ SELECT 'cluster-list', 1, jsonb_build_object(
         'descriptionKey', 'cluster.description',
         'layout', jsonb_build_object('type', 'grid', 'columns', 12, 'gap', 'md'),
         'endpoints', jsonb_build_array(
-            jsonb_build_object('id', 'clusters.list', 'path', '/api/v1/clusters', 'method', 'GET')
+            jsonb_build_object('id', 'clusters.list', 'path', '/api/v1/resources/clusters', 'method', 'GET')
         ),
         'dataSources', jsonb_build_array(
             jsonb_build_object(
