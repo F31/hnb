@@ -15,11 +15,11 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/nats-io/nats.go/jetstream"
 
+	"github.com/F31/hnb/cmd/apiserver/internal/capability"
 	"github.com/F31/hnb/cmd/apiserver/internal/config"
 	"github.com/F31/hnb/cmd/apiserver/internal/leader"
 	"github.com/F31/hnb/cmd/apiserver/internal/metrics"
 	"github.com/F31/hnb/cmd/apiserver/internal/middleware"
-	"github.com/F31/hnb/cmd/apiserver/internal/capability"
 	"github.com/F31/hnb/cmd/apiserver/internal/router"
 	"github.com/F31/hnb/cmd/apiserver/internal/server"
 	"github.com/F31/hnb/pkg/audit"
@@ -62,6 +62,11 @@ func main() {
 		if err := bootstrapAdmin(context.Background(), db, cfg.BootstrapAdminPassword, cfg.TokenIssuer); err != nil {
 			log.Fatalf("bootstrap: %v", err)
 		}
+	}
+	// Existing deployments predate the default workspace; ensure it exists so
+	// login has a workspace to land on.
+	if err := ensureDefaultWorkspace(context.Background(), db); err != nil {
+		log.Printf("ensure default workspace: %v", err)
 	}
 	keySet, err := iam.LoadReloadingKeySet(context.Background(), iam.ReloadingKeySetConfig{
 		ManifestPath: cfg.TokenKeyManifestPath, ActivePrivateKeyPath: cfg.TokenPrivateKeyPath,

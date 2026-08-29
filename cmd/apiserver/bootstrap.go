@@ -81,6 +81,10 @@ func bootstrapAdmin(ctx context.Context, db *sql.DB, password, issuer string) er
 			[]any{bindingID, tenantID, subjectID, roleID, now}},
 		{`INSERT INTO role_bindings (id, role_id, user_id, scope, created_at) VALUES ($1,'admin',$2,'global',$3)`,
 			[]any{rbBindingID, userID, now}},
+		// The bootstrap tenant gets a default workspace so the console has a
+		// space to land on after login (fetchWorkspaces would otherwise be empty).
+		{`INSERT INTO workspaces (id, tenant_id, name, display_name, labels, is_active, created_at, updated_at) VALUES ($1,$2,'default','默认工作空间','{}',true,$3,$3)`,
+			[]any{uuid.NewString(), tenantID, now}},
 	}
 
 	for _, stmt := range statements {
@@ -100,4 +104,26 @@ func bootstrapAdmin(ctx context.Context, db *sql.DB, password, issuer string) er
 func sha256Hex(data []byte) string {
 	d := sha256.Sum256(data)
 	return hex.EncodeToString(d[:])
+}
+
+// ensureDefaultWorkspace is an idempotent fallback for existing deployments
+// that were bootstrapped before the default workspace was added: it creates a
+// 'default' workspace in the bootstrap tenant when one is missing so the
+// console can always land somewhere after login.
+func ensureDefaultWorkspace(ctx context.Context, db *sql.DB) error {
+	var count int
+	if err := db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM workspaces WHERE tenant_id = 'default'`).Scan(&count); err != nil {
+		return fmt.Errorf("ensure default workspace: %w", err)
+	}
+	if count > 0 {
+		return nil
+	}
+	if _, err := db.ExecContext(ctx,
+		`INSERT INTO workspaces (id, tenant_id, name, display_name, labels, is_active, created_at, updated_at)
+		 VALUES (gen_random_uuid(), 'default', 'default', '默认工作空间', '{}', true, now(), now())`); err != nil {
+		return fmt.Errorf("ensure default workspace: %w", err)
+	}
+	log.Println("[bootstrap] created default workspace in tenant=default")
+	return nil
 }
