@@ -71,6 +71,7 @@ func NewWithCapabilities(db *sql.DB, ts *tunnel.TunnelServer, authMW *middleware
 		marketURL = appMarketURL
 	}
 	marketH := handler.NewMarketHandler(marketURL)
+	pluginCatalogH := handler.NewPluginCatalogHandler(db, marketURL)
 	capabilityH := handler.NewCapabilityHandler(caps)
 
 	// Staged cluster capability gates (fail-closed before application state).
@@ -189,6 +190,9 @@ func NewWithCapabilities(db *sql.DB, ts *tunnel.TunnelServer, authMW *middleware
 		"audit.list":                            auditH.List,
 		"audit.get":                             auditH.Get,
 		"market.proxy":                          marketH.Proxy,
+		"plugin-catalog.list":                   readGate(pluginCatalogH.List),
+		"plugin-catalog.install":                writeGate(pluginCatalogH.Install),
+		"plugin-catalog.uninstall":              writeGate(pluginCatalogH.Uninstall),
 		"settings.list":                         settingsH.List,
 		"settings.update":                       settingsH.Update,
 		"storage.overview":                      storageH.Overview,
@@ -340,6 +344,9 @@ func NewWithCapabilities(db *sql.DB, ts *tunnel.TunnelServer, authMW *middleware
 	coreMux.HandleFunc("PUT /api/v1/market/{path...}", coreHandlers["market.proxy"])
 	coreMux.HandleFunc("PATCH /api/v1/market/{path...}", coreHandlers["market.proxy"])
 	coreMux.HandleFunc("DELETE /api/v1/market/{path...}", coreHandlers["market.proxy"])
+	coreMux.HandleFunc("GET /api/v1/plugin-catalog", coreHandlers["plugin-catalog.list"])
+	coreMux.HandleFunc("POST /api/v1/plugin-catalog/installs", coreHandlers["plugin-catalog.install"])
+	coreMux.HandleFunc("DELETE /api/v1/plugin-catalog/installs/{name}", coreHandlers["plugin-catalog.uninstall"])
 
 	// Authorization runs before tenant enrichment so denied routes cannot query application state.
 	chain := middleware.NewChain()

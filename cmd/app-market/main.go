@@ -24,6 +24,7 @@ import (
 	"github.com/nats-io/nats.go"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
+	"github.com/F31/hnb/cmd/app-market/internal/seed"
 	"github.com/F31/hnb/pkg/appstore"
 	"github.com/F31/hnb/pkg/appstore/helm"
 	"github.com/F31/hnb/pkg/appstore/security"
@@ -282,6 +283,12 @@ func allowedArtifactSuffixes(artifactType string) []string {
 	}
 }
 
+func seedPluginCatalog(pubRepo *store.PublisherRepo, prodRepo *store.ProductRepo, relRepo *store.ReleaseRepo) error {
+	// The plugin catalog is platform-wide: seeded under the well-known dev tenant
+	// with public visibility so every tenant can read it via scope=public.
+	return seed.SeedPluginCatalog(pubRepo, prodRepo, relRepo, "tenant-dev")
+}
+
 func ensureDefaultHarborProfile(cfg *Config, profileRepo *store.StorageProfileRepo, tenantID string) error {
 	if cfg.HarborURL == "" {
 		return nil
@@ -368,6 +375,11 @@ func main() {
 	securityRepo := store.NewSecurityRepo(db)
 	if err := ensureDefaultHarborProfile(cfg, profileRepo, "tenant-dev"); err != nil {
 		log.Printf("[app-market] ensure default Harbor profile failed: %v", err)
+	}
+
+	// Seed the platform plugin catalog (hnb-official publisher, public products).
+	if err := seedPluginCatalog(pubRepo, prodRepo, relRepo); err != nil {
+		log.Printf("[app-market] plugin catalog seed failed: %v", err)
 	}
 
 	// Harbor robot client + OCI storage (if Harbor configured)

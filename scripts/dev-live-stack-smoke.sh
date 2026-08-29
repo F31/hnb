@@ -57,7 +57,7 @@ JSON
 export_env() {
   export HNB_IDENTITY_KEYSET_DIR="${IDENTITY_DIR}"
   export API_TOKEN_ISSUER="${ISSUER}"
-  export API_TOKEN_AUDIENCES="hnb-apiserver,hnb-platform-api"
+  export API_TOKEN_AUDIENCES="hnb-apiserver,hnb-platform-api,hnb-app-market"
   export HTTP_PROXY=""
   export HTTPS_PROXY=""
   export ALL_PROXY=""
