@@ -147,8 +147,8 @@ func TestPluginCatalogInstallUninstall(t *testing.T) {
 		Scan(&extID, &phase, &providerType); err != nil {
 		t.Fatalf("extension lookup: %v", err)
 	}
-	if phase != "pending" || providerType != "kubernetes" {
-		t.Fatalf("extension = (phase=%s, provider=%s), want pending/kubernetes", phase, providerType)
+	if phase != "pending" || providerType != "plugin" {
+		t.Fatalf("extension = (phase=%s, provider=%s), want pending/plugin (no market configured -> default)", phase, providerType)
 	}
 
 	// Uninstall (routed through a mux so {name} PathValue resolves)
@@ -168,6 +168,63 @@ func TestPluginCatalogInstallUninstall(t *testing.T) {
 	}
 	if count != 0 {
 		t.Fatalf("extension still present after uninstall: %d", count)
+	}
+}
+
+func TestPluginCatalogInstallRoutesProviderFromCatalog(t *testing.T) {
+	dsn := os.Getenv("HNB_TEST_POSTGRES_DSN")
+	if dsn == "" {
+		t.Skip("HNB_TEST_POSTGRES_DSN is not set")
+	}
+	db, err := sql.Open("postgres", dsn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	ctx := context.Background()
+	tenantID := "plugin-catalog-" + uuid.NewString()
+	clusterID := uuid.NewString()
+	if _, err := db.ExecContext(ctx, `INSERT INTO tenants (id, name, display_name) VALUES ($1,$1,$1)`, tenantID); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		_, _ = db.ExecContext(ctx, `DELETE FROM extensions WHERE target_id=$1`, clusterID)
+		_, _ = db.ExecContext(ctx, `DELETE FROM runtime_targets WHERE id=$1`, clusterID)
+		_, _ = db.ExecContext(ctx, `DELETE FROM tenants WHERE id=$1`, tenantID)
+	})
+	if _, err := db.ExecContext(ctx, `
+		INSERT INTO runtime_targets (id, tenant_id, name, display_name, target_type, connection_type, status)
+		VALUES ($1,$2,'kind-demo','Kind Demo','kubernetes','agent','online')`, clusterID, tenantID); err != nil {
+		t.Fatal(err)
+	}
+
+	market := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"items": []map[string]any{
+				{"name": "cilium", "display_name": "Cilium", "category": "tool", "labels": map[string]string{"plugin": "true", "plugin.provider": "cni", "plugin.version": "v1.20.1"}},
+			},
+			"total": 1, "page": 1, "pageSize": 100,
+		})
+	}))
+	defer market.Close()
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/plugin-catalog/installs",
+		strings.NewReader(`{"name":"cilium","clusterId":"`+clusterID+`"}`))
+	req = req.WithContext(pluginCatalogTestContext("subject-1", tenantID))
+	rec := httptest.NewRecorder()
+	NewPluginCatalogHandler(db, market.URL).Install(rec, req)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("install status = %d body=%s", rec.Code, rec.Body.String())
+	}
+
+	var version, provider string
+	if err := db.QueryRowContext(ctx, `SELECT version, provider_type FROM extensions WHERE name='cilium' AND target_id=$1`, clusterID).
+		Scan(&version, &provider); err != nil {
+		t.Fatalf("extension lookup: %v", err)
+	}
+	if provider != "cni" || version != "v1.20.1" {
+		t.Fatalf("extension = (version=%s provider=%s), want v1.20.1/cni", version, provider)
 	}
 }
 

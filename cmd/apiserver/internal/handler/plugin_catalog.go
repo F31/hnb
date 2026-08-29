@@ -150,7 +150,9 @@ func (h *PluginCatalogHandler) fetchCatalog(r *http.Request) ([]marketProductWit
 	return catalog, nil
 }
 
-// installedExtensions returns the names of extensions bound to a target cluster.
+// installedExtensions returns the names of extensions currently being installed
+// or ready on a target cluster. Degraded/uninstalling extensions are NOT
+// reported as installed (their deployment did not reach a working state).
 func (h *PluginCatalogHandler) installedExtensions(r *http.Request, tenantID, clusterID string) ([]string, error) {
 	if clusterID == "" {
 		return nil, nil
@@ -159,7 +161,7 @@ func (h *PluginCatalogHandler) installedExtensions(r *http.Request, tenantID, cl
 		FROM extensions e
 		JOIN runtime_targets rt ON rt.id::text = COALESCE(e.runtime_target_id::text, e.target_id)
 		WHERE rt.id::text = $1 AND rt.tenant_id = $2
-		  AND e.phase IN ('installing','ready','degraded')`, clusterID, tenantID)
+		  AND e.phase IN ('installing','ready')`, clusterID, tenantID)
 	if err != nil {
 		return nil, err
 	}
@@ -208,25 +210,45 @@ func (h *PluginCatalogHandler) Install(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// The target cluster must belong to the caller's tenant.
-	var kindLabel sql.NullString
+	var targetType string
 	err := h.db.QueryRow(`SELECT rt.target_type
 		FROM runtime_targets rt
-		WHERE rt.id::text=$1 AND rt.tenant_id=$2`, req.ClusterID, trusted.TenantID).
-		Scan(&kindLabel)
+		WHERE rt.id::text=$1 AND rt.tenant_id=$2`, req.ClusterID, trusted.TenantID).Scan(&targetType)
 	if err != nil {
 		response.NotFound(w, "cluster not found in tenant")
 		return
+	}
+	_ = targetType
+
+	// Resolve the plugin's provider/key from the catalog so the extension is
+	// routed to the right provider worker (hnb.extension.provider.<provider>).
+	provider := "plugin"
+	if h.marketURL != "" {
+		if catalog, err := h.fetchCatalog(r); err == nil {
+			for _, p := range catalog {
+				if p.Name != req.Name {
+					continue
+				}
+				if v := p.Labels["plugin.provider"]; v != "" {
+					provider = v
+				}
+				if req.Version == "" {
+					req.Version = p.Labels["plugin.version"]
+				}
+				break
+			}
+		}
 	}
 
 	extID := uuid.NewString()
 	manifest := map[string]any{
 		"name": req.Name, "version": req.Version,
-		"provider": kindLabel.String,
+		"provider": provider,
 	}
 	mJSON, _ := json.Marshal(manifest)
 	if _, err := h.db.Exec(`INSERT INTO extensions (id, name, version, provider_type, target_id, phase, manifest, created_at, updated_at)
 		VALUES ($1,$2,$3,$4,$5,'pending',$6,NOW(),NOW())`,
-		extID, req.Name, req.Version, kindLabel.String, req.ClusterID, string(mJSON)); err != nil {
+		extID, req.Name, req.Version, provider, req.ClusterID, string(mJSON)); err != nil {
 		response.InternalError(w, err.Error())
 		return
 	}
