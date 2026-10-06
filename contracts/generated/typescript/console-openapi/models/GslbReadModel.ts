@@ -3,6 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { GslbDrillVerdict } from './GslbDrillVerdict';
+import type { GslbHealthCheck } from './GslbHealthCheck';
 import type { GslbLifecycleState } from './GslbLifecycleState';
 export type GslbReadModel = {
     serviceId: string;
@@ -12,6 +13,7 @@ export type GslbReadModel = {
     lifecycleState: GslbLifecycleState;
     healthyPools?: Array<string>;
     currentDnsTargets?: Array<string>;
+    healthCheck?: GslbHealthCheck;
     lastSwitchRequestId?: string;
     lastSwitchAt?: string;
     lastDrillReportId?: string;

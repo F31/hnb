@@ -3,12 +3,13 @@ package gslb
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/F31/hnb/pkg/gslb"
 	"github.com/F31/hnb/pkg/iam"
+	"github.com/google/uuid"
 )
 
 const (
@@ -72,6 +73,94 @@ func (s *stubRepo) GetSwitchRequest(_ context.Context, id, _ string) (SwitchRequ
 	return req, ok, nil
 }
 
+func (s *stubRepo) ListPools(_ context.Context, serviceID, tenantID string) ([]Pool, error) {
+	svc, ok := s.services[serviceID]
+	if !ok || svc.TenantID != tenantID {
+		return nil, nil
+	}
+	membersOf := func(poolID string) []PoolMember {
+		var out []PoolMember
+		for _, clusterID := range s.members[poolID] {
+			out = append(out, PoolMember{ClusterID: clusterID, Weight: 100})
+		}
+		return out
+	}
+	return []Pool{
+		{ID: testPoolA, Name: "active", Priority: 0, Members: membersOf(testPoolA)},
+		{ID: testPoolB, Name: "backup", Priority: 1, Members: membersOf(testPoolB)},
+	}, nil
+}
+
+func (s *stubRepo) GetServiceByDomain(_ context.Context, tenantID, domain string) (Service, bool, error) {
+	for _, svc := range s.services {
+		if svc.TenantID == tenantID && svc.Domain == domain {
+			return svc, true, nil
+		}
+	}
+	return Service{}, false, nil
+}
+
+func (s *stubRepo) ExistingTenantClusters(_ context.Context, _ string, clusterIDs []string) (map[string]bool, error) {
+	existing := map[string]bool{}
+	for _, id := range clusterIDs {
+		existing[id] = true
+	}
+	return existing, nil
+}
+
+func (s *stubRepo) CreateService(_ context.Context, svc Service, _ HealthCheck, _ []Pool) error {
+	s.services[svc.ID] = svc
+	return nil
+}
+
+func (s *stubRepo) UpdateService(_ context.Context, svc Service, expectedUpdatedAt time.Time) (Service, bool, error) {
+	current, ok := s.services[svc.ID]
+	if !ok || !expectedUpdatedAt.Equal(current.UpdatedAt) {
+		return Service{}, false, nil
+	}
+	s.services[svc.ID] = svc
+	return svc, true, nil
+}
+
+func (s *stubRepo) ReplaceServicePools(_ context.Context, serviceID, tenantID string, pools []Pool, newActivePoolID string, expectedUpdatedAt time.Time) (bool, error) {
+	svc, ok := s.services[serviceID]
+	if !ok || svc.TenantID != tenantID || !expectedUpdatedAt.Equal(svc.UpdatedAt) {
+		return false, nil
+	}
+	svc.ActivePoolID = newActivePoolID
+	s.services[serviceID] = svc
+	return true, nil
+}
+
+func (s *stubRepo) DeleteService(_ context.Context, id, tenantID string) (bool, error) {
+	svc, ok := s.services[id]
+	if !ok || svc.TenantID != tenantID {
+		return false, nil
+	}
+	delete(s.services, id)
+	return true, nil
+}
+
+func (s *stubRepo) HasInflightSwitchRequests(_ context.Context, serviceID, tenantID string) (bool, error) {
+	for _, req := range s.requests {
+		if req.ServiceID == serviceID && req.TenantID == tenantID &&
+			(req.Status == StatusPendingApproval || req.Status == StatusApproved || req.Status == StatusDispatched) {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func (s *stubRepo) ListSwitchRequests(_ context.Context, tenantID, serviceID, status string) ([]SwitchRequest, error) {
+	var out []SwitchRequest
+	for _, req := range s.requests {
+		if req.TenantID == tenantID && req.ServiceID == serviceID && (status == "" || req.Status == status) {
+			out = append(out, req)
+		}
+	}
+	return out, nil
+}
+
 func (s *stubRepo) CreateSwitchRequest(_ context.Context, req SwitchRequest, drill *DrillReport, events []OutboxEvent) error {
 	s.lastDrill = drill
 	s.requests[req.ID] = req
@@ -108,6 +197,14 @@ func (s *stubRepo) UpdateSwitchRequestStatus(_ context.Context, id, status strin
 	return nil
 }
 
+func (s *stubRepo) CompleteSwitchRequest(_ context.Context, id string) error {
+	req := s.requests[id]
+	req.Status = StatusSucceeded
+	s.requests[id] = req
+	s.transitions = append(s.transitions, id+":"+StatusSucceeded)
+	return nil
+}
+
 func trustedWith(permissions ...iam.ScopedPermission) iam.TrustedContext {
 	return iam.TrustedContext{SubjectID: "subject-a", TenantID: "tenant-a", ScopedPermissions: permissions}
 }
@@ -122,10 +219,10 @@ func gslbUpdate() iam.ScopedPermission {
 
 func intentBody(kind gslb.IntentKind, targetPool string, key string) []byte {
 	body, _ := json.Marshal(map[string]any{
-		"apiVersion": "gslb.hnb.io/v1",
-		"kind":       string(kind),
-		"serviceId":  testServiceID,
-		"tenantId":   "tenant-a",
+		"apiVersion":   "gslb.hnb.io/v1",
+		"kind":         string(kind),
+		"serviceId":    testServiceID,
+		"tenantId":     "tenant-a",
 		"targetPoolId": targetPool,
 		"metadata": map[string]any{
 			"idempotencyKey": key,
@@ -180,7 +277,7 @@ func TestSubmitWeightUpdateDispatchesImmediately(t *testing.T) {
 		"kind":       "gslb.weight-update",
 		"serviceId":  testServiceID,
 		"tenantId":   "tenant-a",
-		"weights":    map[string]int{testClusterA: 50, testClusterB: 50},
+		"weights":    map[string]int{testClusterA: 50},
 		"metadata": map[string]any{
 			"idempotencyKey": "k-weight-1",
 			"correlationId":  "00000000-0000-4000-8000-0000000000c1",
@@ -202,6 +299,48 @@ func TestSubmitWeightUpdateDispatchesImmediately(t *testing.T) {
 	}
 	if !found {
 		t.Fatalf("approved executable intent must dispatch, events=%v", got)
+	}
+	// 权重链路闭环（GSLB 三期）：计划 apply 步骤必须钉死权重作用的成员集合
+	var plan gslb.Plan
+	if err := json.Unmarshal(req.PlanSnapshot, &plan); err != nil {
+		t.Fatal(err)
+	}
+	var apply *gslb.Step
+	for i := range plan.Steps {
+		if plan.Steps[i].StepType == gslb.StepDNSApply {
+			apply = &plan.Steps[i]
+		}
+	}
+	if apply == nil {
+		t.Fatal("plan missing apply step")
+	}
+	targets, ok := apply.Inputs["targets"].([]any)
+	if !ok || len(targets) != 1 || targets[0] != testClusterA {
+		t.Fatalf("apply targets = %v", apply.Inputs["targets"])
+	}
+	weights, ok := apply.Inputs["weights"].(map[string]any)
+	if !ok || weights[testClusterA] != float64(50) {
+		t.Fatalf("apply weights = %v", apply.Inputs["weights"])
+	}
+}
+
+func TestSubmitWeightUpdateRejectsMemberOutsideActivePool(t *testing.T) {
+	repo := newStubRepo()
+	app := NewService(repo)
+	body, _ := json.Marshal(map[string]any{
+		"apiVersion": "gslb.hnb.io/v1",
+		"kind":       "gslb.weight-update",
+		"serviceId":  testServiceID,
+		"tenantId":   "tenant-a",
+		// cluster-b 属于 backup 池：权重无法映射到 DNS 目标，fail-closed 拒绝
+		"weights": map[string]int{testClusterB: 50},
+		"metadata": map[string]any{
+			"idempotencyKey": "k-weight-2",
+			"correlationId":  "00000000-0000-4000-8000-0000000000c1",
+		},
+	})
+	if _, err := app.SubmitIntent(context.Background(), body, testServiceID, trustedWith(gslbExecute())); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("err = %v", err)
 	}
 }
 
@@ -304,12 +443,12 @@ func TestApproveDispatchesAndRejectBlocks(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// 审批通过 → 派发执行命令
+	// 审批通过 → 派发执行命令并完成控制台投影闭环
 	approved, err := app.Approve(context.Background(), req.ID, trustedWith(gslbUpdate()))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if approved.Status != StatusApproved {
+	if approved.Status != StatusSucceeded {
 		t.Fatalf("status = %s", approved.Status)
 	}
 	last := repo.events[len(repo.events)-1]

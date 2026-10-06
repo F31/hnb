@@ -449,6 +449,44 @@ paths:
           $ref: "#/components/responses/Problem"
         default:
           $ref: "#/components/responses/Problem"
+    post:
+      tags: [GSLB Services]
+      operationId: createGslbService
+      summary: Create a GSLB service with pools and health check template
+      description: |
+        GSLB 三期服务创建：校验 name/domain/pools/members（clusterId 必须匹配当前租户
+        runtime_targets 中的 Kubernetes 目标名称），priority 最小者为初始 active 池。幂等：同租户同 domain 重复创建返回
+        既有服务（200）。Requires gslb:create.
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GslbCreateServiceRequest"
+      responses:
+        "201":
+          description: The created service with pool topology.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GslbServiceDetail"
+        "200":
+          description: Idempotent replay — the existing service for this tenant+domain.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GslbServiceDetail"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
   /api/v1/gslb/services/{id}:
     get:
       tags: [GSLB Services]
@@ -471,6 +509,81 @@ paths:
         "403":
           $ref: "#/components/responses/Problem"
         "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+    patch:
+      tags: [GSLB Services]
+      operationId: updateGslbService
+      summary: Update editable fields of a GSLB service
+      description: |
+        GSLB 四期服务编辑：仅 name / requireApproval / healthCheck 可变（domain、routingMode、
+        lifecycleState 不可由该路径修改）。FailingOver 中拒绝（409）。乐观并发：If-Match 携带
+        先前读到的 updatedAt，过期返回 409。幂等：合并后与现状一致时返回 200 且不变更。
+        Requires gslb:update.
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/IfMatch"
+        - $ref: "#/components/parameters/GslbServiceId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GslbUpdateServiceRequest"
+      responses:
+        "200":
+          description: The service after the update (unchanged on idempotent replay).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GslbServiceDetail"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+    delete:
+      tags: [GSLB Services]
+      operationId: deleteGslbService
+      summary: Delete a GSLB service (dangerous)
+      description: |
+        GSLB 四期服务删除：仅 lifecycleState 为 Inactive/Paused 可删；其余状态需显式
+        force=true，且服务当前不得有进行中（PendingApproval/Approved/Dispatched）的切换请求。
+        删除经外键 CASCADE 同事务清理 pools/members/Read Model/切换历史/演练报告；
+        关联的平台 operations 行保留作审计。Requires gslb:delete.
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/IfMatch"
+        - $ref: "#/components/parameters/GslbServiceId"
+        - name: force
+          in: query
+          required: false
+          description: 强制删除非 Inactive/Paused 服务（仍要求无进行中切换请求）。
+          schema:
+            type: boolean
+            default: false
+      responses:
+        "204":
+          description: Service deleted; pools/members/read model/switch history cascade-removed.
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "409":
           $ref: "#/components/responses/Problem"
         default:
           $ref: "#/components/responses/Problem"
@@ -504,19 +617,102 @@ paths:
     get:
       tags: [GSLB Services]
       operationId: listGslbPools
-      summary: List the pools of a GSLB service
+      summary: List the pool topology of a GSLB service
+      description: |
+        地址池拓扑（前端“地址池拓扑”页签）：isActive 对照服务 active_pool_id，
+        healthy 对照 Read Model healthy_pools（投影缺失时 false）。只读，请求路径零探测。
       parameters:
         - $ref: "#/components/parameters/CorrelationId"
         - $ref: "#/components/parameters/GslbServiceId"
       responses:
         "200":
-          description: Pools with members.
+          description: Pools with members, ascending by priority.
           content:
             application/json:
               schema:
                 type: array
                 items:
                   $ref: "#/components/schemas/GslbPool"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+    put:
+      tags: [GSLB Services]
+      operationId: replaceGslbServicePools
+      summary: Replace the whole pool topology of a GSLB service
+      description: |
+        GSLB 四期地址池整组替换：校验同创建（≥1 池、priority 唯一、成员非空、weight 0-100、
+        clusterId 必须匹配当前租户 runtime_targets 中的 Kubernetes 目标名称）。池以 name 为身份，服务端重新生成 pool id；
+        当前 active 池的名字必须仍在新配置中，否则 409（先 failover 到保留的池）。
+        FailingOver 中拒绝（409）。事务内删旧建新并重指 active 池。幂等：新配置与现状语义
+        一致时返回 200 且不变更。If-Match 乐观并发同 PATCH。Requires gslb:update.
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/IfMatch"
+        - $ref: "#/components/parameters/GslbServiceId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GslbReplacePoolsRequest"
+      responses:
+        "200":
+          description: The pool topology after replacement (unchanged on idempotent replay).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GslbPoolListResponse"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/gslb/switch-requests:
+    get:
+      tags: [GSLB Services]
+      operationId: listGslbSwitchRequests
+      summary: List switch requests of a GSLB service
+      description: |
+        切换记录/审批中心列表：租户隔离，service_id 必须指向当前租户的服务
+        （防越权枚举），按 created_at 倒序，上限 100 条。
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+        - name: service_id
+          in: query
+          required: true
+          description: GSLB service id（必填，UUID）。
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          required: false
+          description: 精确匹配的状态过滤。
+          schema:
+            $ref: "#/components/schemas/GslbSwitchStatus"
+      responses:
+        "200":
+          description: Switch requests, newest first.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GslbSwitchRequestListResponse"
         "400":
           $ref: "#/components/responses/Problem"
         "401":
@@ -840,6 +1036,16 @@ components:
         minLength: 1
         maxLength: 128
         pattern: "^[!-~]+$"
+    IfMatch:
+      name: If-Match
+      in: header
+      required: false
+      description: |
+        Optimistic concurrency token for update/replace/delete operations: the resource's
+        updatedAt from a prior read (RFC 3339), or `*` to skip the version check.
+        A stale value returns 409.
+      schema:
+        type: string
     Page:
       name: page
       in: query
@@ -2202,6 +2408,31 @@ components:
       type: string
       enum: [gslb.failover, gslb.switchback, gslb.weight-update, gslb.drill]
       x-enum-varnames: [GslbIntentFailover, GslbIntentSwitchback, GslbIntentWeightUpdate, GslbIntentDrill]
+    GslbHealthCheck:
+      type: object
+      additionalProperties: false
+      required: [protocol, path, intervalSeconds, timeoutSeconds, failureThreshold]
+      description: 服务级健康检查模板（迁移 094）；controller 探测成员集群时按服务读取，同集群多服务引用取最严格配置。
+      properties:
+        protocol:
+          type: string
+          enum: [http, https]
+          x-enum-varnames: [GslbHealthProtocolHTTP, GslbHealthProtocolHTTPS]
+        path:
+          type: string
+          pattern: "^/"
+        intervalSeconds:
+          type: integer
+          minimum: 5
+          maximum: 300
+        timeoutSeconds:
+          type: integer
+          minimum: 1
+          maximum: 30
+        failureThreshold:
+          type: integer
+          minimum: 1
+          maximum: 10
     GslbService:
       type: object
       additionalProperties: false
@@ -2225,6 +2456,120 @@ components:
           $ref: "#/components/schemas/GslbLifecycleState"
         requireApproval:
           type: boolean
+        healthCheck:
+          $ref: "#/components/schemas/GslbHealthCheck"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    GslbCreateServiceRequest:
+      type: object
+      additionalProperties: false
+      required: [name, domain, requireApproval, pools]
+      properties:
+        name:
+          type: string
+          pattern: "^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$"
+        domain:
+          type: string
+          maxLength: 253
+          description: 租户内唯一；同租户同 domain 重复创建返回既有服务（200）。
+        requireApproval:
+          type: boolean
+        pools:
+          type: array
+          minItems: 1
+          description: priority 最小者为初始 active 池；priority 不可重复；clusterId 必须匹配当前租户 runtime_targets 中的 Kubernetes 目标名称。
+          items:
+            $ref: "#/components/schemas/GslbPoolInput"
+        healthCheck:
+          $ref: "#/components/schemas/GslbHealthCheck"
+    GslbPoolMemberInput:
+      type: object
+      additionalProperties: false
+      required: [clusterId, weight, enabled, healthy]
+      properties:
+        clusterId:
+          type: string
+          description: Kubernetes RuntimeTarget 名称（runtime_targets.name），必须属于当前租户。
+        weight:
+          type: integer
+          minimum: 0
+          maximum: 100
+    GslbPoolInput:
+      type: object
+      additionalProperties: false
+      required: [name, priority, members]
+      properties:
+        name:
+          type: string
+        priority:
+          type: integer
+          minimum: 0
+        members:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/GslbPoolMemberInput"
+    GslbUpdateServiceRequest:
+      type: object
+      additionalProperties: false
+      description: |
+        GSLB 四期服务编辑输入：全部字段可选，仅提交需要变更的字段；
+        合并后与现状一致时服务端不变更（幂等 200）。
+      properties:
+        name:
+          type: string
+          pattern: "^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$"
+        requireApproval:
+          type: boolean
+        healthCheck:
+          $ref: "#/components/schemas/GslbHealthCheck"
+    GslbReplacePoolsRequest:
+      type: object
+      additionalProperties: false
+      required: [pools]
+      description: |
+        GSLB 四期地址池整组替换输入：池以 name 为身份（服务端重新生成 pool id），
+        当前 active 池的名字必须仍在新配置中，否则 409（先 failover 到保留的池）。
+      properties:
+        pools:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/GslbPoolInput"
+    GslbServiceDetail:
+      type: object
+      additionalProperties: false
+      required: [id, tenantId, name, domain, routingMode, lifecycleState, requireApproval, pools]
+      description: 创建/详情响应：服务主档（含健康检查模板）+ 地址池拓扑。
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenantId:
+          type: string
+        name:
+          type: string
+        domain:
+          type: string
+        routingMode:
+          $ref: "#/components/schemas/GslbRoutingMode"
+        activePoolId:
+          type: string
+          format: uuid
+        lifecycleState:
+          $ref: "#/components/schemas/GslbLifecycleState"
+        requireApproval:
+          type: boolean
+        healthCheck:
+          $ref: "#/components/schemas/GslbHealthCheck"
+        pools:
+          type: array
+          items:
+            $ref: "#/components/schemas/GslbPool"
         createdAt:
           type: string
           format: date-time
@@ -2252,11 +2597,15 @@ components:
     GslbPool:
       type: object
       additionalProperties: false
-      required: [id, serviceId, name, priority]
+      required: [id, serviceId, name, priority, isActive, healthy, members]
       properties:
         id:
           type: string
           format: uuid
+        poolId:
+          type: string
+          format: uuid
+          description: Alias of id for newer UI code; legacy clients should use id.
         serviceId:
           type: string
           format: uuid
@@ -2265,10 +2614,28 @@ components:
         priority:
           type: integer
           minimum: 0
+        isActive:
+          type: boolean
+          description: 是否为服务当前活跃池（对照 gslb_services.active_pool_id）。
+        healthy:
+          type: boolean
+          description: 是否在 Read Model 健康投影中（投影缺失时 false）。
         members:
           type: array
           items:
             $ref: "#/components/schemas/GslbPoolMember"
+    GslbPoolListResponse:
+      type: object
+      additionalProperties: false
+      required: [items, total]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/GslbPool"
+        total:
+          type: integer
+          minimum: 0
     GslbReadModel:
       type: object
       additionalProperties: false
@@ -2294,6 +2661,8 @@ components:
           type: array
           items:
             type: string
+        healthCheck:
+          $ref: "#/components/schemas/GslbHealthCheck"
         lastSwitchRequestId:
           type: string
           format: uuid
@@ -2365,6 +2734,10 @@ components:
             correlationId:
               type: string
               format: uuid
+    GslbSwitchStatus:
+      type: string
+      enum: [PendingApproval, Approved, Rejected, Dispatched, Succeeded, Failed, DrillCompleted]
+      x-enum-varnames: [SwitchStatusPendingApproval, SwitchStatusApproved, SwitchStatusRejected, SwitchStatusDispatched, SwitchStatusSucceeded, SwitchStatusFailed, SwitchStatusDrillCompleted]
     GslbSwitchRequest:
       type: object
       additionalProperties: false
@@ -2391,9 +2764,7 @@ components:
         requireApproval:
           type: boolean
         status:
-          type: string
-          enum: [PendingApproval, Approved, Rejected, Dispatched, Succeeded, Failed, DrillCompleted]
-          x-enum-varnames: [SwitchStatusPendingApproval, SwitchStatusApproved, SwitchStatusRejected, SwitchStatusDispatched, SwitchStatusSucceeded, SwitchStatusFailed, SwitchStatusDrillCompleted]
+          $ref: "#/components/schemas/GslbSwitchStatus"
         actorId:
           type: string
         approvedBy:
@@ -2418,6 +2789,18 @@ components:
         updatedAt:
           type: string
           format: date-time
+    GslbSwitchRequestListResponse:
+      type: object
+      additionalProperties: false
+      required: [items, total]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/GslbSwitchRequest"
+        total:
+          type: integer
+          minimum: 0
     GslbDrillCheck:
       type: object
       additionalProperties: false

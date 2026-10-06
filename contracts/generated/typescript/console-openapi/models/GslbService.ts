@@ -2,6 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { GslbHealthCheck } from './GslbHealthCheck';
 import type { GslbLifecycleState } from './GslbLifecycleState';
 import type { GslbRoutingMode } from './GslbRoutingMode';
 export type GslbService = {
@@ -13,6 +14,7 @@ export type GslbService = {
     activePoolId?: string;
     lifecycleState: GslbLifecycleState;
     requireApproval: boolean;
+    healthCheck?: GslbHealthCheck;
     createdAt?: string;
     updatedAt?: string;
 };

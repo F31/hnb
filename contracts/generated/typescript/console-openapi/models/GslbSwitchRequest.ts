@@ -3,6 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { GslbIntentKind } from './GslbIntentKind';
+import type { GslbSwitchStatus } from './GslbSwitchStatus';
 export type GslbSwitchRequest = {
     id: string;
     tenantId: string;
@@ -12,7 +13,7 @@ export type GslbSwitchRequest = {
     idempotencyKey?: string;
     correlationId?: string;
     requireApproval: boolean;
-    status: 'PendingApproval' | 'Approved' | 'Rejected' | 'Dispatched' | 'Succeeded' | 'Failed' | 'DrillCompleted';
+    status: GslbSwitchStatus;
     actorId?: string;
     approvedBy?: string;
     approvedAt?: string;

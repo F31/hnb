@@ -354,6 +354,24 @@ func (e GslbDrillVerdict) Valid() bool {
 	}
 }
 
+// Defines values for GslbHealthCheckProtocol.
+const (
+	GslbHealthProtocolHTTP  GslbHealthCheckProtocol = "http"
+	GslbHealthProtocolHTTPS GslbHealthCheckProtocol = "https"
+)
+
+// Valid indicates whether the value is a known member of the GslbHealthCheckProtocol enum.
+func (e GslbHealthCheckProtocol) Valid() bool {
+	switch e {
+	case GslbHealthProtocolHTTP:
+		return true
+	case GslbHealthProtocolHTTPS:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for GslbIntentKind.
 const (
 	GslbIntentDrill        GslbIntentKind = "gslb.drill"
@@ -414,6 +432,24 @@ func (e GslbLifecycleState) Valid() bool {
 	}
 }
 
+// Defines values for GslbRoutingMode.
+const (
+	GslbRoutingAnycast GslbRoutingMode = "anycast"
+	GslbRoutingDns     GslbRoutingMode = "dns"
+)
+
+// Valid indicates whether the value is a known member of the GslbRoutingMode enum.
+func (e GslbRoutingMode) Valid() bool {
+	switch e {
+	case GslbRoutingAnycast:
+		return true
+	case GslbRoutingDns:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for GslbRuntimeIntentApiVersion.
 const (
 	GslbHnbIov1 GslbRuntimeIntentApiVersion = "gslb.hnb.io/v1"
@@ -429,19 +465,19 @@ func (e GslbRuntimeIntentApiVersion) Valid() bool {
 	}
 }
 
-// Defines values for GslbSwitchRequestStatus.
+// Defines values for GslbSwitchStatus.
 const (
-	SwitchStatusApproved        GslbSwitchRequestStatus = "Approved"
-	SwitchStatusDispatched      GslbSwitchRequestStatus = "Dispatched"
-	SwitchStatusDrillCompleted  GslbSwitchRequestStatus = "DrillCompleted"
-	SwitchStatusFailed          GslbSwitchRequestStatus = "Failed"
-	SwitchStatusPendingApproval GslbSwitchRequestStatus = "PendingApproval"
-	SwitchStatusRejected        GslbSwitchRequestStatus = "Rejected"
-	SwitchStatusSucceeded       GslbSwitchRequestStatus = "Succeeded"
+	SwitchStatusApproved        GslbSwitchStatus = "Approved"
+	SwitchStatusDispatched      GslbSwitchStatus = "Dispatched"
+	SwitchStatusDrillCompleted  GslbSwitchStatus = "DrillCompleted"
+	SwitchStatusFailed          GslbSwitchStatus = "Failed"
+	SwitchStatusPendingApproval GslbSwitchStatus = "PendingApproval"
+	SwitchStatusRejected        GslbSwitchStatus = "Rejected"
+	SwitchStatusSucceeded       GslbSwitchStatus = "Succeeded"
 )
 
-// Valid indicates whether the value is a known member of the GslbSwitchRequestStatus enum.
-func (e GslbSwitchRequestStatus) Valid() bool {
+// Valid indicates whether the value is a known member of the GslbSwitchStatus enum.
+func (e GslbSwitchStatus) Valid() bool {
 	switch e {
 	case SwitchStatusApproved:
 		return true
@@ -1513,6 +1549,20 @@ type DrSwitchRunListResponse struct {
 // Freshness defines model for Freshness.
 type Freshness string
 
+// GslbCreateServiceRequest defines model for GslbCreateServiceRequest.
+type GslbCreateServiceRequest struct {
+	// Domain 租户内唯一；同租户同 domain 重复创建返回既有服务（200）。
+	Domain string `json:"domain"`
+
+	// HealthCheck 服务级健康检查模板（迁移 094）；controller 探测成员集群时按服务读取，同集群多服务引用取最严格配置。
+	HealthCheck *GslbHealthCheck `json:"healthCheck,omitempty"`
+	Name        string           `json:"name"`
+
+	// Pools priority 最小者为初始 active 池；priority 不可重复；clusterId 必须匹配当前租户 runtime_targets 中的 Kubernetes 目标名称。
+	Pools           []GslbPoolInput `json:"pools"`
+	RequireApproval bool            `json:"requireApproval"`
+}
+
 // GslbDrillCheck defines model for GslbDrillCheck.
 type GslbDrillCheck struct {
 	Detail *string `json:"detail,omitempty"`
@@ -1555,6 +1605,18 @@ type GslbDrillReportPayload struct {
 // GslbDrillVerdict defines model for GslbDrillVerdict.
 type GslbDrillVerdict string
 
+// GslbHealthCheck 服务级健康检查模板（迁移 094）；controller 探测成员集群时按服务读取，同集群多服务引用取最严格配置。
+type GslbHealthCheck struct {
+	FailureThreshold int                     `json:"failureThreshold"`
+	IntervalSeconds  int                     `json:"intervalSeconds"`
+	Path             string                  `json:"path"`
+	Protocol         GslbHealthCheckProtocol `json:"protocol"`
+	TimeoutSeconds   int                     `json:"timeoutSeconds"`
+}
+
+// GslbHealthCheckProtocol defines model for GslbHealthCheck.Protocol.
+type GslbHealthCheckProtocol string
+
 // GslbIntentKind defines model for GslbIntentKind.
 type GslbIntentKind string
 
@@ -1563,11 +1625,32 @@ type GslbLifecycleState string
 
 // GslbPool defines model for GslbPool.
 type GslbPool struct {
-	Id        openapi_types.UUID `json:"id"`
-	Members   *[]GslbPoolMember  `json:"members,omitempty"`
-	Name      string             `json:"name"`
-	Priority  int                `json:"priority"`
-	ServiceId openapi_types.UUID `json:"serviceId"`
+	// Healthy 是否在 Read Model 健康投影中（投影缺失时 false）。
+	Healthy bool               `json:"healthy"`
+	Id      openapi_types.UUID `json:"id"`
+
+	// IsActive 是否为服务当前活跃池（对照 gslb_services.active_pool_id）。
+	IsActive bool             `json:"isActive"`
+	Members  []GslbPoolMember `json:"members"`
+	Name     string           `json:"name"`
+
+	// PoolId Alias of id for newer UI code; legacy clients should use id.
+	PoolId    *openapi_types.UUID `json:"poolId,omitempty"`
+	Priority  int                 `json:"priority"`
+	ServiceId openapi_types.UUID  `json:"serviceId"`
+}
+
+// GslbPoolInput defines model for GslbPoolInput.
+type GslbPoolInput struct {
+	Members  []GslbPoolMemberInput `json:"members"`
+	Name     string                `json:"name"`
+	Priority int                   `json:"priority"`
+}
+
+// GslbPoolListResponse defines model for GslbPoolListResponse.
+type GslbPoolListResponse struct {
+	Items []GslbPool `json:"items"`
+	Total int        `json:"total"`
 }
 
 // GslbPoolMember defines model for GslbPoolMember.
@@ -1579,11 +1662,21 @@ type GslbPoolMember struct {
 	Weight       int        `json:"weight"`
 }
 
+// GslbPoolMemberInput defines model for GslbPoolMemberInput.
+type GslbPoolMemberInput struct {
+	// ClusterId Kubernetes RuntimeTarget 名称（runtime_targets.name），必须属于当前租户。
+	ClusterId string `json:"clusterId"`
+	Weight    int    `json:"weight"`
+}
+
 // GslbReadModel defines model for GslbReadModel.
 type GslbReadModel struct {
-	ActivePoolId        *openapi_types.UUID `json:"activePoolId,omitempty"`
-	CurrentDnsTargets   *[]string           `json:"currentDnsTargets,omitempty"`
-	Domain              string              `json:"domain"`
+	ActivePoolId      *openapi_types.UUID `json:"activePoolId,omitempty"`
+	CurrentDnsTargets *[]string           `json:"currentDnsTargets,omitempty"`
+	Domain            string              `json:"domain"`
+
+	// HealthCheck 服务级健康检查模板（迁移 094）；controller 探测成员集群时按服务读取，同集群多服务引用取最严格配置。
+	HealthCheck         *GslbHealthCheck    `json:"healthCheck,omitempty"`
 	HealthyPools        *[]string           `json:"healthyPools,omitempty"`
 	LastDrillAt         *time.Time          `json:"lastDrillAt,omitempty"`
 	LastDrillReportId   *openapi_types.UUID `json:"lastDrillReportId,omitempty"`
@@ -1595,6 +1688,15 @@ type GslbReadModel struct {
 	ServiceId           openapi_types.UUID  `json:"serviceId"`
 	TenantId            string              `json:"tenantId"`
 }
+
+// GslbReplacePoolsRequest GSLB 四期地址池整组替换输入：池以 name 为身份（服务端重新生成 pool id），
+// 当前 active 池的名字必须仍在新配置中，否则 409（先 failover 到保留的池）。
+type GslbReplacePoolsRequest struct {
+	Pools []GslbPoolInput `json:"pools"`
+}
+
+// GslbRoutingMode defines model for GslbRoutingMode.
+type GslbRoutingMode string
 
 // GslbRuntimeIntent defines model for GslbRuntimeIntent.
 type GslbRuntimeIntent struct {
@@ -1616,6 +1718,24 @@ type GslbRuntimeIntent struct {
 
 // GslbRuntimeIntentApiVersion defines model for GslbRuntimeIntent.ApiVersion.
 type GslbRuntimeIntentApiVersion string
+
+// GslbServiceDetail 创建/详情响应：服务主档（含健康检查模板）+ 地址池拓扑。
+type GslbServiceDetail struct {
+	ActivePoolId *openapi_types.UUID `json:"activePoolId,omitempty"`
+	CreatedAt    *time.Time          `json:"createdAt,omitempty"`
+	Domain       string              `json:"domain"`
+
+	// HealthCheck 服务级健康检查模板（迁移 094）；controller 探测成员集群时按服务读取，同集群多服务引用取最严格配置。
+	HealthCheck     *GslbHealthCheck   `json:"healthCheck,omitempty"`
+	Id              openapi_types.UUID `json:"id"`
+	LifecycleState  GslbLifecycleState `json:"lifecycleState"`
+	Name            string             `json:"name"`
+	Pools           []GslbPool         `json:"pools"`
+	RequireApproval bool               `json:"requireApproval"`
+	RoutingMode     GslbRoutingMode    `json:"routingMode"`
+	TenantId        string             `json:"tenantId"`
+	UpdatedAt       *time.Time         `json:"updatedAt,omitempty"`
+}
 
 // GslbServiceListResponse defines model for GslbServiceListResponse.
 type GslbServiceListResponse struct {
@@ -1640,17 +1760,32 @@ type GslbSwitchRequest struct {
 	IntentKind     GslbIntentKind     `json:"intentKind"`
 
 	// OperationId 关联的平台 operations 行（Operation Center 统一接线）。
-	OperationId     *openapi_types.UUID     `json:"operationId,omitempty"`
-	Reason          *string                 `json:"reason,omitempty"`
-	RequireApproval bool                    `json:"requireApproval"`
-	ServiceId       openapi_types.UUID      `json:"serviceId"`
-	Status          GslbSwitchRequestStatus `json:"status"`
-	TenantId        string                  `json:"tenantId"`
-	UpdatedAt       *time.Time              `json:"updatedAt,omitempty"`
+	OperationId     *openapi_types.UUID `json:"operationId,omitempty"`
+	Reason          *string             `json:"reason,omitempty"`
+	RequireApproval bool                `json:"requireApproval"`
+	ServiceId       openapi_types.UUID  `json:"serviceId"`
+	Status          GslbSwitchStatus    `json:"status"`
+	TenantId        string              `json:"tenantId"`
+	UpdatedAt       *time.Time          `json:"updatedAt,omitempty"`
 }
 
-// GslbSwitchRequestStatus defines model for GslbSwitchRequest.Status.
-type GslbSwitchRequestStatus string
+// GslbSwitchRequestListResponse defines model for GslbSwitchRequestListResponse.
+type GslbSwitchRequestListResponse struct {
+	Items []GslbSwitchRequest `json:"items"`
+	Total int                 `json:"total"`
+}
+
+// GslbSwitchStatus defines model for GslbSwitchStatus.
+type GslbSwitchStatus string
+
+// GslbUpdateServiceRequest GSLB 四期服务编辑输入：全部字段可选，仅提交需要变更的字段；
+// 合并后与现状一致时服务端不变更（幂等 200）。
+type GslbUpdateServiceRequest struct {
+	// HealthCheck 服务级健康检查模板（迁移 094）；controller 探测成员集群时按服务读取，同集群多服务引用取最严格配置。
+	HealthCheck     *GslbHealthCheck `json:"healthCheck,omitempty"`
+	Name            *string          `json:"name,omitempty"`
+	RequireApproval *bool            `json:"requireApproval,omitempty"`
+}
 
 // HealthState defines model for HealthState.
 type HealthState string
@@ -2204,6 +2339,9 @@ type HealthStateQuery = HealthState
 // IdempotencyKey defines model for IdempotencyKey.
 type IdempotencyKey = string
 
+// IfMatch defines model for IfMatch.
+type IfMatch = string
+
 // Keyword defines model for Keyword.
 type Keyword = string
 
@@ -2310,9 +2448,39 @@ type ListGslbServicesParams struct {
 	XCorrelationID CorrelationId `json:"X-Correlation-ID"`
 }
 
+// CreateGslbServiceParams defines parameters for CreateGslbService.
+type CreateGslbServiceParams struct {
+	XCorrelationID CorrelationId  `json:"X-Correlation-ID"`
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// DeleteGslbServiceParams defines parameters for DeleteGslbService.
+type DeleteGslbServiceParams struct {
+	// Force 强制删除非 Inactive/Paused 服务（仍要求无进行中切换请求）。
+	Force          *bool          `form:"force,omitempty" json:"force,omitempty"`
+	XCorrelationID CorrelationId  `json:"X-Correlation-ID"`
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+
+	// IfMatch Optimistic concurrency token for update/replace/delete operations: the resource's
+	// updatedAt from a prior read (RFC 3339), or `*` to skip the version check.
+	// A stale value returns 409.
+	IfMatch *IfMatch `json:"If-Match,omitempty"`
+}
+
 // GetGslbServiceParams defines parameters for GetGslbService.
 type GetGslbServiceParams struct {
 	XCorrelationID CorrelationId `json:"X-Correlation-ID"`
+}
+
+// UpdateGslbServiceParams defines parameters for UpdateGslbService.
+type UpdateGslbServiceParams struct {
+	XCorrelationID CorrelationId  `json:"X-Correlation-ID"`
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+
+	// IfMatch Optimistic concurrency token for update/replace/delete operations: the resource's
+	// updatedAt from a prior read (RFC 3339), or `*` to skip the version check.
+	// A stale value returns 409.
+	IfMatch *IfMatch `json:"If-Match,omitempty"`
 }
 
 // ListGslbDrillReportsParams defines parameters for ListGslbDrillReports.
@@ -2329,6 +2497,27 @@ type SubmitGslbIntentParams struct {
 // ListGslbPoolsParams defines parameters for ListGslbPools.
 type ListGslbPoolsParams struct {
 	XCorrelationID CorrelationId `json:"X-Correlation-ID"`
+}
+
+// ReplaceGslbServicePoolsParams defines parameters for ReplaceGslbServicePools.
+type ReplaceGslbServicePoolsParams struct {
+	XCorrelationID CorrelationId  `json:"X-Correlation-ID"`
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+
+	// IfMatch Optimistic concurrency token for update/replace/delete operations: the resource's
+	// updatedAt from a prior read (RFC 3339), or `*` to skip the version check.
+	// A stale value returns 409.
+	IfMatch *IfMatch `json:"If-Match,omitempty"`
+}
+
+// ListGslbSwitchRequestsParams defines parameters for ListGslbSwitchRequests.
+type ListGslbSwitchRequestsParams struct {
+	// ServiceId GSLB service id（必填，UUID）。
+	ServiceId openapi_types.UUID `form:"service_id" json:"service_id"`
+
+	// Status 精确匹配的状态过滤。
+	Status         *GslbSwitchStatus `form:"status,omitempty" json:"status,omitempty"`
+	XCorrelationID CorrelationId     `json:"X-Correlation-ID"`
 }
 
 // ApproveGslbSwitchRequestParams defines parameters for ApproveGslbSwitchRequest.
@@ -2462,8 +2651,17 @@ type AddDrGroupMemberJSONRequestBody = DrAddMemberRequest
 // InitiateDrSwitchJSONRequestBody defines body for InitiateDrSwitch for application/json ContentType.
 type InitiateDrSwitchJSONRequestBody = DrInitiateSwitchRequest
 
+// CreateGslbServiceJSONRequestBody defines body for CreateGslbService for application/json ContentType.
+type CreateGslbServiceJSONRequestBody = GslbCreateServiceRequest
+
+// UpdateGslbServiceJSONRequestBody defines body for UpdateGslbService for application/json ContentType.
+type UpdateGslbServiceJSONRequestBody = GslbUpdateServiceRequest
+
 // SubmitGslbIntentJSONRequestBody defines body for SubmitGslbIntent for application/json ContentType.
 type SubmitGslbIntentJSONRequestBody = GslbRuntimeIntent
+
+// ReplaceGslbServicePoolsJSONRequestBody defines body for ReplaceGslbServicePools for application/json ContentType.
+type ReplaceGslbServicePoolsJSONRequestBody = GslbReplacePoolsRequest
 
 // ApproveOperationJSONRequestBody defines body for ApproveOperation for application/json ContentType.
 type ApproveOperationJSONRequestBody = OperationActionRequest
@@ -2797,10 +2995,66 @@ type ClientInterface interface {
 	// Corresponds with GET /api/v1/gslb/services (the `ListGslbServices` operationId).
 	ListGslbServices(ctx context.Context, params *ListGslbServicesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// CreateGslbServiceWithBody Create a GSLB service with pools and health check template
+	//
+	// GSLB 三期服务创建：校验 name/domain/pools/members（clusterId 必须匹配当前租户
+	// runtime_targets 中的 Kubernetes 目标名称），priority 最小者为初始 active 池。幂等：同租户同 domain 重复创建返回
+	// 既有服务（200）。Requires gslb:create.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /api/v1/gslb/services (the `CreateGslbService` operationId).
+	CreateGslbServiceWithBody(ctx context.Context, params *CreateGslbServiceParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateGslbService Create a GSLB service with pools and health check template
+	//
+	// GSLB 三期服务创建：校验 name/domain/pools/members（clusterId 必须匹配当前租户
+	// runtime_targets 中的 Kubernetes 目标名称），priority 最小者为初始 active 池。幂等：同租户同 domain 重复创建返回
+	// 既有服务（200）。Requires gslb:create.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /api/v1/gslb/services (the `CreateGslbService` operationId).
+	CreateGslbService(ctx context.Context, params *CreateGslbServiceParams, body CreateGslbServiceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeleteGslbService Delete a GSLB service (dangerous)
+	//
+	// GSLB 四期服务删除：仅 lifecycleState 为 Inactive/Paused 可删；其余状态需显式
+	// force=true，且服务当前不得有进行中（PendingApproval/Approved/Dispatched）的切换请求。
+	// 删除经外键 CASCADE 同事务清理 pools/members/Read Model/切换历史/演练报告；
+	// 关联的平台 operations 行保留作审计。Requires gslb:delete.
+	//
+	// Corresponds with DELETE /api/v1/gslb/services/{id} (the `DeleteGslbService` operationId).
+	DeleteGslbService(ctx context.Context, id GslbServiceId, params *DeleteGslbServiceParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetGslbService Get one GSLB service projection
 	//
 	// Corresponds with GET /api/v1/gslb/services/{id} (the `GetGslbService` operationId).
 	GetGslbService(ctx context.Context, id GslbServiceId, params *GetGslbServiceParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateGslbServiceWithBody Update editable fields of a GSLB service
+	//
+	// GSLB 四期服务编辑：仅 name / requireApproval / healthCheck 可变（domain、routingMode、
+	// lifecycleState 不可由该路径修改）。FailingOver 中拒绝（409）。乐观并发：If-Match 携带
+	// 先前读到的 updatedAt，过期返回 409。幂等：合并后与现状一致时返回 200 且不变更。
+	// Requires gslb:update.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with PATCH /api/v1/gslb/services/{id} (the `UpdateGslbService` operationId).
+	UpdateGslbServiceWithBody(ctx context.Context, id GslbServiceId, params *UpdateGslbServiceParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateGslbService Update editable fields of a GSLB service
+	//
+	// GSLB 四期服务编辑：仅 name / requireApproval / healthCheck 可变（domain、routingMode、
+	// lifecycleState 不可由该路径修改）。FailingOver 中拒绝（409）。乐观并发：If-Match 携带
+	// 先前读到的 updatedAt，过期返回 409。幂等：合并后与现状一致时返回 200 且不变更。
+	// Requires gslb:update.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with PATCH /api/v1/gslb/services/{id} (the `UpdateGslbService` operationId).
+	UpdateGslbService(ctx context.Context, id GslbServiceId, params *UpdateGslbServiceParams, body UpdateGslbServiceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListGslbDrillReports List structured drill reports of a GSLB service
 	//
@@ -2832,10 +3086,47 @@ type ClientInterface interface {
 	// Corresponds with POST /api/v1/gslb/services/{id}/intents (the `SubmitGslbIntent` operationId).
 	SubmitGslbIntent(ctx context.Context, id GslbServiceId, params *SubmitGslbIntentParams, body SubmitGslbIntentJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// ListGslbPools List the pools of a GSLB service
+	// ListGslbPools List the pool topology of a GSLB service
+	//
+	// 地址池拓扑（前端“地址池拓扑”页签）：isActive 对照服务 active_pool_id，
+	// healthy 对照 Read Model healthy_pools（投影缺失时 false）。只读，请求路径零探测。
 	//
 	// Corresponds with GET /api/v1/gslb/services/{id}/pools (the `ListGslbPools` operationId).
 	ListGslbPools(ctx context.Context, id GslbServiceId, params *ListGslbPoolsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ReplaceGslbServicePoolsWithBody Replace the whole pool topology of a GSLB service
+	//
+	// GSLB 四期地址池整组替换：校验同创建（≥1 池、priority 唯一、成员非空、weight 0-100、
+	// clusterId 必须匹配当前租户 runtime_targets 中的 Kubernetes 目标名称）。池以 name 为身份，服务端重新生成 pool id；
+	// 当前 active 池的名字必须仍在新配置中，否则 409（先 failover 到保留的池）。
+	// FailingOver 中拒绝（409）。事务内删旧建新并重指 active 池。幂等：新配置与现状语义
+	// 一致时返回 200 且不变更。If-Match 乐观并发同 PATCH。Requires gslb:update.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with PUT /api/v1/gslb/services/{id}/pools (the `ReplaceGslbServicePools` operationId).
+	ReplaceGslbServicePoolsWithBody(ctx context.Context, id GslbServiceId, params *ReplaceGslbServicePoolsParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ReplaceGslbServicePools Replace the whole pool topology of a GSLB service
+	//
+	// GSLB 四期地址池整组替换：校验同创建（≥1 池、priority 唯一、成员非空、weight 0-100、
+	// clusterId 必须匹配当前租户 runtime_targets 中的 Kubernetes 目标名称）。池以 name 为身份，服务端重新生成 pool id；
+	// 当前 active 池的名字必须仍在新配置中，否则 409（先 failover 到保留的池）。
+	// FailingOver 中拒绝（409）。事务内删旧建新并重指 active 池。幂等：新配置与现状语义
+	// 一致时返回 200 且不变更。If-Match 乐观并发同 PATCH。Requires gslb:update.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with PUT /api/v1/gslb/services/{id}/pools (the `ReplaceGslbServicePools` operationId).
+	ReplaceGslbServicePools(ctx context.Context, id GslbServiceId, params *ReplaceGslbServicePoolsParams, body ReplaceGslbServicePoolsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListGslbSwitchRequests List switch requests of a GSLB service
+	//
+	// 切换记录/审批中心列表：租户隔离，service_id 必须指向当前租户的服务
+	// （防越权枚举），按 created_at 倒序，上限 100 条。
+	//
+	// Corresponds with GET /api/v1/gslb/switch-requests (the `ListGslbSwitchRequests` operationId).
+	ListGslbSwitchRequests(ctx context.Context, params *ListGslbSwitchRequestsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ApproveGslbSwitchRequest Approve a pending GSLB traffic change
 	//
@@ -3232,11 +3523,117 @@ func (c *Client) ListGslbServices(ctx context.Context, params *ListGslbServicesP
 	return c.Client.Do(req)
 }
 
+// CreateGslbServiceWithBody Create a GSLB service with pools and health check template
+//
+// GSLB 三期服务创建：校验 name/domain/pools/members（clusterId 必须匹配当前租户
+// runtime_targets 中的 Kubernetes 目标名称），priority 最小者为初始 active 池。幂等：同租户同 domain 重复创建返回
+// 既有服务（200）。Requires gslb:create.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /api/v1/gslb/services (the `CreateGslbService` operationId).
+func (c *Client) CreateGslbServiceWithBody(ctx context.Context, params *CreateGslbServiceParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateGslbServiceRequestWithBody(c.Server, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CreateGslbService Create a GSLB service with pools and health check template
+//
+// GSLB 三期服务创建：校验 name/domain/pools/members（clusterId 必须匹配当前租户
+// runtime_targets 中的 Kubernetes 目标名称），priority 最小者为初始 active 池。幂等：同租户同 domain 重复创建返回
+// 既有服务（200）。Requires gslb:create.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /api/v1/gslb/services (the `CreateGslbService` operationId).
+func (c *Client) CreateGslbService(ctx context.Context, params *CreateGslbServiceParams, body CreateGslbServiceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateGslbServiceRequest(c.Server, params, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// DeleteGslbService Delete a GSLB service (dangerous)
+//
+// GSLB 四期服务删除：仅 lifecycleState 为 Inactive/Paused 可删；其余状态需显式
+// force=true，且服务当前不得有进行中（PendingApproval/Approved/Dispatched）的切换请求。
+// 删除经外键 CASCADE 同事务清理 pools/members/Read Model/切换历史/演练报告；
+// 关联的平台 operations 行保留作审计。Requires gslb:delete.
+//
+// Corresponds with DELETE /api/v1/gslb/services/{id} (the `DeleteGslbService` operationId).
+func (c *Client) DeleteGslbService(ctx context.Context, id GslbServiceId, params *DeleteGslbServiceParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteGslbServiceRequest(c.Server, id, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 // GetGslbService Get one GSLB service projection
 //
 // Corresponds with GET /api/v1/gslb/services/{id} (the `GetGslbService` operationId).
 func (c *Client) GetGslbService(ctx context.Context, id GslbServiceId, params *GetGslbServiceParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetGslbServiceRequest(c.Server, id, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// UpdateGslbServiceWithBody Update editable fields of a GSLB service
+//
+// GSLB 四期服务编辑：仅 name / requireApproval / healthCheck 可变（domain、routingMode、
+// lifecycleState 不可由该路径修改）。FailingOver 中拒绝（409）。乐观并发：If-Match 携带
+// 先前读到的 updatedAt，过期返回 409。幂等：合并后与现状一致时返回 200 且不变更。
+// Requires gslb:update.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with PATCH /api/v1/gslb/services/{id} (the `UpdateGslbService` operationId).
+func (c *Client) UpdateGslbServiceWithBody(ctx context.Context, id GslbServiceId, params *UpdateGslbServiceParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateGslbServiceRequestWithBody(c.Server, id, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// UpdateGslbService Update editable fields of a GSLB service
+//
+// GSLB 四期服务编辑：仅 name / requireApproval / healthCheck 可变（domain、routingMode、
+// lifecycleState 不可由该路径修改）。FailingOver 中拒绝（409）。乐观并发：If-Match 携带
+// 先前读到的 updatedAt，过期返回 409。幂等：合并后与现状一致时返回 200 且不变更。
+// Requires gslb:update.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with PATCH /api/v1/gslb/services/{id} (the `UpdateGslbService` operationId).
+func (c *Client) UpdateGslbService(ctx context.Context, id GslbServiceId, params *UpdateGslbServiceParams, body UpdateGslbServiceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateGslbServiceRequest(c.Server, id, params, body)
 	if err != nil {
 		return nil, err
 	}
@@ -3307,11 +3704,78 @@ func (c *Client) SubmitGslbIntent(ctx context.Context, id GslbServiceId, params 
 	return c.Client.Do(req)
 }
 
-// ListGslbPools List the pools of a GSLB service
+// ListGslbPools List the pool topology of a GSLB service
+//
+// 地址池拓扑（前端“地址池拓扑”页签）：isActive 对照服务 active_pool_id，
+// healthy 对照 Read Model healthy_pools（投影缺失时 false）。只读，请求路径零探测。
 //
 // Corresponds with GET /api/v1/gslb/services/{id}/pools (the `ListGslbPools` operationId).
 func (c *Client) ListGslbPools(ctx context.Context, id GslbServiceId, params *ListGslbPoolsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListGslbPoolsRequest(c.Server, id, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ReplaceGslbServicePoolsWithBody Replace the whole pool topology of a GSLB service
+//
+// GSLB 四期地址池整组替换：校验同创建（≥1 池、priority 唯一、成员非空、weight 0-100、
+// clusterId 必须匹配当前租户 runtime_targets 中的 Kubernetes 目标名称）。池以 name 为身份，服务端重新生成 pool id；
+// 当前 active 池的名字必须仍在新配置中，否则 409（先 failover 到保留的池）。
+// FailingOver 中拒绝（409）。事务内删旧建新并重指 active 池。幂等：新配置与现状语义
+// 一致时返回 200 且不变更。If-Match 乐观并发同 PATCH。Requires gslb:update.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with PUT /api/v1/gslb/services/{id}/pools (the `ReplaceGslbServicePools` operationId).
+func (c *Client) ReplaceGslbServicePoolsWithBody(ctx context.Context, id GslbServiceId, params *ReplaceGslbServicePoolsParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewReplaceGslbServicePoolsRequestWithBody(c.Server, id, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ReplaceGslbServicePools Replace the whole pool topology of a GSLB service
+//
+// GSLB 四期地址池整组替换：校验同创建（≥1 池、priority 唯一、成员非空、weight 0-100、
+// clusterId 必须匹配当前租户 runtime_targets 中的 Kubernetes 目标名称）。池以 name 为身份，服务端重新生成 pool id；
+// 当前 active 池的名字必须仍在新配置中，否则 409（先 failover 到保留的池）。
+// FailingOver 中拒绝（409）。事务内删旧建新并重指 active 池。幂等：新配置与现状语义
+// 一致时返回 200 且不变更。If-Match 乐观并发同 PATCH。Requires gslb:update.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with PUT /api/v1/gslb/services/{id}/pools (the `ReplaceGslbServicePools` operationId).
+func (c *Client) ReplaceGslbServicePools(ctx context.Context, id GslbServiceId, params *ReplaceGslbServicePoolsParams, body ReplaceGslbServicePoolsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewReplaceGslbServicePoolsRequest(c.Server, id, params, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ListGslbSwitchRequests List switch requests of a GSLB service
+//
+// 切换记录/审批中心列表：租户隔离，service_id 必须指向当前租户的服务
+// （防越权枚举），按 created_at 倒序，上限 100 条。
+//
+// Corresponds with GET /api/v1/gslb/switch-requests (the `ListGslbSwitchRequests` operationId).
+func (c *Client) ListGslbSwitchRequests(ctx context.Context, params *ListGslbSwitchRequestsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListGslbSwitchRequestsRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -4193,6 +4657,162 @@ func NewListGslbServicesRequest(server string, params *ListGslbServicesParams) (
 	return req, nil
 }
 
+// NewCreateGslbServiceRequest calls the generic CreateGslbService builder with application/json body
+func NewCreateGslbServiceRequest(server string, params *CreateGslbServiceParams, body CreateGslbServiceJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateGslbServiceRequestWithBody(server, params, "application/json", bodyReader)
+}
+
+// NewCreateGslbServiceRequestWithBody constructs an http.Request for the CreateGslbService method, with any body, and a specified content type
+func NewCreateGslbServiceRequestWithBody(server string, params *CreateGslbServiceParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/gslb/services")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	if params != nil {
+
+		var headerParam0 string
+
+		headerParam0, err = runtime.StyleParamWithOptions("simple", false, "X-Correlation-ID", params.XCorrelationID, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: "uuid"})
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("X-Correlation-ID", headerParam0)
+
+		var headerParam1 string
+
+		headerParam1, err = runtime.StyleParamWithOptions("simple", false, "Idempotency-Key", params.IdempotencyKey, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("Idempotency-Key", headerParam1)
+
+	}
+
+	return req, nil
+}
+
+// NewDeleteGslbServiceRequest constructs an http.Request for the DeleteGslbService method
+func NewDeleteGslbServiceRequest(server string, id GslbServiceId, params *DeleteGslbServiceParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/gslb/services/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.Force != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "force", *params.Force, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "boolean", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodDelete, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+
+		var headerParam0 string
+
+		headerParam0, err = runtime.StyleParamWithOptions("simple", false, "X-Correlation-ID", params.XCorrelationID, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: "uuid"})
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("X-Correlation-ID", headerParam0)
+
+		var headerParam1 string
+
+		headerParam1, err = runtime.StyleParamWithOptions("simple", false, "Idempotency-Key", params.IdempotencyKey, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("Idempotency-Key", headerParam1)
+
+		if params.IfMatch != nil {
+			var headerParam2 string
+
+			headerParam2, err = runtime.StyleParamWithOptions("simple", false, "If-Match", *params.IfMatch, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+			if err != nil {
+				return nil, err
+			}
+
+			req.Header.Set("If-Match", headerParam2)
+		}
+
+	}
+
+	return req, nil
+}
+
 // NewGetGslbServiceRequest constructs an http.Request for the GetGslbService method
 func NewGetGslbServiceRequest(server string, id GslbServiceId, params *GetGslbServiceParams) (*http.Request, error) {
 	var err error
@@ -4234,6 +4854,86 @@ func NewGetGslbServiceRequest(server string, id GslbServiceId, params *GetGslbSe
 		}
 
 		req.Header.Set("X-Correlation-ID", headerParam0)
+
+	}
+
+	return req, nil
+}
+
+// NewUpdateGslbServiceRequest calls the generic UpdateGslbService builder with application/json body
+func NewUpdateGslbServiceRequest(server string, id GslbServiceId, params *UpdateGslbServiceParams, body UpdateGslbServiceJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewUpdateGslbServiceRequestWithBody(server, id, params, "application/json", bodyReader)
+}
+
+// NewUpdateGslbServiceRequestWithBody constructs an http.Request for the UpdateGslbService method, with any body, and a specified content type
+func NewUpdateGslbServiceRequestWithBody(server string, id GslbServiceId, params *UpdateGslbServiceParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/gslb/services/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPatch, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	if params != nil {
+
+		var headerParam0 string
+
+		headerParam0, err = runtime.StyleParamWithOptions("simple", false, "X-Correlation-ID", params.XCorrelationID, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: "uuid"})
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("X-Correlation-ID", headerParam0)
+
+		var headerParam1 string
+
+		headerParam1, err = runtime.StyleParamWithOptions("simple", false, "Idempotency-Key", params.IdempotencyKey, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("Idempotency-Key", headerParam1)
+
+		if params.IfMatch != nil {
+			var headerParam2 string
+
+			headerParam2, err = runtime.StyleParamWithOptions("simple", false, "If-Match", *params.IfMatch, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+			if err != nil {
+				return nil, err
+			}
+
+			req.Header.Set("If-Match", headerParam2)
+		}
 
 	}
 
@@ -4380,6 +5080,161 @@ func NewListGslbPoolsRequest(server string, id GslbServiceId, params *ListGslbPo
 	queryURL, err := serverURL.Parse(operationPath)
 	if err != nil {
 		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+
+		var headerParam0 string
+
+		headerParam0, err = runtime.StyleParamWithOptions("simple", false, "X-Correlation-ID", params.XCorrelationID, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: "uuid"})
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("X-Correlation-ID", headerParam0)
+
+	}
+
+	return req, nil
+}
+
+// NewReplaceGslbServicePoolsRequest calls the generic ReplaceGslbServicePools builder with application/json body
+func NewReplaceGslbServicePoolsRequest(server string, id GslbServiceId, params *ReplaceGslbServicePoolsParams, body ReplaceGslbServicePoolsJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewReplaceGslbServicePoolsRequestWithBody(server, id, params, "application/json", bodyReader)
+}
+
+// NewReplaceGslbServicePoolsRequestWithBody constructs an http.Request for the ReplaceGslbServicePools method, with any body, and a specified content type
+func NewReplaceGslbServicePoolsRequestWithBody(server string, id GslbServiceId, params *ReplaceGslbServicePoolsParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/gslb/services/%s/pools", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	if params != nil {
+
+		var headerParam0 string
+
+		headerParam0, err = runtime.StyleParamWithOptions("simple", false, "X-Correlation-ID", params.XCorrelationID, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: "uuid"})
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("X-Correlation-ID", headerParam0)
+
+		var headerParam1 string
+
+		headerParam1, err = runtime.StyleParamWithOptions("simple", false, "Idempotency-Key", params.IdempotencyKey, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("Idempotency-Key", headerParam1)
+
+		if params.IfMatch != nil {
+			var headerParam2 string
+
+			headerParam2, err = runtime.StyleParamWithOptions("simple", false, "If-Match", *params.IfMatch, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+			if err != nil {
+				return nil, err
+			}
+
+			req.Header.Set("If-Match", headerParam2)
+		}
+
+	}
+
+	return req, nil
+}
+
+// NewListGslbSwitchRequestsRequest constructs an http.Request for the ListGslbSwitchRequests method
+func NewListGslbSwitchRequestsRequest(server string, params *ListGslbSwitchRequestsParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/gslb/switch-requests")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "service_id", params.ServiceId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: "uuid"}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if params.Status != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "status", *params.Status, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
 	}
 
 	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
@@ -5776,12 +6631,70 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with GET /api/v1/gslb/services (the `ListGslbServices` operationId).
 	ListGslbServicesWithResponse(ctx context.Context, params *ListGslbServicesParams, reqEditors ...RequestEditorFn) (*ListGslbServicesResponse, error)
 
+	// CreateGslbServiceWithBodyWithResponse Create a GSLB service with pools and health check template
+	//
+	// GSLB 三期服务创建：校验 name/domain/pools/members（clusterId 必须匹配当前租户
+	// runtime_targets 中的 Kubernetes 目标名称），priority 最小者为初始 active 池。幂等：同租户同 domain 重复创建返回
+	// 既有服务（200）。Requires gslb:create.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/v1/gslb/services (the `CreateGslbService` operationId).
+	CreateGslbServiceWithBodyWithResponse(ctx context.Context, params *CreateGslbServiceParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateGslbServiceResponse, error)
+
+	// CreateGslbServiceWithResponse Create a GSLB service with pools and health check template
+	//
+	// GSLB 三期服务创建：校验 name/domain/pools/members（clusterId 必须匹配当前租户
+	// runtime_targets 中的 Kubernetes 目标名称），priority 最小者为初始 active 池。幂等：同租户同 domain 重复创建返回
+	// 既有服务（200）。Requires gslb:create.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/v1/gslb/services (the `CreateGslbService` operationId).
+	CreateGslbServiceWithResponse(ctx context.Context, params *CreateGslbServiceParams, body CreateGslbServiceJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateGslbServiceResponse, error)
+
+	// DeleteGslbServiceWithResponse Delete a GSLB service (dangerous)
+	//
+	// GSLB 四期服务删除：仅 lifecycleState 为 Inactive/Paused 可删；其余状态需显式
+	// force=true，且服务当前不得有进行中（PendingApproval/Approved/Dispatched）的切换请求。
+	// 删除经外键 CASCADE 同事务清理 pools/members/Read Model/切换历史/演练报告；
+	// 关联的平台 operations 行保留作审计。Requires gslb:delete.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with DELETE /api/v1/gslb/services/{id} (the `DeleteGslbService` operationId).
+	DeleteGslbServiceWithResponse(ctx context.Context, id GslbServiceId, params *DeleteGslbServiceParams, reqEditors ...RequestEditorFn) (*DeleteGslbServiceResponse, error)
+
 	// GetGslbServiceWithResponse Get one GSLB service projection
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
 	// Corresponds with GET /api/v1/gslb/services/{id} (the `GetGslbService` operationId).
 	GetGslbServiceWithResponse(ctx context.Context, id GslbServiceId, params *GetGslbServiceParams, reqEditors ...RequestEditorFn) (*GetGslbServiceResponse, error)
+
+	// UpdateGslbServiceWithBodyWithResponse Update editable fields of a GSLB service
+	//
+	// GSLB 四期服务编辑：仅 name / requireApproval / healthCheck 可变（domain、routingMode、
+	// lifecycleState 不可由该路径修改）。FailingOver 中拒绝（409）。乐观并发：If-Match 携带
+	// 先前读到的 updatedAt，过期返回 409。幂等：合并后与现状一致时返回 200 且不变更。
+	// Requires gslb:update.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PATCH /api/v1/gslb/services/{id} (the `UpdateGslbService` operationId).
+	UpdateGslbServiceWithBodyWithResponse(ctx context.Context, id GslbServiceId, params *UpdateGslbServiceParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateGslbServiceResponse, error)
+
+	// UpdateGslbServiceWithResponse Update editable fields of a GSLB service
+	//
+	// GSLB 四期服务编辑：仅 name / requireApproval / healthCheck 可变（domain、routingMode、
+	// lifecycleState 不可由该路径修改）。FailingOver 中拒绝（409）。乐观并发：If-Match 携带
+	// 先前读到的 updatedAt，过期返回 409。幂等：合并后与现状一致时返回 200 且不变更。
+	// Requires gslb:update.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PATCH /api/v1/gslb/services/{id} (the `UpdateGslbService` operationId).
+	UpdateGslbServiceWithResponse(ctx context.Context, id GslbServiceId, params *UpdateGslbServiceParams, body UpdateGslbServiceJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateGslbServiceResponse, error)
 
 	// ListGslbDrillReportsWithResponse List structured drill reports of a GSLB service
 	//
@@ -5815,12 +6728,51 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with POST /api/v1/gslb/services/{id}/intents (the `SubmitGslbIntent` operationId).
 	SubmitGslbIntentWithResponse(ctx context.Context, id GslbServiceId, params *SubmitGslbIntentParams, body SubmitGslbIntentJSONRequestBody, reqEditors ...RequestEditorFn) (*SubmitGslbIntentResponse, error)
 
-	// ListGslbPoolsWithResponse List the pools of a GSLB service
+	// ListGslbPoolsWithResponse List the pool topology of a GSLB service
+	//
+	// 地址池拓扑（前端“地址池拓扑”页签）：isActive 对照服务 active_pool_id，
+	// healthy 对照 Read Model healthy_pools（投影缺失时 false）。只读，请求路径零探测。
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
 	// Corresponds with GET /api/v1/gslb/services/{id}/pools (the `ListGslbPools` operationId).
 	ListGslbPoolsWithResponse(ctx context.Context, id GslbServiceId, params *ListGslbPoolsParams, reqEditors ...RequestEditorFn) (*ListGslbPoolsResponse, error)
+
+	// ReplaceGslbServicePoolsWithBodyWithResponse Replace the whole pool topology of a GSLB service
+	//
+	// GSLB 四期地址池整组替换：校验同创建（≥1 池、priority 唯一、成员非空、weight 0-100、
+	// clusterId 必须匹配当前租户 runtime_targets 中的 Kubernetes 目标名称）。池以 name 为身份，服务端重新生成 pool id；
+	// 当前 active 池的名字必须仍在新配置中，否则 409（先 failover 到保留的池）。
+	// FailingOver 中拒绝（409）。事务内删旧建新并重指 active 池。幂等：新配置与现状语义
+	// 一致时返回 200 且不变更。If-Match 乐观并发同 PATCH。Requires gslb:update.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /api/v1/gslb/services/{id}/pools (the `ReplaceGslbServicePools` operationId).
+	ReplaceGslbServicePoolsWithBodyWithResponse(ctx context.Context, id GslbServiceId, params *ReplaceGslbServicePoolsParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ReplaceGslbServicePoolsResponse, error)
+
+	// ReplaceGslbServicePoolsWithResponse Replace the whole pool topology of a GSLB service
+	//
+	// GSLB 四期地址池整组替换：校验同创建（≥1 池、priority 唯一、成员非空、weight 0-100、
+	// clusterId 必须匹配当前租户 runtime_targets 中的 Kubernetes 目标名称）。池以 name 为身份，服务端重新生成 pool id；
+	// 当前 active 池的名字必须仍在新配置中，否则 409（先 failover 到保留的池）。
+	// FailingOver 中拒绝（409）。事务内删旧建新并重指 active 池。幂等：新配置与现状语义
+	// 一致时返回 200 且不变更。If-Match 乐观并发同 PATCH。Requires gslb:update.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /api/v1/gslb/services/{id}/pools (the `ReplaceGslbServicePools` operationId).
+	ReplaceGslbServicePoolsWithResponse(ctx context.Context, id GslbServiceId, params *ReplaceGslbServicePoolsParams, body ReplaceGslbServicePoolsJSONRequestBody, reqEditors ...RequestEditorFn) (*ReplaceGslbServicePoolsResponse, error)
+
+	// ListGslbSwitchRequestsWithResponse List switch requests of a GSLB service
+	//
+	// 切换记录/审批中心列表：租户隔离，service_id 必须指向当前租户的服务
+	// （防越权枚举），按 created_at 倒序，上限 100 条。
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/gslb/switch-requests (the `ListGslbSwitchRequests` operationId).
+	ListGslbSwitchRequestsWithResponse(ctx context.Context, params *ListGslbSwitchRequestsParams, reqEditors ...RequestEditorFn) (*ListGslbSwitchRequestsResponse, error)
 
 	// ApproveGslbSwitchRequestWithResponse Approve a pending GSLB traffic change
 	//
@@ -6666,6 +7618,158 @@ func (r ListGslbServicesResponse) ContentType() string {
 	return ""
 }
 
+type CreateGslbServiceResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *GslbServiceDetail
+	// JSON201 the response for an HTTP 201 `application/json` response
+	JSON201 *GslbServiceDetail
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r CreateGslbServiceResponse) GetJSON200() *GslbServiceDetail {
+	return r.JSON200
+}
+
+// GetJSON201 returns the response for an HTTP 201 `application/json` response
+func (r CreateGslbServiceResponse) GetJSON201() *GslbServiceDetail {
+	return r.JSON201
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r CreateGslbServiceResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r CreateGslbServiceResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r CreateGslbServiceResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r CreateGslbServiceResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r CreateGslbServiceResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateGslbServiceResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateGslbServiceResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r CreateGslbServiceResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type DeleteGslbServiceResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSON409 the response for an HTTP 409 `application/problem+json` response
+	ApplicationproblemJSON409 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r DeleteGslbServiceResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r DeleteGslbServiceResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r DeleteGslbServiceResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r DeleteGslbServiceResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSON409 returns the response for an HTTP 409 `application/problem+json` response
+func (r DeleteGslbServiceResponse) GetApplicationproblemJSON409() *Problem {
+	return r.ApplicationproblemJSON409
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r DeleteGslbServiceResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r DeleteGslbServiceResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteGslbServiceResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteGslbServiceResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r DeleteGslbServiceResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type GetGslbServiceResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -6736,6 +7840,89 @@ func (r GetGslbServiceResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r GetGslbServiceResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type UpdateGslbServiceResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *GslbServiceDetail
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSON409 the response for an HTTP 409 `application/problem+json` response
+	ApplicationproblemJSON409 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r UpdateGslbServiceResponse) GetJSON200() *GslbServiceDetail {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r UpdateGslbServiceResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r UpdateGslbServiceResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r UpdateGslbServiceResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r UpdateGslbServiceResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSON409 returns the response for an HTTP 409 `application/problem+json` response
+func (r UpdateGslbServiceResponse) GetApplicationproblemJSON409() *Problem {
+	return r.ApplicationproblemJSON409
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r UpdateGslbServiceResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r UpdateGslbServiceResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r UpdateGslbServiceResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UpdateGslbServiceResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r UpdateGslbServiceResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -6957,6 +8144,165 @@ func (r ListGslbPoolsResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r ListGslbPoolsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ReplaceGslbServicePoolsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *GslbPoolListResponse
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSON409 the response for an HTTP 409 `application/problem+json` response
+	ApplicationproblemJSON409 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ReplaceGslbServicePoolsResponse) GetJSON200() *GslbPoolListResponse {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r ReplaceGslbServicePoolsResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r ReplaceGslbServicePoolsResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r ReplaceGslbServicePoolsResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r ReplaceGslbServicePoolsResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSON409 returns the response for an HTTP 409 `application/problem+json` response
+func (r ReplaceGslbServicePoolsResponse) GetApplicationproblemJSON409() *Problem {
+	return r.ApplicationproblemJSON409
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r ReplaceGslbServicePoolsResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ReplaceGslbServicePoolsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ReplaceGslbServicePoolsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ReplaceGslbServicePoolsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ReplaceGslbServicePoolsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ListGslbSwitchRequestsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *GslbSwitchRequestListResponse
+	// ApplicationproblemJSON400 the response for an HTTP 400 `application/problem+json` response
+	ApplicationproblemJSON400 *Problem
+	// ApplicationproblemJSON401 the response for an HTTP 401 `application/problem+json` response
+	ApplicationproblemJSON401 *Problem
+	// ApplicationproblemJSON403 the response for an HTTP 403 `application/problem+json` response
+	ApplicationproblemJSON403 *Problem
+	// ApplicationproblemJSON404 the response for an HTTP 404 `application/problem+json` response
+	ApplicationproblemJSON404 *Problem
+	// ApplicationproblemJSONDefault the response for an HTTP default `application/problem+json` response
+	ApplicationproblemJSONDefault *Problem
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListGslbSwitchRequestsResponse) GetJSON200() *GslbSwitchRequestListResponse {
+	return r.JSON200
+}
+
+// GetApplicationproblemJSON400 returns the response for an HTTP 400 `application/problem+json` response
+func (r ListGslbSwitchRequestsResponse) GetApplicationproblemJSON400() *Problem {
+	return r.ApplicationproblemJSON400
+}
+
+// GetApplicationproblemJSON401 returns the response for an HTTP 401 `application/problem+json` response
+func (r ListGslbSwitchRequestsResponse) GetApplicationproblemJSON401() *Problem {
+	return r.ApplicationproblemJSON401
+}
+
+// GetApplicationproblemJSON403 returns the response for an HTTP 403 `application/problem+json` response
+func (r ListGslbSwitchRequestsResponse) GetApplicationproblemJSON403() *Problem {
+	return r.ApplicationproblemJSON403
+}
+
+// GetApplicationproblemJSON404 returns the response for an HTTP 404 `application/problem+json` response
+func (r ListGslbSwitchRequestsResponse) GetApplicationproblemJSON404() *Problem {
+	return r.ApplicationproblemJSON404
+}
+
+// GetApplicationproblemJSONDefault returns the response for an HTTP default `application/problem+json` response
+func (r ListGslbSwitchRequestsResponse) GetApplicationproblemJSONDefault() *Problem {
+	return r.ApplicationproblemJSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ListGslbSwitchRequestsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListGslbSwitchRequestsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListGslbSwitchRequestsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListGslbSwitchRequestsResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -8181,6 +9527,58 @@ func (c *ClientWithResponses) ListGslbServicesWithResponse(ctx context.Context, 
 	return ParseListGslbServicesResponse(rsp)
 }
 
+// CreateGslbServiceWithBodyWithResponse Create a GSLB service with pools and health check template
+//
+// GSLB 三期服务创建：校验 name/domain/pools/members（clusterId 必须匹配当前租户
+// runtime_targets 中的 Kubernetes 目标名称），priority 最小者为初始 active 池。幂等：同租户同 domain 重复创建返回
+// 既有服务（200）。Requires gslb:create.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/v1/gslb/services (the `CreateGslbService` operationId).
+func (c *ClientWithResponses) CreateGslbServiceWithBodyWithResponse(ctx context.Context, params *CreateGslbServiceParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateGslbServiceResponse, error) {
+	rsp, err := c.CreateGslbServiceWithBody(ctx, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateGslbServiceResponse(rsp)
+}
+
+// CreateGslbServiceWithResponse Create a GSLB service with pools and health check template
+//
+// GSLB 三期服务创建：校验 name/domain/pools/members（clusterId 必须匹配当前租户
+// runtime_targets 中的 Kubernetes 目标名称），priority 最小者为初始 active 池。幂等：同租户同 domain 重复创建返回
+// 既有服务（200）。Requires gslb:create.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/v1/gslb/services (the `CreateGslbService` operationId).
+func (c *ClientWithResponses) CreateGslbServiceWithResponse(ctx context.Context, params *CreateGslbServiceParams, body CreateGslbServiceJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateGslbServiceResponse, error) {
+	rsp, err := c.CreateGslbService(ctx, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateGslbServiceResponse(rsp)
+}
+
+// DeleteGslbServiceWithResponse Delete a GSLB service (dangerous)
+//
+// GSLB 四期服务删除：仅 lifecycleState 为 Inactive/Paused 可删；其余状态需显式
+// force=true，且服务当前不得有进行中（PendingApproval/Approved/Dispatched）的切换请求。
+// 删除经外键 CASCADE 同事务清理 pools/members/Read Model/切换历史/演练报告；
+// 关联的平台 operations 行保留作审计。Requires gslb:delete.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with DELETE /api/v1/gslb/services/{id} (the `DeleteGslbService` operationId).
+func (c *ClientWithResponses) DeleteGslbServiceWithResponse(ctx context.Context, id GslbServiceId, params *DeleteGslbServiceParams, reqEditors ...RequestEditorFn) (*DeleteGslbServiceResponse, error) {
+	rsp, err := c.DeleteGslbService(ctx, id, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteGslbServiceResponse(rsp)
+}
+
 // GetGslbServiceWithResponse Get one GSLB service projection
 //
 // Returns a wrapper object for the known response body format(s).
@@ -8192,6 +9590,42 @@ func (c *ClientWithResponses) GetGslbServiceWithResponse(ctx context.Context, id
 		return nil, err
 	}
 	return ParseGetGslbServiceResponse(rsp)
+}
+
+// UpdateGslbServiceWithBodyWithResponse Update editable fields of a GSLB service
+//
+// GSLB 四期服务编辑：仅 name / requireApproval / healthCheck 可变（domain、routingMode、
+// lifecycleState 不可由该路径修改）。FailingOver 中拒绝（409）。乐观并发：If-Match 携带
+// 先前读到的 updatedAt，过期返回 409。幂等：合并后与现状一致时返回 200 且不变更。
+// Requires gslb:update.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PATCH /api/v1/gslb/services/{id} (the `UpdateGslbService` operationId).
+func (c *ClientWithResponses) UpdateGslbServiceWithBodyWithResponse(ctx context.Context, id GslbServiceId, params *UpdateGslbServiceParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateGslbServiceResponse, error) {
+	rsp, err := c.UpdateGslbServiceWithBody(ctx, id, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateGslbServiceResponse(rsp)
+}
+
+// UpdateGslbServiceWithResponse Update editable fields of a GSLB service
+//
+// GSLB 四期服务编辑：仅 name / requireApproval / healthCheck 可变（domain、routingMode、
+// lifecycleState 不可由该路径修改）。FailingOver 中拒绝（409）。乐观并发：If-Match 携带
+// 先前读到的 updatedAt，过期返回 409。幂等：合并后与现状一致时返回 200 且不变更。
+// Requires gslb:update.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PATCH /api/v1/gslb/services/{id} (the `UpdateGslbService` operationId).
+func (c *ClientWithResponses) UpdateGslbServiceWithResponse(ctx context.Context, id GslbServiceId, params *UpdateGslbServiceParams, body UpdateGslbServiceJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateGslbServiceResponse, error) {
+	rsp, err := c.UpdateGslbService(ctx, id, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateGslbServiceResponse(rsp)
 }
 
 // ListGslbDrillReportsWithResponse List structured drill reports of a GSLB service
@@ -8244,7 +9678,10 @@ func (c *ClientWithResponses) SubmitGslbIntentWithResponse(ctx context.Context, 
 	return ParseSubmitGslbIntentResponse(rsp)
 }
 
-// ListGslbPoolsWithResponse List the pools of a GSLB service
+// ListGslbPoolsWithResponse List the pool topology of a GSLB service
+//
+// 地址池拓扑（前端“地址池拓扑”页签）：isActive 对照服务 active_pool_id，
+// healthy 对照 Read Model healthy_pools（投影缺失时 false）。只读，请求路径零探测。
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -8255,6 +9692,60 @@ func (c *ClientWithResponses) ListGslbPoolsWithResponse(ctx context.Context, id 
 		return nil, err
 	}
 	return ParseListGslbPoolsResponse(rsp)
+}
+
+// ReplaceGslbServicePoolsWithBodyWithResponse Replace the whole pool topology of a GSLB service
+//
+// GSLB 四期地址池整组替换：校验同创建（≥1 池、priority 唯一、成员非空、weight 0-100、
+// clusterId 必须匹配当前租户 runtime_targets 中的 Kubernetes 目标名称）。池以 name 为身份，服务端重新生成 pool id；
+// 当前 active 池的名字必须仍在新配置中，否则 409（先 failover 到保留的池）。
+// FailingOver 中拒绝（409）。事务内删旧建新并重指 active 池。幂等：新配置与现状语义
+// 一致时返回 200 且不变更。If-Match 乐观并发同 PATCH。Requires gslb:update.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /api/v1/gslb/services/{id}/pools (the `ReplaceGslbServicePools` operationId).
+func (c *ClientWithResponses) ReplaceGslbServicePoolsWithBodyWithResponse(ctx context.Context, id GslbServiceId, params *ReplaceGslbServicePoolsParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ReplaceGslbServicePoolsResponse, error) {
+	rsp, err := c.ReplaceGslbServicePoolsWithBody(ctx, id, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseReplaceGslbServicePoolsResponse(rsp)
+}
+
+// ReplaceGslbServicePoolsWithResponse Replace the whole pool topology of a GSLB service
+//
+// GSLB 四期地址池整组替换：校验同创建（≥1 池、priority 唯一、成员非空、weight 0-100、
+// clusterId 必须匹配当前租户 runtime_targets 中的 Kubernetes 目标名称）。池以 name 为身份，服务端重新生成 pool id；
+// 当前 active 池的名字必须仍在新配置中，否则 409（先 failover 到保留的池）。
+// FailingOver 中拒绝（409）。事务内删旧建新并重指 active 池。幂等：新配置与现状语义
+// 一致时返回 200 且不变更。If-Match 乐观并发同 PATCH。Requires gslb:update.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /api/v1/gslb/services/{id}/pools (the `ReplaceGslbServicePools` operationId).
+func (c *ClientWithResponses) ReplaceGslbServicePoolsWithResponse(ctx context.Context, id GslbServiceId, params *ReplaceGslbServicePoolsParams, body ReplaceGslbServicePoolsJSONRequestBody, reqEditors ...RequestEditorFn) (*ReplaceGslbServicePoolsResponse, error) {
+	rsp, err := c.ReplaceGslbServicePools(ctx, id, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseReplaceGslbServicePoolsResponse(rsp)
+}
+
+// ListGslbSwitchRequestsWithResponse List switch requests of a GSLB service
+//
+// 切换记录/审批中心列表：租户隔离，service_id 必须指向当前租户的服务
+// （防越权枚举），按 created_at 倒序，上限 100 条。
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/gslb/switch-requests (the `ListGslbSwitchRequests` operationId).
+func (c *ClientWithResponses) ListGslbSwitchRequestsWithResponse(ctx context.Context, params *ListGslbSwitchRequestsParams, reqEditors ...RequestEditorFn) (*ListGslbSwitchRequestsResponse, error) {
+	rsp, err := c.ListGslbSwitchRequests(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListGslbSwitchRequestsResponse(rsp)
 }
 
 // ApproveGslbSwitchRequestWithResponse Approve a pending GSLB traffic change
@@ -9097,6 +10588,131 @@ func ParseListGslbServicesResponse(rsp *http.Response) (*ListGslbServicesRespons
 	return response, nil
 }
 
+// ParseCreateGslbServiceResponse parses an HTTP response from a CreateGslbServiceWithResponse call
+func ParseCreateGslbServiceResponse(rsp *http.Response) (*CreateGslbServiceResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateGslbServiceResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest GslbServiceDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest GslbServiceDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseDeleteGslbServiceResponse parses an HTTP response from a DeleteGslbServiceWithResponse call
+func ParseDeleteGslbServiceResponse(rsp *http.Response) (*DeleteGslbServiceResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteGslbServiceResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case rsp.StatusCode == 204:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseGetGslbServiceResponse parses an HTTP response from a GetGslbServiceWithResponse call
 func ParseGetGslbServiceResponse(rsp *http.Response) (*GetGslbServiceResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -9145,6 +10761,74 @@ func ParseGetGslbServiceResponse(rsp *http.Response) (*GetGslbServiceResponse, e
 			return nil, err
 		}
 		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseUpdateGslbServiceResponse parses an HTTP response from a UpdateGslbServiceWithResponse call
+func ParseUpdateGslbServiceResponse(rsp *http.Response) (*UpdateGslbServiceResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UpdateGslbServiceResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest GslbServiceDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON409 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest Problem
@@ -9289,6 +10973,135 @@ func ParseListGslbPoolsResponse(rsp *http.Response) (*ListGslbPoolsResponse, err
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest []GslbPool
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseReplaceGslbServicePoolsResponse parses an HTTP response from a ReplaceGslbServicePoolsWithResponse call
+func ParseReplaceGslbServicePoolsResponse(rsp *http.Response) (*ReplaceGslbServicePoolsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ReplaceGslbServicePoolsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest GslbPoolListResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Problem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListGslbSwitchRequestsResponse parses an HTTP response from a ListGslbSwitchRequestsWithResponse call
+func ParseListGslbSwitchRequestsResponse(rsp *http.Response) (*ListGslbSwitchRequestsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListGslbSwitchRequestsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest GslbSwitchRequestListResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
