@@ -42,6 +42,16 @@ cmd/*
 !cmd/gslb-controller/**
 !cmd/runtime-target-lifecycle-provider
 !cmd/runtime-target-lifecycle-provider/**
+!cmd/calico-provider
+!cmd/calico-provider/**
+!cmd/cilium-provider
+!cmd/cilium-provider/**
+!cmd/kube-ovn-provider
+!cmd/kube-ovn-provider/**
+!cmd/network-provider
+!cmd/network-provider/**
+!cmd/network-registry
+!cmd/network-registry/**
 calico-provider
 cilium-provider
 kube-ovn-provider

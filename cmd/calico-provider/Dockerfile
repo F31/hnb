@@ -1,13 +1,23 @@
-FROM golang:1.24 AS build
+ARG GOLANG_IMAGE=golang:1.24
+FROM ${GOLANG_IMAGE} AS build
 ARG GOPROXY=https://goproxy.cn,direct
-ENV GOPROXY=${GOPROXY}
+ENV GOPROXY=${GOPROXY} \
+    HTTP_PROXY= \
+    HTTPS_PROXY= \
+    ALL_PROXY= \
+    http_proxy= \
+    https_proxy= \
+    all_proxy= \
+    NO_PROXY="*" \
+    no_proxy="*" \
+    GOWORK=off
 WORKDIR /src
-COPY go.work go.work.sum ./
-COPY cmd/calico-provider/ cmd/calico-provider/
-COPY pkg/network/ pkg/network/
-RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/calico-provider ./cmd/calico-provider
+COPY . .
+WORKDIR /src/cmd/calico-provider
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/calico-provider .
 
-FROM scratch
-COPY --from=build /out/calico-provider /calico-provider
+FROM alpine:3.20
+RUN apk add --no-cache helm ca-certificates
+COPY --from=build /out/calico-provider /usr/local/bin/calico-provider
 USER 65532:65532
-ENTRYPOINT ["/calico-provider"]
+ENTRYPOINT ["calico-provider"]
