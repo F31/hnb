@@ -1,10 +1,20 @@
-FROM golang:1.24 AS build
+ARG GOLANG_IMAGE=golang:1.24
+FROM ${GOLANG_IMAGE} AS build
 ARG GOPROXY=https://goproxy.cn,direct
-ENV GOPROXY=${GOPROXY}
+ENV GOPROXY=${GOPROXY} \
+    HTTP_PROXY= \
+    HTTPS_PROXY= \
+    ALL_PROXY= \
+    http_proxy= \
+    https_proxy= \
+    all_proxy= \
+    NO_PROXY="*" \
+    no_proxy="*" \
+    GOWORK=off
 WORKDIR /src
-COPY go.work go.work.sum ./
-COPY cmd/karmada-provider/ cmd/karmada-provider/
-RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/karmada-provider ./cmd/karmada-provider
+COPY . .
+WORKDIR /src/cmd/karmada-provider
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/karmada-provider .
 
 FROM scratch
 COPY --from=build /out/karmada-provider /karmada-provider
