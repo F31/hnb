@@ -35,6 +35,7 @@ func parseLifecycleInput(profile Profile, execution ExecutionContext) (Lifecycle
 		FencingGeneration:  intInput(execution.Inputs, "fencingGeneration"),
 		ObservationVersion: intInput(execution.Inputs, "observationVersion"),
 	}
+	input.Parameters = mapInput(execution.Inputs, "parameters")
 	if input.SchemaVersion != "1.0.0" {
 		return LifecycleInput{}, invalid("inputs.schemaVersion must be 1.0.0")
 	}
@@ -81,7 +82,7 @@ func parseLifecycleInput(profile Profile, execution ExecutionContext) (Lifecycle
 }
 
 func allowedKeys(targetKind string) []string {
-	keys := []string{"schemaVersion", "targetId", "targetKind", "action", "displayName", "desiredVersion", "credentialSecretRef", "idempotencyKey", "fencingGeneration", "observationVersion"}
+	keys := []string{"schemaVersion", "targetId", "targetKind", "action", "displayName", "desiredVersion", "credentialSecretRef", "parameters", "idempotencyKey", "fencingGeneration", "observationVersion"}
 	if targetKind == "EdgeRuntimeTarget" {
 		keys = append(keys, "cloudCoreEndpoint", "nodeGroupMappings")
 	}
@@ -130,6 +131,17 @@ func intInput(inputs map[string]any, key string) int64 {
 	default:
 		return 0
 	}
+}
+
+func mapInput(inputs map[string]any, key string) map[string]any {
+	value, ok := inputs[key]
+	if !ok || value == nil {
+		return nil
+	}
+	if typed, ok := value.(map[string]any); ok {
+		return typed
+	}
+	return nil
 }
 
 func secretRefInput(inputs map[string]any, key string) (*SecretReference, error) {

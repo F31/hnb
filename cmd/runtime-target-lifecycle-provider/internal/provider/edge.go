@@ -124,6 +124,9 @@ func (m *EdgeManager) Apply(ctx context.Context, execution ExecutionContext, inp
 	if input.DesiredVersion != "" {
 		outputs["desiredVersion"] = input.DesiredVersion
 	}
+	if input.Action == "upgrade" {
+		outputs["upgradeMode"] = "metadata-only"
+	}
 	if input.CloudCoreEndpoint != "" {
 		outputs["cloudCoreEndpoint"] = input.CloudCoreEndpoint
 	}
@@ -162,13 +165,13 @@ func (m *EdgeManager) provisionCloudCoreNamespace(ctx context.Context, execution
 		ObjectMeta: metav1.ObjectMeta{
 			Name: namespaceName,
 			Annotations: map[string]string{
-				edgeManagedByAnnotation:  edgeProviderValue,
-				edgeTenantAnnotation:     execution.TenantID,
-				edgeTargetAnnotation:     input.TargetID,
-				edgeOperationAnnotation:  execution.OperationID,
-				edgeFencingAnnotation:    fmt.Sprintf("%d", execution.FencingGeneration),
-				edgeVersionAnnotation:    input.DesiredVersion,
-				edgeEndpointAnnotation:   input.CloudCoreEndpoint,
+				edgeManagedByAnnotation: edgeProviderValue,
+				edgeTenantAnnotation:    execution.TenantID,
+				edgeTargetAnnotation:    input.TargetID,
+				edgeOperationAnnotation: execution.OperationID,
+				edgeFencingAnnotation:   fmt.Sprintf("%d", execution.FencingGeneration),
+				edgeVersionAnnotation:   input.DesiredVersion,
+				edgeEndpointAnnotation:  input.CloudCoreEndpoint,
 			},
 			Labels: map[string]string{
 				"hnb.io/managed-by": edgeProviderValue,

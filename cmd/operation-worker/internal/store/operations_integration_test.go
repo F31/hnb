@@ -29,12 +29,13 @@ func TestCommitStepSuccessIsFencedAndAtomic(t *testing.T) {
 	operationID := uuid.NewString()
 	stepID := uuid.NewString()
 	idempotencyKey := "step:" + stepID
+	correlationID := uuid.NewString()
 	_, err = db.ExecContext(ctx, `
 		INSERT INTO operations (
 			id, tenant_id, operation_type, status, initiated_by,
-			idempotency_key, total_steps
-		) VALUES ($1, 'tenant-test', 'deploy', 'queued', 'test', $2, 1)`,
-		operationID, "operation:"+operationID,
+			correlation_id, idempotency_key, total_steps
+		) VALUES ($1, 'tenant-test', 'deploy', 'queued', 'test', $2, $3, 1)`,
+		operationID, correlationID, "operation:"+operationID,
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -214,6 +215,15 @@ func TestCommitStepSuccessIsFencedAndAtomic(t *testing.T) {
 	assertCount(t, db, "SELECT count(*) FROM outbox_events WHERE operation_id = $1", operationID, 1)
 	assertCount(t, db, "SELECT count(*) FROM operation_audit WHERE operation_id = $1", operationID, 1)
 	assertCount(t, db, "SELECT count(*) FROM operation_read_model WHERE operation_id = $1", operationID, 1)
+	var readModelCorrelation string
+	if err := db.QueryRowContext(ctx,
+		"SELECT COALESCE(correlation_id, '') FROM operation_read_model WHERE operation_id = $1", operationID,
+	).Scan(&readModelCorrelation); err != nil {
+		t.Fatal(err)
+	}
+	if readModelCorrelation != correlationID {
+		t.Fatalf("read model correlation_id = %q, want %q", readModelCorrelation, correlationID)
+	}
 	assertCount(t, db, "SELECT count(*) FROM worker_leases WHERE step_id = $1", stepID, 0)
 	assertStepFence(t, db, stepID, leaseB)
 	var auditLeaseID string
@@ -406,6 +416,201 @@ func TestCommitStepFailureIsAtomic(t *testing.T) {
 	}
 }
 
+func TestRuntimeTargetLifecycleUpdatesForTerminalClusterOperations(t *testing.T) {
+	dsn := os.Getenv("HNB_TEST_POSTGRES_DSN")
+	if dsn == "" {
+		t.Skip("HNB_TEST_POSTGRES_DSN is not set")
+	}
+	db, err := sql.Open("postgres", dsn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	ctx := context.Background()
+	tenantID := "tenant-lifecycle-" + uuid.NewString()
+	targetID := uuid.NewString()
+	targetName := "target-" + uuid.NewString()
+	if _, err := db.ExecContext(ctx, `
+		INSERT INTO runtime_targets (id, tenant_id, name, target_type, status, lifecycle_state)
+		VALUES ($1, $2, $3, 'kubernetes', 'unknown', 'PROVISIONING')`,
+		targetID, tenantID, targetName,
+	); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		_, _ = db.ExecContext(ctx, `DELETE FROM runtime_targets WHERE id = $1`, targetID)
+	})
+
+	apply := func(status engine.OperationStatus, intentKind string) {
+		t.Helper()
+		tx, err := db.BeginTx(ctx, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer tx.Rollback()
+		op := &engine.Operation{
+			ID:       uuid.NewString(),
+			TenantID: tenantID,
+			Type:     engine.OpDeploy,
+			Status:   status,
+			Tags: map[string]string{
+				"intent_kind": intentKind,
+				"target_id":   targetID,
+			},
+		}
+		if err := updateRuntimeTargetLifecycleForOperation(ctx, tx, op); err != nil {
+			t.Fatal(err)
+		}
+		if err := tx.Commit(); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	apply(engine.StatusSucceeded, "CreateKubernetesTarget")
+	assertRuntimeTargetState(t, db, targetID, "REGISTERING", "unknown", true)
+
+	apply(engine.StatusFailed, "CreateKubernetesTarget")
+	assertRuntimeTargetState(t, db, targetID, "FAILED", "degraded", true)
+
+	apply(engine.StatusSucceeded, "UpgradeRuntimeTarget")
+	assertRuntimeTargetState(t, db, targetID, "ACTIVE", "online", true)
+
+	apply(engine.StatusSucceeded, "DeleteRuntimeTarget")
+	assertRuntimeTargetState(t, db, targetID, "TERMINATED", "decommissioned", false)
+}
+
+func TestRuntimeTargetLifecycleUpdatesWhenOperationCommitsTerminalStep(t *testing.T) {
+	dsn := os.Getenv("HNB_TEST_POSTGRES_DSN")
+	if dsn == "" {
+		t.Skip("HNB_TEST_POSTGRES_DSN is not set")
+	}
+	db, err := sql.Open("postgres", dsn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	ctx := context.Background()
+	tenantID := "tenant-lifecycle-e2e-" + uuid.NewString()
+	targetID := uuid.NewString()
+	targetName := "target-" + uuid.NewString()
+	if _, err := db.ExecContext(ctx, `
+		INSERT INTO runtime_targets (id, tenant_id, name, target_type, status, lifecycle_state)
+		VALUES ($1, $2, $3, 'kubernetes', 'unknown', 'PROVISIONING')`,
+		targetID, tenantID, targetName,
+	); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		_, _ = db.ExecContext(ctx, `DELETE FROM runtime_targets WHERE id = $1`, targetID)
+	})
+
+	commitTerminalOperation(t, db, tenantID, targetID, "CreateKubernetesTarget", engine.StepSucceeded)
+	assertRuntimeTargetState(t, db, targetID, "REGISTERING", "unknown", true)
+
+	resetRuntimeTarget(t, db, targetID)
+	commitTerminalOperation(t, db, tenantID, targetID, "CreateKubernetesTarget", engine.StepFailed)
+	assertRuntimeTargetState(t, db, targetID, "FAILED", "degraded", true)
+
+	resetRuntimeTarget(t, db, targetID)
+	commitTerminalOperation(t, db, tenantID, targetID, "DeleteRuntimeTarget", engine.StepSucceeded)
+	assertRuntimeTargetState(t, db, targetID, "TERMINATED", "decommissioned", false)
+}
+
+func commitTerminalOperation(t *testing.T, db *sql.DB, tenantID, targetID, intentKind string, stepStatus engine.StepStatus) {
+	t.Helper()
+	ctx := context.Background()
+	operationID := uuid.NewString()
+	stepID := uuid.NewString()
+	idempotencyKey := "step:" + stepID
+	t.Cleanup(func() {
+		_, _ = db.ExecContext(ctx, `DELETE FROM outbox_events WHERE operation_id = $1`, operationID)
+		_, _ = db.ExecContext(ctx, `DELETE FROM operation_read_model WHERE operation_id = $1`, operationID)
+		_, _ = db.ExecContext(ctx, `DELETE FROM operation_audit WHERE operation_id = $1`, operationID)
+		_, _ = db.ExecContext(ctx, `DELETE FROM worker_leases WHERE step_id = $1`, stepID)
+		_, _ = db.ExecContext(ctx, `DELETE FROM operation_steps WHERE operation_id = $1`, operationID)
+		_, _ = db.ExecContext(ctx, `DELETE FROM operations WHERE id = $1`, operationID)
+	})
+	if _, err := db.ExecContext(ctx, `
+		INSERT INTO operations (
+			id, tenant_id, operation_type, status, initiated_by,
+			idempotency_key, total_steps, tags
+		) VALUES ($1, $2, 'deploy', 'queued', 'test', $3, 1, $4)`,
+		operationID, tenantID, "operation:"+operationID,
+		string(toJSON(map[string]string{"intent_kind": intentKind, "target_id": targetID})),
+	); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.ExecContext(ctx, `
+		INSERT INTO operation_steps (
+			id, operation_id, step_name, step_type, idempotency_key
+		) VALUES ($1, $2, 'terminal-step', 'deploy', $3)`,
+		stepID, operationID, idempotencyKey,
+	); err != nil {
+		t.Fatal(err)
+	}
+	store := NewOperationStore(db)
+	lease, err := store.AcquireLease(ctx, operationID, stepID, "worker-e2e", 0, time.Minute)
+	if err != nil {
+		t.Fatal(err)
+	}
+	now := time.Now().UTC()
+	result := engine.StepResult{
+		StepID:      stepID,
+		OperationID: operationID,
+		Outputs:     map[string]any{"status": string(stepStatus)},
+		StartedAt:   now,
+		CompletedAt: now,
+	}
+	event := lifecycleOutboxEvent(operationID, stepID, tenantID, stepStatus)
+	if stepStatus == engine.StepSucceeded {
+		if err := store.CommitStepSuccess(ctx, operationID, stepID, idempotencyKey, "worker-e2e", lease, 0, result, event); err != nil {
+			t.Fatal(err)
+		}
+		return
+	}
+	result.ErrorMessage = "intent failed"
+	failedEvent := lifecycleOutboxEvent(operationID, stepID, tenantID, stepStatus)
+	failedEvent.MessageID = uuid.NewString()
+	failedEvent.IdempotencyKey = "step-failed:" + stepID
+	if err := store.CommitStepFailure(ctx, operationID, stepID, idempotencyKey, "worker-e2e", lease, 0, result, event, failedEvent); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func lifecycleOutboxEvent(operationID, stepID, tenantID string, status engine.StepStatus) OutboxEvent {
+	return OutboxEvent{
+		MessageID:       uuid.NewString(),
+		MessageType:     "hnb.event.operation.step-completed.v1",
+		SchemaVersion:   "1.0.0",
+		Subject:         "hnb.event.operation.step-completed.v1",
+		OccurredAt:      time.Now().UTC(),
+		TenantID:        tenantID,
+		ActorID:         "worker-e2e",
+		CorrelationID:   uuid.NewString(),
+		CausationID:     uuid.NewString(),
+		IdempotencyKey:  "step-completed:" + stepID,
+		AggregateID:     operationID,
+		OperationID:     operationID,
+		StepID:          stepID,
+		ExpectedVersion: 1,
+		Payload: map[string]any{
+			"operationId": operationID,
+			"stepId":      stepID,
+			"status":      string(status),
+		},
+	}
+}
+
+func resetRuntimeTarget(t *testing.T, db *sql.DB, targetID string) {
+	t.Helper()
+	if _, err := db.Exec(`
+		UPDATE runtime_targets
+		SET lifecycle_state='PROVISIONING', status='unknown', is_active=true
+		WHERE id=$1`, targetID); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func assertCount(t *testing.T, db *sql.DB, query string, arg any, want int) {
 	t.Helper()
 	var got int
@@ -414,6 +619,22 @@ func assertCount(t *testing.T, db *sql.DB, query string, arg any, want int) {
 	}
 	if got != want {
 		t.Fatalf("query %q returned %d, want %d", query, got, want)
+	}
+}
+
+func assertRuntimeTargetState(t *testing.T, db *sql.DB, targetID, wantLifecycle, wantStatus string, wantActive bool) {
+	t.Helper()
+	var lifecycle, status string
+	var active bool
+	if err := db.QueryRow(`
+		SELECT lifecycle_state, status, is_active
+		FROM runtime_targets WHERE id = $1`, targetID,
+	).Scan(&lifecycle, &status, &active); err != nil {
+		t.Fatal(err)
+	}
+	if lifecycle != wantLifecycle || status != wantStatus || active != wantActive {
+		t.Fatalf("runtime target state = lifecycle:%s status:%s active:%t, want lifecycle:%s status:%s active:%t",
+			lifecycle, status, active, wantLifecycle, wantStatus, wantActive)
 	}
 }
 

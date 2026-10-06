@@ -67,6 +67,9 @@ func (m *MemoryManager) Apply(ctx context.Context, execution ExecutionContext, i
 	if input.DesiredVersion != "" {
 		outputs["desiredVersion"] = input.DesiredVersion
 	}
+	if input.Action == "upgrade" {
+		outputs["upgradeMode"] = "metadata-only"
+	}
 	checkpoint := fmt.Sprintf("%s:%s:%d", input.TargetKind, input.TargetID, execution.FencingGeneration)
 	m.targets[input.TargetID] = targetRecord{
 		TenantID: execution.TenantID, TargetID: input.TargetID, TargetKind: input.TargetKind,

@@ -199,6 +199,9 @@ func inputMap(input LifecycleInput) map[string]any {
 	if input.DesiredVersion != "" {
 		out["desiredVersion"] = input.DesiredVersion
 	}
+	if len(input.Parameters) > 0 {
+		out["parameters"] = input.Parameters
+	}
 	if input.CloudCoreEndpoint != "" {
 		out["cloudCoreEndpoint"] = input.CloudCoreEndpoint
 	}

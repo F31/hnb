@@ -78,6 +78,7 @@ type LifecycleInput struct {
 	DesiredVersion      string
 	CloudCoreEndpoint   string
 	CredentialSecretRef *SecretReference
+	Parameters          map[string]any
 	IdempotencyKey      string
 	FencingGeneration   int64
 	ObservationVersion  int64
@@ -98,7 +99,7 @@ func (MetadataOnlySecretResolver) Resolve(_ context.Context, _ string, _ string,
 	if ref.Provider == "" || ref.Scope == "" || ref.Name == "" || ref.Version == "" {
 		return nil, invalid("credentialSecretRef must include provider, scope, name, and version")
 	}
-	return []byte("dummy-kubeconfig-content"), nil
+	return nil, fail(503, ErrorTargetUnavailable, true, "database-backed secret resolver is not configured")
 }
 
 type ObserverRegistry interface {

@@ -2,11 +2,14 @@ package provider
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -19,6 +22,10 @@ const (
 	kubernetesOperationAnnotation = "hnb.io/operation-id"
 	kubernetesFencingAnnotation   = "hnb.io/fencing-generation"
 	kubernetesVersionAnnotation   = "hnb.io/desired-version"
+	kubernetesStepAnnotation      = "hnb.io/step-id"
+	kubernetesIdemAnnotation      = "hnb.io/idempotency-key"
+	kubernetesAttemptAnnotation   = "hnb.io/execution-attempt-id"
+	kubernetesActionAnnotation    = "hnb.io/action"
 )
 
 // KubernetesManager implements LifecycleManager for KubernetesRuntimeTarget
@@ -72,6 +79,15 @@ func (m *KubernetesManager) Apply(ctx context.Context, execution ExecutionContex
 	m.mu.Lock()
 	record, ok := m.targets[input.TargetID]
 	m.mu.Unlock()
+	if !ok && input.Action != "import" {
+		loaded, found, err := m.loadRecordFromNamespace(ctx, execution, input)
+		if err != nil {
+			return Result{}, err
+		}
+		if found {
+			record, ok = loaded, true
+		}
+	}
 
 	if ok {
 		switch {
@@ -123,8 +139,16 @@ func (m *KubernetesManager) Apply(ctx context.Context, execution ExecutionContex
 		"managed":         fmt.Sprintf("%t", managed),
 		"observationKind": m.profile.ObservationKind,
 	}
+	if len(input.Parameters) > 0 {
+		if encoded, err := json.Marshal(input.Parameters); err == nil {
+			outputs["parameters"] = string(encoded)
+		}
+	}
 	if input.DesiredVersion != "" {
 		outputs["desiredVersion"] = input.DesiredVersion
+	}
+	if input.Action == "upgrade" {
+		outputs["upgradeMode"] = "metadata-only"
 	}
 	checkpoint := fmt.Sprintf("%s:%s:%d", input.TargetKind, input.TargetID, execution.FencingGeneration)
 
@@ -157,17 +181,23 @@ func (m *KubernetesManager) provisionNamespace(ctx context.Context, execution Ex
 		return err
 	}
 	namespaceName := "hnb-target-" + input.TargetID[:8]
+	annotations := map[string]string{
+		kubernetesManagedByAnnotation: kubernetesProviderValue,
+		kubernetesTenantAnnotation:    execution.TenantID,
+		kubernetesTargetAnnotation:    input.TargetID,
+		kubernetesOperationAnnotation: execution.OperationID,
+		kubernetesFencingAnnotation:   fmt.Sprintf("%d", execution.FencingGeneration),
+		kubernetesVersionAnnotation:   input.DesiredVersion,
+		kubernetesStepAnnotation:      execution.StepID,
+		kubernetesIdemAnnotation:      execution.IdempotencyKey,
+		kubernetesAttemptAnnotation:   execution.ExecutionAttemptID,
+		kubernetesActionAnnotation:    input.Action,
+	}
+	mergeParameterAnnotations(annotations, input.Parameters)
 	ns := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: namespaceName,
-			Annotations: map[string]string{
-				kubernetesManagedByAnnotation:  kubernetesProviderValue,
-				kubernetesTenantAnnotation:     execution.TenantID,
-				kubernetesTargetAnnotation:     input.TargetID,
-				kubernetesOperationAnnotation:  execution.OperationID,
-				kubernetesFencingAnnotation:    fmt.Sprintf("%d", execution.FencingGeneration),
-				kubernetesVersionAnnotation:    input.DesiredVersion,
-			},
+			Name:        namespaceName,
+			Annotations: annotations,
 			Labels: map[string]string{
 				"hnb.io/managed-by": kubernetesProviderValue,
 				"hnb.io/target-id":  input.TargetID,
@@ -215,12 +245,71 @@ func (m *KubernetesManager) updateVersion(ctx context.Context, execution Executi
 	}
 	ann[kubernetesVersionAnnotation] = input.DesiredVersion
 	ann[kubernetesFencingAnnotation] = fmt.Sprintf("%d", execution.FencingGeneration)
+	ann[kubernetesOperationAnnotation] = execution.OperationID
+	ann[kubernetesStepAnnotation] = execution.StepID
+	ann[kubernetesIdemAnnotation] = execution.IdempotencyKey
+	ann[kubernetesAttemptAnnotation] = execution.ExecutionAttemptID
+	ann[kubernetesActionAnnotation] = input.Action
+	mergeParameterAnnotations(ann, input.Parameters)
 	existing.SetAnnotations(ann)
 	_, err = client.CoreV1().Namespaces().Update(ctx, existing, metav1.UpdateOptions{})
 	if err != nil {
 		return targetError("update managed namespace", err)
 	}
 	return nil
+}
+
+func (m *KubernetesManager) loadRecordFromNamespace(ctx context.Context, execution ExecutionContext, input LifecycleInput) (targetRecord, bool, error) {
+	client, err := m.k8sClient(ctx, execution, input)
+	if err != nil {
+		return targetRecord{}, false, err
+	}
+	ns, err := client.CoreV1().Namespaces().Get(ctx, "hnb-target-"+input.TargetID[:8], metav1.GetOptions{})
+	if apierrors.IsNotFound(err) {
+		return targetRecord{}, false, nil
+	}
+	if err != nil {
+		return targetRecord{}, false, targetError("get managed namespace", err)
+	}
+	ann := ns.GetAnnotations()
+	if ann[kubernetesManagedByAnnotation] != kubernetesProviderValue {
+		return targetRecord{}, false, nil
+	}
+	if ann[kubernetesTenantAnnotation] != execution.TenantID || ann[kubernetesTargetAnnotation] != input.TargetID {
+		return targetRecord{}, false, fail(409, ErrorResourceConflict, false, "namespace belongs to a different target management relation")
+	}
+	var generation int64
+	if _, err := fmt.Sscanf(ann[kubernetesFencingAnnotation], "%d", &generation); err != nil || generation <= 0 {
+		return targetRecord{}, false, fail(409, ErrorResourceConflict, false, "managed namespace has invalid fencing generation")
+	}
+	managed := ann[kubernetesActionAnnotation] != "unmanage"
+	outputs := map[string]string{
+		"targetId":        input.TargetID,
+		"targetKind":      input.TargetKind,
+		"action":          ann[kubernetesActionAnnotation],
+		"managed":         fmt.Sprintf("%t", managed),
+		"observationKind": m.profile.ObservationKind,
+	}
+	if ann[kubernetesVersionAnnotation] != "" {
+		outputs["desiredVersion"] = ann[kubernetesVersionAnnotation]
+	}
+	return targetRecord{
+		TenantID: execution.TenantID, TargetID: input.TargetID, TargetKind: input.TargetKind,
+		Action: ann[kubernetesActionAnnotation], StepID: ann[kubernetesStepAnnotation], OperationID: ann[kubernetesOperationAnnotation],
+		IdempotencyKey: ann[kubernetesIdemAnnotation], ExecutionAttemptID: ann[kubernetesAttemptAnnotation],
+		FencingGeneration: generation, Managed: managed, DesiredVersion: ann[kubernetesVersionAnnotation],
+		Outputs: outputs, Checkpoint: fmt.Sprintf("%s:%s:%d", input.TargetKind, input.TargetID, generation),
+	}, true, nil
+}
+
+func mergeParameterAnnotations(annotations map[string]string, params map[string]any) {
+	for key, value := range params {
+		name := strings.TrimSpace(key)
+		if name == "" || value == nil || len(name) > 50 {
+			continue
+		}
+		annotations["hnb.io/parameter."+name] = fmt.Sprintf("%v", value)
+	}
 }
 
 func (m *KubernetesManager) cleanupNamespace(ctx context.Context, execution ExecutionContext, input LifecycleInput) error {

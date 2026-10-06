@@ -539,6 +539,11 @@ func (s *OperationStore) commitStepResult(
 	if err := upsertReadModel(ctx, tx, op); err != nil {
 		return err
 	}
+	if engine.IsTerminal(op.Status) {
+		if err := updateRuntimeTargetLifecycleForOperation(ctx, tx, op); err != nil {
+			return err
+		}
+	}
 	event.AggregateVersion = op.Version
 	if err := insertOutboxEvent(ctx, tx, event); err != nil {
 		return err
@@ -605,26 +610,68 @@ func upsertReadModel(ctx context.Context, tx *sql.Tx, op *engine.Operation) erro
 			operation_id, tenant_id, project_id, environment_id, namespace_id,
 			plan_id, operation_type, status, total_steps,
 			completed_steps, failed_steps, initiated_by, approved_by,
-			summary, tags, created_at, started_at, completed_at,
+			summary, tags, correlation_id, created_at, started_at, completed_at,
 			last_state_changed_at
 		) VALUES ($1, $2, NULLIF($3, ''), NULLIF($4, ''), NULLIF($5, ''),
 			NULLIF($6, '')::uuid, $7, $8, $9, $10, $11, $12, NULLIF($13, ''),
-			$14, $15, $16, $17, $18, now())
+			$14, $15, NULLIF($16, ''), $17, $18, $19, now())
 		ON CONFLICT (operation_id) DO UPDATE SET
 			status = EXCLUDED.status,
 			completed_steps = EXCLUDED.completed_steps,
 			failed_steps = EXCLUDED.failed_steps,
 			approved_by = EXCLUDED.approved_by,
+			correlation_id = COALESCE(EXCLUDED.correlation_id, operation_read_model.correlation_id),
 			started_at = COALESCE(EXCLUDED.started_at, operation_read_model.started_at),
 			completed_at = COALESCE(EXCLUDED.completed_at, operation_read_model.completed_at),
 			last_state_changed_at = now()`,
 		op.ID, op.TenantID, op.ProjectID, op.EnvironmentID, op.NamespaceID,
 		op.PlanID, string(op.Type), string(op.Status), op.TotalSteps,
 		op.CompletedSteps, op.FailedSteps, op.InitiatedBy, op.ApprovedBy,
-		summary, string(toJSON(op.Tags)), op.CreatedAt, op.StartedAt, op.CompletedAt,
+		summary, string(toJSON(op.Tags)), op.CorrelationID, op.CreatedAt, op.StartedAt, op.CompletedAt,
 	)
 	if err != nil {
 		return fmt.Errorf("upsert operation read model: %w", err)
+	}
+	return nil
+}
+
+func updateRuntimeTargetLifecycleForOperation(ctx context.Context, tx *sql.Tx, op *engine.Operation) error {
+	targetID := op.Tags["target_id"]
+	intentKind := op.Tags["intent_kind"]
+	if targetID == "" || intentKind == "" {
+		return nil
+	}
+	var lifecycle, status, health, connectivity, freshness string
+	isActive := true
+	switch {
+	case op.Status == engine.StatusFailed || op.Status == engine.StatusCancelled:
+		lifecycle, status, health, connectivity, freshness = "FAILED", "degraded", "DEGRADED", "UNKNOWN", "UNKNOWN"
+	case op.Status == engine.StatusSucceeded && intentKind == "DeleteRuntimeTarget":
+		lifecycle, status, health, connectivity, freshness = "TERMINATED", "decommissioned", "UNKNOWN", "DISCONNECTED", "STALE"
+		isActive = false
+	case op.Status == engine.StatusSucceeded && (intentKind == "CreateKubernetesTarget" || intentKind == "ImportRuntimeTarget"):
+		lifecycle, status, health, connectivity, freshness = "REGISTERING", "unknown", "UNKNOWN", "UNKNOWN", "UNKNOWN"
+	case op.Status == engine.StatusSucceeded && intentKind == "UpgradeRuntimeTarget":
+		lifecycle, status, health, connectivity, freshness = "ACTIVE", "online", "HEALTHY", "CONNECTED", "FRESH"
+	default:
+		return nil
+	}
+	_, err := tx.ExecContext(ctx, `
+		UPDATE runtime_targets
+		SET lifecycle_state = $3,
+			status = $4,
+			health_state = $5,
+			connectivity_state = $6,
+			freshness_state = $7,
+			last_known_state_at = now(),
+			projection_version = projection_version + 1,
+			is_active = $8,
+			updated_at = now()
+		WHERE id = $1::uuid AND tenant_id = $2`,
+		targetID, op.TenantID, lifecycle, status, health, connectivity, freshness, isActive,
+	)
+	if err != nil {
+		return fmt.Errorf("update runtime target lifecycle: %w", err)
 	}
 	return nil
 }
