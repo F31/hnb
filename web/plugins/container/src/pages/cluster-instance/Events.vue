@@ -5,6 +5,7 @@ import { HNBPageShell, StatusBadge } from '@hnb/ui-kit'
 import { listNamespaces, listWorkspaceClusters, type ContainerCluster } from '../../api/containerApi'
 import { listWorkloadEvents, type WorkloadEvent } from '../../api/eventsApi'
 import { listLogPods, listLogWorkloads, type LogWorkload, type LogWorkloadType } from '../../api/logsApi'
+import { docsUrl } from '../../docs'
 
 const { t } = useI18n()
 const workloadTypes: LogWorkloadType[] = ['deployment', 'statefulset', 'daemonset', 'job', 'cronjob']
@@ -131,7 +132,7 @@ onMounted(initialize)
 
 <template>
   <HNBPageShell :title="t('container.events.title')">
-    <template #actions><a class="help-link" href="https://docs.hnb.example.io/container/events" target="_blank" rel="noopener noreferrer">? {{ t('container.events.help') }}</a></template>
+    <template #actions><a class="help-link" v-if="docsUrl()" :href="docsUrl('/container/events')" target="_blank" rel="noopener noreferrer">? {{ t('container.events.help') }}</a></template>
     <section class="query-panel" :aria-label="t('container.events.queryTitle')">
       <label><span>{{ t('container.events.field.cluster') }}</span><select v-model="clusterId" @change="onClusterChange"><option value="" disabled>{{ t('container.events.placeholder') }}</option><option v-for="item in clusterOptions" :key="item.value" :value="item.value">{{ item.label }}</option></select></label>
       <label><span>{{ t('container.events.field.namespace') }}</span><select v-model="namespace" :disabled="!clusterId" @change="loadWorkloads"><option value="" disabled>{{ t('container.events.placeholder') }}</option><option v-for="item in namespaces" :key="item" :value="item">{{ item }}</option></select></label>

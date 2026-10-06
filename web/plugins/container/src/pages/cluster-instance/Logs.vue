@@ -11,6 +11,7 @@ import {
   type LogWorkload,
   type LogWorkloadType,
 } from '../../api/logsApi'
+import { docsUrl } from '../../docs'
 
 interface LogTabState {
   id: number
@@ -252,7 +253,7 @@ onBeforeUnmount(() => {
 
 <template>
   <HNBPageShell :title="t('container.logs.title')">
-    <template #actions><a class="help-link" href="https://docs.hnb.example.io/container/logs" target="_blank" rel="noopener noreferrer">? {{ t('container.logs.help') }}</a></template>
+    <template #actions><a class="help-link" v-if="docsUrl()" :href="docsUrl('/container/logs')" target="_blank" rel="noopener noreferrer">? {{ t('container.logs.help') }}</a></template>
     <nav class="log-tabs" role="tablist" :aria-label="t('container.logs.title')">
       <button v-for="tab in tabs" :key="tab.id" class="log-tab" :class="{ active: activeTabId === tab.id }" type="button" role="tab" :aria-selected="activeTabId === tab.id" @click="activeTabId = tab.id"><span>{{ tab.name }}</span><span class="tab-close" role="button" :aria-label="t('container.logs.closeTab')" @click.stop="closeTab(tab.id)">×</span></button>
       <button class="add-tab" type="button" :aria-label="t('container.logs.newTab')" :title="t('container.logs.newTab')" @click="addTab">+</button>

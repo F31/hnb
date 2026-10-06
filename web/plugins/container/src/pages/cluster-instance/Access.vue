@@ -26,6 +26,7 @@ import {
   type MetalLBPool,
 } from '../../api/accessApi'
 import NetworkDrawer from '../network/NetworkDrawer.vue'
+import { docsUrl } from '../../docs'
 
 type AccessTab = 'service' | 'ingress' | 'metallb' | 'networkPolicy'
 type AccessItem = AccessService | AccessIngress | MetalLBPool | AccessNetworkPolicy
@@ -309,7 +310,7 @@ onMounted(initialize)
 
 <template>
   <HNBPageShell :title="t('container.access.title')">
-    <template #actions><a class="help-link" href="https://docs.hnb.example.io/container/access" target="_blank" rel="noopener noreferrer">? {{ t('container.access.help') }}</a></template>
+    <template #actions><a class="help-link" v-if="docsUrl()" :href="docsUrl('/container/access')" target="_blank" rel="noopener noreferrer">? {{ t('container.access.help') }}</a></template>
     <nav class="access-tabs" role="tablist" :aria-label="t('container.access.title')"><button v-for="tab in tabs" :key="tab" type="button" role="tab" :aria-selected="activeTab === tab" :class="{ active: activeTab === tab }" @click="activeTab = tab">{{ t(`container.access.tabs.${tab}`) }}</button></nav>
     <div class="access-toolbar">
       <HNBButton :disabled="activeTab === 'metallb' && !metalLBInstalled" @click="createResource">{{ t(`container.access.toolbar.${activeTab === 'service' ? 'addService' : activeTab === 'networkPolicy' ? 'add' : activeTab === 'ingress' ? 'new' : 'create'}`) }}</HNBButton>

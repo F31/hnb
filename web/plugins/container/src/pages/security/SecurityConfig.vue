@@ -10,6 +10,7 @@ import {
 } from '../../api/securityApi'
 import type { VulnerabilityDatabaseRecord, VulnerabilityScanProject, VulnerabilityScanRule } from '../../api/securityTypes'
 import NetworkDrawer from '../network/NetworkDrawer.vue'
+import { docsUrl } from '../../docs'
 
 type ConfigTab = 'database' | 'scan'
 type SortKey = 'updatedBy' | 'createdAt' | 'updatedAt'
@@ -171,7 +172,7 @@ onMounted(load)
 
 <template>
   <HNBPageShell :title="t('container.security.configCenter.title')">
-    <template #actions><a class="help-link" href="https://docs.hnb.example.io/container/security/configuration" target="_blank" rel="noopener noreferrer">? {{ t('container.security.configCenter.help') }}</a></template>
+    <template #actions><a class="help-link" v-if="docsUrl()" :href="docsUrl('/container/security/configuration')" target="_blank" rel="noopener noreferrer">? {{ t('container.security.configCenter.help') }}</a></template>
     <p v-if="pageError" class="error" role="alert">{{ pageError }}</p><p v-if="loading" class="loading" role="status">{{ t('container.security.loading') }}</p>
     <HNBTabs v-else v-model="activeTab" :tabs="tabs" :ariaLabel="t('container.security.configCenter.title')">
       <template #panel-database>

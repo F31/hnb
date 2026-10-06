@@ -23,6 +23,7 @@ import {
   type StorageResourceKind,
 } from '../../api/storageApi'
 import NetworkDrawer from '../network/NetworkDrawer.vue'
+import { docsUrl } from '../../docs'
 
 type StorageTab = 'pv' | 'pvc' | 'storageClass'
 type LabelRow = { key: string; value: string }
@@ -475,7 +476,7 @@ function formatDate(value: string): string {
   <section class="storage-page">
     <header class="storage-header">
       <h2>{{ currentTitle }}</h2>
-      <a class="help-link" href="https://docs.hnb.example.io/container/storage" target="_blank" rel="noopener noreferrer">? {{ t('container.storage.help') }}</a>
+      <a class="help-link" v-if="docsUrl()" :href="docsUrl('/container/storage')" target="_blank" rel="noopener noreferrer">? {{ t('container.storage.help') }}</a>
     </header>
 
     <nav class="storage-tabs" role="tablist" :aria-label="t('container.storage.title')">

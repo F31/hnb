@@ -15,6 +15,7 @@ import {
   type SecretItem,
 } from '../../api/configApi'
 import NetworkDrawer from '../network/NetworkDrawer.vue'
+import { docsUrl } from '../../docs'
 
 type ConfigTab = 'configMap' | 'secret'
 type DataRow = { key: string; value: string }
@@ -284,7 +285,7 @@ onMounted(initialize)
 
 <template>
   <HNBPageShell :title="t(`container.config.tabs.${activeTab}`)">
-    <template #actions><a class="help-link" href="https://docs.hnb.example.io/container/config" target="_blank" rel="noopener noreferrer">? {{ t('container.config.help') }}</a></template>
+    <template #actions><a class="help-link" v-if="docsUrl()" :href="docsUrl('/container/config')" target="_blank" rel="noopener noreferrer">? {{ t('container.config.help') }}</a></template>
 
     <nav class="config-tabs" role="tablist" :aria-label="t('container.config.title')">
       <button v-for="tab in tabs" :key="tab" type="button" role="tab" :aria-selected="activeTab === tab" :class="{ active: activeTab === tab }" @click="activeTab = tab">{{ t(`container.config.tabs.${tab}`) }}</button>

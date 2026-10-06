@@ -15,6 +15,7 @@ import { usePluginContext } from '../composables/usePluginContext'
 import { provideClusterDetailId } from '../composables/useClusterDetailContext'
 import type { ClusterDetail } from '../types/cluster'
 import AgentOnboardingGuide from './AgentOnboardingGuide.vue'
+import { docsUrl } from '../../../docs'
 
 const route = useRoute()
 const router = useRouter()
@@ -112,8 +113,9 @@ async function onDownloadKubeConfig(): Promise<void> {
 }
 
 function onHelp(): void {
-  if (typeof window !== 'undefined') {
-    window.open('https://docs.hnb.example.io', '_blank', 'noopener,noreferrer')
+  const url = docsUrl()
+  if (url && typeof window !== 'undefined') {
+    window.open(url, '_blank', 'noopener,noreferrer')
   }
 }
 
@@ -164,7 +166,7 @@ function onHelp(): void {
             >
               {{ downloading ? t('resource.clusterMgmt.quick.downloading') : t('resource.clusterMgmt.quick.downloadKubeConfig') }}
             </button>
-            <button type="button" class="quick-btn" @click="onHelp">
+            <button v-if="docsUrl()" type="button" class="quick-btn" @click="onHelp">
               {{ t('resource.clusterMgmt.quick.help') }}
             </button>
           </div>
