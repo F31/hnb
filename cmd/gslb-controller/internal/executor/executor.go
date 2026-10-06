@@ -86,6 +86,8 @@ func (e *Executor) ExecuteStep(ctx context.Context, step gslb.Step) error {
 }
 
 // recordsFromInputs 把计划输入的 targets/weights/domain 转换为 DNS 记录集。
+// 带权重时按成员拆分为独立记录（SetID=成员），使权重逐目标生效；
+// 无权重时保持单一记录（failover/switchback 既有行为）。
 func recordsFromInputs(inputs map[string]any, ttl int) []dns.DNSRecord {
 	domain, _ := inputs["domain"].(string)
 	targets := anyToStrings(inputs["targets"])
@@ -93,17 +95,24 @@ func recordsFromInputs(inputs map[string]any, ttl int) []dns.DNSRecord {
 	if len(targets) == 0 {
 		return nil
 	}
-	record := dns.DNSRecord{
-		DNSName: domain,
-		TTL:     ttl,
-	}
-	for _, target := range targets {
-		record.Targets = append(record.Targets, target)
-		if weight, ok := weights[target]; ok {
-			record.Weight = weight
+	if len(weights) > 0 {
+		records := make([]dns.DNSRecord, 0, len(targets))
+		for _, target := range targets {
+			records = append(records, dns.DNSRecord{
+				DNSName: domain,
+				Targets: []string{target},
+				Weight:  weights[target],
+				TTL:     ttl,
+				SetID:   target,
+			})
 		}
+		return records
 	}
-	return []dns.DNSRecord{record}
+	return []dns.DNSRecord{{
+		DNSName: domain,
+		Targets: targets,
+		TTL:     ttl,
+	}}
 }
 
 func endpointName(inputs map[string]any) string {

@@ -19,6 +19,14 @@ type ClusterProbe struct {
 type ProbeTarget struct {
 	Name     string
 	Endpoint string
+	// 服务级健康检查模板下放（迁移 094，GSLB 四期）：
+	// Path/Timeout/FailureThreshold 为 0 值时回退引擎全局默认。
+	// 注意：探测周期保持引擎全局 interval（服务级 interval 不下放，
+	// 避免每集群独立 ticker 的复杂度）；同一集群被多服务引用时由上层
+	// 预先聚合为最严格配置（最短 timeout、最高 threshold）。
+	Path             string
+	Timeout          time.Duration
+	FailureThreshold int
 }
 
 func NewProbeEngine(interval, timeout time.Duration) *ClusterProbe {
@@ -56,7 +64,12 @@ func (e *ClusterProbe) ensureTrackers(targets []ProbeTarget) {
 	defer e.mu.Unlock()
 	for _, t := range targets {
 		if _, ok := e.trackers[t.Name]; !ok {
-			e.trackers[t.Name] = NewFailoverTracker(DefaultFailoverConfig())
+			cfg := DefaultFailoverConfig()
+			// 服务级 failureThreshold 接入 failover 状态机判定
+			if t.FailureThreshold > 0 {
+				cfg.ConsecutiveFailures = t.FailureThreshold
+			}
+			e.trackers[t.Name] = NewFailoverTracker(cfg)
 		}
 	}
 }
@@ -82,10 +95,18 @@ func (e *ClusterProbe) probeAll(targets []ProbeTarget) {
 }
 
 func (e *ClusterProbe) probe(target ProbeTarget) string {
-	ctx, cancel := context.WithTimeout(context.Background(), e.timeout)
+	timeout := e.timeout
+	if target.Timeout > 0 {
+		timeout = target.Timeout
+	}
+	path := target.Path
+	if path == "" {
+		path = "/healthz"
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, "GET", target.Endpoint+"/healthz", nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", target.Endpoint+path, nil)
 	if err != nil {
 		return "unreachable"
 	}

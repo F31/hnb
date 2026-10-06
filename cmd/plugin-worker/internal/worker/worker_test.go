@@ -4,7 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/F31/hnb/cmd/plugin-worker/internal/worker"
@@ -70,7 +72,7 @@ func TestWorkerInstallWritesKubeconfigAndSucceeds(t *testing.T) {
 	}
 	seeded := sealForRef(t, db, ctx, tenantID, sealed, targetID)
 
-	w := worker.New(db, cipher, nil, fakeHelm(t, logPath), resourcesDir)
+	w := worker.New(db, cipher, nil, fakeHelm(t, logPath), resourcesDir, false)
 	req := worker.Request{
 		Name: "cilium", Version: "v1.20.1", Provider: "cni", Action: "install", TargetID: targetID,
 	}
@@ -92,7 +94,7 @@ func TestWorkerInstallWritesKubeconfigAndSucceeds(t *testing.T) {
 	cleanupWorkerResources(t, db, ctx, tenantID, seeded, targetID)
 }
 
-func TestWorkerHealthAndUninstall(t *testing.T) {
+func TestWorkerHealthFailsWithInvalidKubeconfigAndUninstall(t *testing.T) {
 	db := openTestDB(t)
 	defer db.Close()
 	ctx := context.Background()
@@ -105,11 +107,11 @@ func TestWorkerHealthAndUninstall(t *testing.T) {
 	sealed, _ := cipher.Encrypt([]byte("apiVersion: v1\nkind: Config\n"))
 	seeded := sealForRef(t, db, ctx, tenantID, sealed, targetID)
 
-	w := worker.New(db, cipher, nil, fakeHelm(t, filepath.Join(resourcesDir, "helm.log")), resourcesDir)
+	w := worker.New(db, cipher, nil, fakeHelm(t, filepath.Join(resourcesDir, "helm.log")), resourcesDir, false)
 
 	health := w.Health(ctx, &worker.Request{Name: "cilium", TargetID: targetID, Action: "health"})
-	if health.Status != "succeeded" {
-		t.Fatalf("health = %s (%s)", health.Status, health.Message)
+	if health.Status != "failed" || !contains(health.Message, "workload-readiness") {
+		t.Fatalf("health = %s (%s), want failed workload-readiness", health.Status, health.Message)
 	}
 	un := w.Uninstall(ctx, &worker.Request{Name: "cilium", TargetID: targetID, Action: "uninstall"})
 	if un.Status != "succeeded" {
@@ -129,12 +131,27 @@ func TestWorkerInstallFailsClosedWithoutMasterKey(t *testing.T) {
 	sealed, _ := cipher.Encrypt([]byte("apiVersion: v1\nkind: Config\n"))
 	seeded := sealForRef(t, db, ctx, tenantID, sealed, targetID)
 
-	w := worker.New(db, nil /* no master key */, nil, "helm", t.TempDir())
+	w := worker.New(db, nil /* no master key */, nil, "helm", t.TempDir(), false)
 	resp := w.Install(ctx, &worker.Request{Name: "cilium", TargetID: targetID, Action: "install"})
 	if resp.Status != "failed" || !contains(resp.Message, "master key") {
 		t.Fatalf("install without key = %+v, want failed/master key", resp)
 	}
 	cleanupWorkerResources(t, db, ctx, tenantID, seeded, targetID)
+}
+
+func TestWorkerDryRunAcknowledgesWithoutKubeconfig(t *testing.T) {
+	w := worker.New(nil, nil, nil, "helm", t.TempDir(), true)
+	ctx := context.Background()
+	req := worker.Request{Name: "prometheus-operator", Version: "v0.93.1", Provider: "monitoring", Action: "install", TargetID: uuid.NewString()}
+	if resp := w.Install(ctx, &req); resp.Status != "succeeded" || !contains(resp.Message, "dry-run") {
+		t.Fatalf("dry-run install = %+v, want succeeded/dry-run", resp)
+	}
+	if resp := w.Health(ctx, &req); resp.Status != "succeeded" || !contains(resp.Message, "dry-run") {
+		t.Fatalf("dry-run health = %+v, want succeeded/dry-run", resp)
+	}
+	if resp := w.Uninstall(ctx, &req); resp.Status != "succeeded" || !contains(resp.Message, "dry-run") {
+		t.Fatalf("dry-run uninstall = %+v, want succeeded/dry-run", resp)
+	}
 }
 
 // sealForRef seeds a tenant, a runtime target with credential_ref, and the
@@ -199,21 +216,32 @@ func indexOf(hay, needle string) int {
 // the worker, asserts the release is deployed, then uninstalls it.
 //
 // This test is opt-in: set HNB_TEST_REAL_HELM=1 and
-// HNB_TEST_REAL_HELM_KUBECONFIG to a kubeconfig for a reachable cluster, and
-// HNB_TEST_REAL_HELM_HELM to the helm binary path. A minimal chart is created
-// under the temp dir.
+// HNB_TEST_REAL_HELM_KUBECONFIG to a kubeconfig for a reachable cluster.
+// HNB_TEST_REAL_HELM_HELM may override the helm binary path; otherwise PATH is
+// used. A minimal chart is created under the temp dir.
 func TestWorkerInstallWithRealHelm(t *testing.T) {
 	if os.Getenv("HNB_TEST_REAL_HELM") != "1" {
 		t.Skip("set HNB_TEST_REAL_HELM=1 to run the real-helm integration test")
 	}
 	kubeconfigPath := os.Getenv("HNB_TEST_REAL_HELM_KUBECONFIG")
 	helmPath := os.Getenv("HNB_TEST_REAL_HELM_HELM")
-	if kubeconfigPath == "" || helmPath == "" {
-		t.Skip("set HNB_TEST_REAL_HELM_KUBECONFIG and HNB_TEST_REAL_HELM_HELM")
+	if kubeconfigPath == "" {
+		t.Skip("set HNB_TEST_REAL_HELM_KUBECONFIG")
 	}
 	db := openTestDB(t)
 	defer db.Close()
 	ctx := context.Background()
+
+	releaseName := "worker-e2e-" + strings.ReplaceAll(uuid.NewString()[:8], "-", "")
+	namespace := "hnb-e2e-" + strings.ReplaceAll(uuid.NewString()[:8], "-", "")
+
+	if helmPath == "" {
+		var err error
+		helmPath, err = exec.LookPath("helm")
+		if err != nil {
+			t.Skip("set HNB_TEST_REAL_HELM_HELM or install helm in PATH")
+		}
+	}
 
 	// Minimal local chart (no remote repository / image pulls needed).
 	chartDir := t.TempDir()
@@ -224,7 +252,7 @@ func TestWorkerInstallWithRealHelm(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(chartDir, "Chart.yaml"), []byte(chartYAML), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(chartDir, "templates", "configmap.yaml"), []byte("apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: worker-e2e-cm\ndata:\n  from: worker\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(chartDir, "templates", "configmap.yaml"), []byte("apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: {{ .Release.Name }}-cm\ndata:\n  from: worker\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -242,20 +270,28 @@ func TestWorkerInstallWithRealHelm(t *testing.T) {
 		t.Fatal(err)
 	}
 	seeded := sealForRef(t, db, ctx, tenantID, sealed, targetID)
+	defer cleanupWorkerResources(t, db, ctx, tenantID, seeded, targetID)
 
-	w := worker.New(db, cipher, nil, helmPath, resourcesDir)
+	w := worker.New(db, cipher, nil, helmPath, resourcesDir, false)
+	installed := false
+	defer func() {
+		if installed {
+			_ = w.Uninstall(ctx, &worker.Request{Name: releaseName, TargetID: targetID, Action: "uninstall", Namespace: namespace})
+		}
+	}()
 	req := worker.Request{
-		Name: "worker-e2e", Version: "0.1.0", Provider: "plugin", Action: "install",
-		TargetID: targetID, Chart: chartDir,
+		Name: releaseName, Version: "0.1.0", Provider: "plugin", Action: "install",
+		TargetID: targetID, Chart: chartDir, Namespace: namespace,
 	}
 	if resp := w.Install(ctx, &req); resp.Status != "succeeded" {
 		t.Fatalf("real install = %s (%s)", resp.Status, resp.Message)
 	}
-	if resp := w.Health(ctx, &worker.Request{Name: "worker-e2e", TargetID: targetID, Action: "health"}); resp.Status != "succeeded" {
+	installed = true
+	if resp := w.Health(ctx, &worker.Request{Name: releaseName, TargetID: targetID, Action: "health", Namespace: namespace}); resp.Status != "succeeded" {
 		t.Fatalf("real health = %s (%s)", resp.Status, resp.Message)
 	}
-	if resp := w.Uninstall(ctx, &worker.Request{Name: "worker-e2e", TargetID: targetID, Action: "uninstall"}); resp.Status != "succeeded" {
+	if resp := w.Uninstall(ctx, &worker.Request{Name: releaseName, TargetID: targetID, Action: "uninstall", Namespace: namespace}); resp.Status != "succeeded" {
 		t.Fatalf("real uninstall = %s (%s)", resp.Status, resp.Message)
 	}
-	cleanupWorkerResources(t, db, ctx, tenantID, seeded, targetID)
+	installed = false
 }

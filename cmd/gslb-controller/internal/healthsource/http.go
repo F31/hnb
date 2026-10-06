@@ -73,7 +73,10 @@ func (s *HTTPSource) GetAllStatuses() map[string]string {
 func convertTargets(targets []ClusterTarget) []health.ProbeTarget {
 	pt := make([]health.ProbeTarget, len(targets))
 	for i, t := range targets {
-		pt[i] = health.ProbeTarget{Name: t.Name, Endpoint: t.Endpoint}
+		pt[i] = health.ProbeTarget{
+			Name: t.Name, Endpoint: t.Endpoint,
+			Path: t.Path, Timeout: t.Timeout, FailureThreshold: t.FailureThreshold,
+		}
 	}
 	return pt
 }

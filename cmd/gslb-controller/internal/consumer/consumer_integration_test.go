@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	_ "github.com/lib/pq"
 	"github.com/google/uuid"
+	_ "github.com/lib/pq"
 	"github.com/nats-io/nats.go"
 
 	"github.com/F31/hnb/cmd/gslb-controller/internal/store"
@@ -18,6 +18,31 @@ import (
 )
 
 func jsonMarshal(v any) ([]byte, error) { return json.Marshal(v) }
+
+func TestParseCommandPayloadAcceptsRelayEnvelope(t *testing.T) {
+	planJSON, err := jsonMarshal(planForTest())
+	if err != nil {
+		t.Fatal(err)
+	}
+	body, err := jsonMarshal(map[string]any{
+		"messageId": "msg-1",
+		"payload": map[string]any{
+			"requestId": "req-1",
+			"serviceId": "svc-1",
+			"plan":      json.RawMessage(planJSON),
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	payload, err := parseCommandPayload(body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if payload.RequestID != "req-1" || payload.ServiceID != "svc-1" || len(payload.Plan) == 0 {
+		t.Fatalf("payload = %+v", payload)
+	}
+}
 
 // TestConsumerEndToEndNATS 验证完整执行环（GSLB-005）：
 // 命令消息经 NATS domain-events 流投递 → consumer 校验请求状态 →

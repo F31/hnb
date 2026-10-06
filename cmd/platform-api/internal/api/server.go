@@ -17,7 +17,6 @@ import (
 
 	"github.com/F31/hnb/cmd/platform-api/internal/api/middleware"
 	"github.com/F31/hnb/cmd/platform-api/internal/engine"
-	"github.com/F31/hnb/cmd/platform-api/internal/service"
 	stalepolicy "github.com/F31/hnb/cmd/platform-api/internal/stale"
 	"github.com/F31/hnb/cmd/platform-api/internal/store"
 	"github.com/F31/hnb/pkg/core"
@@ -32,7 +31,6 @@ const (
 
 type Server struct {
 	store              store.Store
-	service            service.ClusterService
 	engine             *engine.Engine
 	mux                *http.ServeMux
 	auth               iam.AccessAuthenticator
@@ -101,15 +99,9 @@ var platformRoutes = []platformRoute{
 	{Method: http.MethodPost, Pattern: "/v1/targets", ResourceKind: "runtimeTarget", Action: iam.ActionCreate},
 	{Method: http.MethodGet, Pattern: "/v1/targets", ResourceKind: "runtimeTarget", Action: iam.ActionList},
 	{Method: http.MethodGet, Pattern: "/v1/targets/{id}", ResourceKind: "runtimeTarget", ResourceIDParam: "id", Action: iam.ActionRead},
+	{Method: http.MethodPatch, Pattern: "/v1/targets/{id}/description", ResourceKind: "runtimeTarget", ResourceIDParam: "id", Action: iam.ActionUpdate},
+	{Method: http.MethodPost, Pattern: "/v1/targets/{id}/kubeconfig:issue", ResourceKind: "runtimeTarget", ResourceIDParam: "id", Action: iam.ActionRead},
 	{Method: http.MethodDelete, Pattern: "/v1/targets/{id}", ResourceKind: "runtimeTarget", ResourceIDParam: "id", Action: iam.ActionDelete},
-	{Method: http.MethodPost, Pattern: "/v1/clusters", ResourceKind: "cluster", Action: iam.ActionCreate},
-	{Method: http.MethodGet, Pattern: "/v1/clusters", ResourceKind: "cluster", Action: iam.ActionList},
-	{Method: http.MethodGet, Pattern: "/v1/clusters/{id}", ResourceKind: "cluster", ResourceIDParam: "id", Action: iam.ActionRead},
-	{Method: http.MethodPut, Pattern: "/v1/clusters/{id}", ResourceKind: "cluster", ResourceIDParam: "id", Action: iam.ActionExecute},
-	{Method: http.MethodDelete, Pattern: "/v1/clusters/{id}", ResourceKind: "cluster", ResourceIDParam: "id", Action: iam.ActionDelete},
-	{Method: http.MethodPatch, Pattern: "/v1/clusters/{id}/description", ResourceKind: string(iam.ResourceCluster), ResourceIDParam: "id", Action: iam.ActionUpdate},
-	{Method: http.MethodPost, Pattern: "/v1/clusters/{id}/kubeconfig:issue", ResourceKind: string(iam.ResourceCluster), ResourceIDParam: "id", Action: iam.ActionRead},
-	{Method: http.MethodPut, Pattern: "/api/v1/clusters/{id}/heartbeat", ResourceKind: "cluster", Action: iam.ActionExecute},
 	{Method: http.MethodPost, Pattern: "/v1/providers/{id}/manifest", ResourceKind: "provider", Action: iam.ActionExecute},
 	{Method: http.MethodGet, Pattern: "/v1/providers/{id}/manifest", ResourceKind: "provider", Action: iam.ActionRead},
 	{Method: http.MethodDelete, Pattern: "/v1/providers/{id}/manifest", ResourceKind: "provider", Action: iam.ActionDelete},
@@ -129,7 +121,6 @@ type platformRoute struct {
 func NewServer(st store.Store, authenticator iam.AccessAuthenticator, permissionResolvers ...currentPermissionResolver) *Server {
 	s := &Server{
 		store:       st,
-		service:     service.NewClusterService(st),
 		engine:      engine.NewEngine(lifecycleProviderResolver{store: st}),
 		mux:         http.NewServeMux(),
 		auth:        authenticator,
@@ -158,15 +149,9 @@ func NewServer(st store.Store, authenticator iam.AccessAuthenticator, permission
 	s.mux.HandleFunc("POST /v1/targets", s.handleCreateRuntimeTarget)
 	s.mux.HandleFunc("GET /v1/targets", s.handleListRuntimeTargets)
 	s.mux.HandleFunc("GET /v1/targets/{id}", s.handleGetRuntimeTarget)
+	s.mux.HandleFunc("PATCH /v1/targets/{id}/description", s.handleUpdateRuntimeTargetDescription)
+	s.mux.HandleFunc("POST /v1/targets/{id}/kubeconfig:issue", s.handleIssueRuntimeTargetKubeconfig)
 	s.mux.HandleFunc("DELETE /v1/targets/{id}", s.handleDeleteRuntimeTarget)
-	s.mux.HandleFunc("POST /v1/clusters", s.handleCreateCluster)
-	s.mux.HandleFunc("GET /v1/clusters", s.handleGetClusters)
-	s.mux.HandleFunc("GET /v1/clusters/{id}", s.handleGetCluster)
-	s.mux.HandleFunc("PUT /v1/clusters/{id}", s.handleUpdateCluster)
-	s.mux.HandleFunc("DELETE /v1/clusters/{id}", s.handleDeleteCluster)
-	s.mux.HandleFunc("PATCH /v1/clusters/{id}/description", s.handleUpdateClusterDescription)
-	s.mux.HandleFunc("POST /v1/clusters/{id}/kubeconfig:issue", s.handleIssueClusterKubeconfig)
-	s.mux.HandleFunc("PUT /api/v1/clusters/{id}/heartbeat", s.handleHeartbeatCluster)
 	s.mux.HandleFunc("POST /v1/providers/{id}/manifest", s.handleSaveManifest)
 	s.mux.HandleFunc("GET /v1/providers/{id}/manifest", s.handleGetManifest)
 	s.mux.HandleFunc("DELETE /v1/providers/{id}/manifest", s.handleDeleteManifest)
@@ -221,8 +206,8 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	})
 	accessTokenMiddleware := iam.TrustedHTTPMiddleware(s.auth, "/healthz", "/livez", "/startupz", "/readyz")
 	var authed http.Handler
-	if (r.Method == http.MethodPost && (r.URL.Path == "/v1/intents" || r.URL.Path == "/v1/secrets:register" || isClusterKubeconfigIssuePath(r.URL.Path))) ||
-		(r.Method == http.MethodPatch && isClusterDescriptionPath(r.URL.Path)) {
+	if (r.Method == http.MethodPost && (r.URL.Path == "/v1/intents" || r.URL.Path == "/v1/secrets:register" || isRuntimeTargetKubeconfigIssuePath(r.URL.Path))) ||
+		(r.Method == http.MethodPatch && isRuntimeTargetDescriptionPath(r.URL.Path)) {
 		authed = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if s.delegationVerifier == nil {
 				writeError(w, http.StatusUnauthorized, "invalid_delegation", "trusted service delegation is required")
@@ -293,16 +278,12 @@ func isWriteMethod(method string) bool {
 	return method == http.MethodPost || method == http.MethodPut || method == http.MethodPatch || method == http.MethodDelete
 }
 
-// isClusterDescriptionPath reports whether the request targets the cluster
-// description update endpoint (BFF-forwarded with a trusted service delegation).
-func isClusterDescriptionPath(path string) bool {
-	return strings.HasPrefix(path, "/v1/clusters/") && strings.HasSuffix(path, "/description")
+func isRuntimeTargetDescriptionPath(path string) bool {
+	return strings.HasPrefix(path, "/v1/targets/") && strings.HasSuffix(path, "/description")
 }
 
-// isClusterKubeconfigIssuePath reports whether the request targets the cluster
-// kubeconfig issue endpoint (BFF-forwarded with a trusted service delegation).
-func isClusterKubeconfigIssuePath(path string) bool {
-	return strings.HasPrefix(path, "/v1/clusters/") && strings.HasSuffix(path, "/kubeconfig:issue")
+func isRuntimeTargetKubeconfigIssuePath(path string) bool {
+	return strings.HasPrefix(path, "/v1/targets/") && strings.HasSuffix(path, "/kubeconfig:issue")
 }
 
 func matchRoute(routes []platformRoute, method, path string) *platformRoute {
@@ -1401,6 +1382,166 @@ func (s *Server) handleDeleteRuntimeTarget(w http.ResponseWriter, r *http.Reques
 	writeJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
 }
 
+const maxTargetDescriptionLen = 2048
+
+type updateRuntimeTargetDescriptionRequest struct {
+	Description string `json:"description"`
+}
+
+// handleUpdateRuntimeTargetDescription is a BFF-forwarded, delegation-authenticated
+// metadata write that updates the runtime target's human-readable description
+// on the runtime target read model.
+func (s *Server) handleUpdateRuntimeTargetDescription(w http.ResponseWriter, r *http.Request) {
+	trusted, ok := iam.TrustedContextFrom(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized", "trusted context is required")
+		return
+	}
+	delegation, ok := iam.DelegationClaimsFrom(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "invalid_delegation", "trusted service delegation is required")
+		return
+	}
+	id := r.PathValue("id")
+	if _, err := uuid.Parse(id); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_request", "target id must be a UUID")
+		return
+	}
+	if delegation.ActorSubject != trusted.SubjectID || delegation.MembershipID != trusted.MembershipID ||
+		delegation.TenantID != trusted.TenantID ||
+		delegation.Scope.ResourceKind != string(iam.ResourceClusterMetadata) || delegation.Scope.ResourceID != id ||
+		delegation.Action != iam.ActionUpdate ||
+		delegation.CorrelationID != trusted.CorrelationID {
+		writeError(w, http.StatusUnauthorized, "delegation_evidence_mismatch", "delegation evidence does not match the request")
+		return
+	}
+	trusted, allowed := s.authorizeRuntimeTargetAction(w, r, trusted, id, iam.ActionUpdate)
+	if !allowed {
+		return
+	}
+	if _, err := s.store.GetRuntimeTarget(r.Context(), id, trusted.TenantID); err != nil {
+		writeError(w, http.StatusNotFound, "target_not_found", "runtime target not found")
+		return
+	}
+	body, err := io.ReadAll(io.LimitReader(r.Body, maxRequestBodyBytes))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_request", "failed to read request body")
+		return
+	}
+	var req updateRuntimeTargetDescriptionRequest
+	if err := json.Unmarshal(body, &req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_request", "request body must be valid JSON")
+		return
+	}
+	if len(req.Description) > maxTargetDescriptionLen {
+		writeError(w, http.StatusBadRequest, "invalid_request", "description must be at most 2048 characters")
+		return
+	}
+	if err := s.store.UpdateRuntimeTargetDescription(r.Context(), id, trusted.TenantID, req.Description); err != nil {
+		if errors.Is(err, store.ErrTargetNotFound) {
+			writeError(w, http.StatusNotFound, "target_not_found", "runtime target not found")
+			return
+		}
+		log.Printf("platform-api: update runtime target description: %v", err)
+		writeError(w, http.StatusInternalServerError, "internal", "failed to update description")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"status": "updated"})
+}
+
+// handleIssueRuntimeTargetKubeconfig returns the stored kubeconfig for a
+// Kubernetes runtime target so the console can download it. When the target
+// carries a credential_ref (recorded at create/import), that exact secret
+// reference is resolved and a missing secret fails closed (404); targets
+// without a reference fall back to the tenant's most recent kubeconfig secret.
+func (s *Server) handleIssueRuntimeTargetKubeconfig(w http.ResponseWriter, r *http.Request) {
+	trusted, ok := iam.TrustedContextFrom(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized", "trusted context is required")
+		return
+	}
+	delegation, ok := iam.DelegationClaimsFrom(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "invalid_delegation", "trusted service delegation is required")
+		return
+	}
+	id := r.PathValue("id")
+	if _, err := uuid.Parse(id); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_request", "target id must be a UUID")
+		return
+	}
+	if delegation.ActorSubject != trusted.SubjectID || delegation.MembershipID != trusted.MembershipID ||
+		delegation.TenantID != trusted.TenantID ||
+		delegation.Scope.ResourceKind != string(iam.ResourceClusterMetadata) || delegation.Scope.ResourceID != id ||
+		delegation.Action != iam.ActionRead ||
+		delegation.CorrelationID != trusted.CorrelationID {
+		writeError(w, http.StatusUnauthorized, "delegation_evidence_mismatch", "delegation evidence does not match the request")
+		return
+	}
+	trusted, allowed := s.authorizeRuntimeTargetAction(w, r, trusted, id, iam.ActionRead)
+	if !allowed {
+		return
+	}
+	rt, err := s.store.GetRuntimeTarget(r.Context(), id, trusted.TenantID)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "target_not_found", "runtime target not found")
+		return
+	}
+	if rt.TargetType != "kubernetes" {
+		writeError(w, http.StatusConflict, "kubeconfig_unavailable", "kubeconfig download is only supported for Kubernetes runtime targets")
+		return
+	}
+	if s.secretCipher == nil {
+		writeError(w, http.StatusServiceUnavailable, "secret-store-unavailable", "secret storage is unavailable")
+		return
+	}
+	var encrypted string
+	if rt.CredentialRef != nil && strings.TrimSpace(rt.CredentialRef.Name) != "" {
+		encrypted, err = s.store.KubeConfigEncryptedForRef(r.Context(), trusted.TenantID, rt.CredentialRef.Scope, rt.CredentialRef.Name)
+	} else {
+		encrypted, err = s.store.LatestKubeConfigEncrypted(r.Context(), trusted.TenantID)
+	}
+	if err != nil {
+		if errors.Is(err, store.ErrSecretReferenceDenied) {
+			writeError(w, http.StatusNotFound, "kubeconfig_not_found", "no downloadable kubeconfig is registered for this runtime target")
+			return
+		}
+		log.Printf("platform-api: load kubeconfig secret: %v", err)
+		writeError(w, http.StatusInternalServerError, "internal", "failed to load kubeconfig")
+		return
+	}
+	raw, err := s.secretCipher.Decrypt(encrypted)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "kubeconfig_decrypt_failed", "failed to decrypt kubeconfig")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{
+		"kubeconfig": string(raw),
+		"filename":   id + ".kubeconfig",
+	})
+}
+
+func (s *Server) authorizeRuntimeTargetAction(w http.ResponseWriter, r *http.Request, trusted iam.TrustedContext, resourceID string, action iam.AuthorizationAction) (iam.TrustedContext, bool) {
+	if s.permissionResolver != nil {
+		policyVersion, permissions, err := s.permissionResolver.ResolvePermissions(r.Context(), trusted.SubjectID, trusted.MembershipID, trusted.TenantID)
+		if err != nil {
+			writeError(w, http.StatusForbidden, "permission_denied", "permission denied")
+			return trusted, false
+		}
+		trusted.PolicyVersion, trusted.ScopedPermissions = policyVersion, permissions
+	}
+	decision := s.authz.Evaluate(trusted, iam.AuthorizationRequest{
+		SubjectID: trusted.SubjectID, TenantID: trusted.TenantID, ResourceKind: string(iam.ResourceCluster),
+		ResourceID: resourceID, Action: action,
+		ProjectID: trusted.ProjectID, EnvironmentID: trusted.EnvironmentID, NamespaceID: trusted.NamespaceID,
+	})
+	if !decision.Allowed {
+		writeError(w, http.StatusForbidden, decision.ReasonCode, "permission denied")
+		return trusted, false
+	}
+	return trusted, true
+}
+
 func pathUUID(w http.ResponseWriter, r *http.Request) (string, bool) {
 	id := r.PathValue("id")
 	if _, err := uuid.Parse(id); err != nil {
@@ -1530,316 +1671,6 @@ func withTraceHeaders(w http.ResponseWriter, r *http.Request) *http.Request {
 	w.Header().Set("X-Trace-Id", traceID)
 	w.Header().Set("X-Correlation-ID", correlationID)
 	return r
-}
-
-func (s *Server) handleCreateCluster(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	// Validate authorization - CREATE permission on cluster
-	if !s.authorize(w, r, "", "", "", "") {
-		return
-	}
-
-	var req struct {
-		Name          string            `json:"name"`
-		ClusterType   string            `json:"clusterType"`
-		APIEndpoint   string            `json:"apiEndpoint"`
-		KubeconfigRef string            `json:"kubeconfigRef,omitempty"`
-		Region        string            `json:"region,omitempty"`
-		Zone          string            `json:"zone,omitempty"`
-		Labels        map[string]string `json:"labels,omitempty"`
-	}
-	if err := decodeJSON(w, r, &req); err != nil {
-		return
-	}
-	cluster, err := s.service.Register(ctx, &service.CreateClusterInput{
-		Name:          req.Name,
-		ClusterType:   req.ClusterType,
-		APIEndpoint:   req.APIEndpoint,
-		KubeconfigRef: req.KubeconfigRef,
-		Region:        req.Region,
-		Zone:          req.Zone,
-		Labels:        req.Labels,
-	})
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "cluster_creation_failed", err.Error())
-		return
-	}
-	writeJSON(w, http.StatusCreated, cluster)
-}
-
-func (s *Server) handleGetClusters(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	// Validate authorization - LIST permission on cluster
-	if !s.authorize(w, r, "", "", "", "") {
-		return
-	}
-
-	clusterList, err := s.service.List(ctx)
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, "cluster_list_failed", err.Error())
-		return
-	}
-	writeJSON(w, http.StatusOK, clusterList)
-}
-
-func (s *Server) handleGetCluster(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	// Validate authorization - READ permission on cluster
-	if !s.hasAuthorizationCandidate(w, r, r.PathValue("id")) {
-		return
-	}
-	id := r.PathValue("id")
-	cluster, err := s.service.Get(ctx, id)
-	if err != nil {
-		if errors.Is(err, store.ErrClusterNotFound) {
-			writeError(w, http.StatusNotFound, "cluster_not_found", "cluster not found")
-			return
-		}
-		writeError(w, http.StatusInternalServerError, "cluster_fetch_failed", err.Error())
-		return
-	}
-	writeJSON(w, http.StatusOK, cluster)
-}
-
-func (s *Server) handleUpdateCluster(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	// Validate authorization - EXECUTE permission on cluster (UPDATE uses ActionExecute)
-	if !s.hasAuthorizationCandidate(w, r, r.PathValue("id")) {
-		return
-	}
-	id := r.PathValue("id")
-	var req struct {
-		Region *string            `json:"region,omitempty"`
-		Zone   *string            `json:"zone,omitempty"`
-		Labels *map[string]string `json:"labels,omitempty"`
-		Status *string            `json:"status,omitempty"`
-	}
-	if err := decodeJSON(w, r, &req); err != nil {
-		return
-	}
-	cluster, err := s.service.Update(ctx, id, &service.UpdateClusterInput{
-		Region: req.Region,
-		Zone:   req.Zone,
-		Labels: req.Labels,
-		Status: req.Status,
-	})
-	if err != nil {
-		if errors.Is(err, store.ErrClusterNotFound) {
-			writeError(w, http.StatusNotFound, "cluster_not_found", "cluster not found")
-			return
-		}
-		writeError(w, http.StatusBadRequest, "cluster_update_failed", err.Error())
-		return
-	}
-	writeJSON(w, http.StatusOK, cluster)
-}
-
-func (s *Server) handleDeleteCluster(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	// Validate authorization - DELETE permission on cluster
-	if !s.hasAuthorizationCandidate(w, r, r.PathValue("id")) {
-		return
-	}
-	id := r.PathValue("id")
-	err := s.service.Delete(ctx, id)
-	if err != nil {
-		if errors.Is(err, store.ErrClusterNotFound) {
-			writeError(w, http.StatusNotFound, "cluster_not_found", "cluster not found")
-			return
-		}
-		writeError(w, http.StatusInternalServerError, "cluster_delete_failed", err.Error())
-		return
-	}
-	writeJSON(w, http.StatusNoContent, nil)
-}
-
-const maxClusterDescriptionLen = 2048
-
-type updateClusterDescriptionRequest struct {
-	Description string `json:"description"`
-}
-
-// handleUpdateClusterDescription is a BFF-forwarded, delegation-authenticated
-// metadata write that updates the cluster's human-readable description on the
-// runtime target read model.
-func (s *Server) handleUpdateClusterDescription(w http.ResponseWriter, r *http.Request) {
-	trusted, ok := iam.TrustedContextFrom(r.Context())
-	if !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized", "trusted context is required")
-		return
-	}
-	delegation, ok := iam.DelegationClaimsFrom(r.Context())
-	if !ok {
-		writeError(w, http.StatusUnauthorized, "invalid_delegation", "trusted service delegation is required")
-		return
-	}
-	id := r.PathValue("id")
-	if _, err := uuid.Parse(id); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid_request", "cluster id must be a UUID")
-		return
-	}
-	if delegation.ActorSubject != trusted.SubjectID || delegation.MembershipID != trusted.MembershipID ||
-		delegation.TenantID != trusted.TenantID ||
-		delegation.Scope.ResourceKind != string(iam.ResourceClusterMetadata) || delegation.Scope.ResourceID != id ||
-		delegation.Action != iam.ActionUpdate ||
-		delegation.CorrelationID != trusted.CorrelationID {
-		writeError(w, http.StatusUnauthorized, "delegation_evidence_mismatch", "delegation evidence does not match the request")
-		return
-	}
-	trusted, allowed := s.authorizeClusterAction(w, r, trusted, id, iam.ActionUpdate)
-	if !allowed {
-		return
-	}
-	if _, err := s.store.GetRuntimeTarget(r.Context(), id, trusted.TenantID); err != nil {
-		if errors.Is(err, store.ErrTargetNotFound) {
-			writeError(w, http.StatusNotFound, "cluster_not_found", "cluster not found")
-			return
-		}
-		log.Printf("platform-api: load cluster for description update: %v", err)
-		writeError(w, http.StatusInternalServerError, "internal", "failed to load cluster")
-		return
-	}
-	body, err := io.ReadAll(io.LimitReader(r.Body, maxRequestBodyBytes))
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid_request", "failed to read request body")
-		return
-	}
-	var req updateClusterDescriptionRequest
-	if err := json.Unmarshal(body, &req); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid_request", "request body must be valid JSON")
-		return
-	}
-	if len(req.Description) > maxClusterDescriptionLen {
-		writeError(w, http.StatusBadRequest, "invalid_request", "description must be at most 2048 characters")
-		return
-	}
-	if err := s.store.UpdateRuntimeTargetDescription(r.Context(), id, trusted.TenantID, req.Description); err != nil {
-		if errors.Is(err, store.ErrTargetNotFound) {
-			writeError(w, http.StatusNotFound, "cluster_not_found", "cluster not found")
-			return
-		}
-		log.Printf("platform-api: update cluster description: %v", err)
-		writeError(w, http.StatusInternalServerError, "internal", "failed to update description")
-		return
-	}
-	writeJSON(w, http.StatusOK, map[string]string{"status": "updated"})
-}
-
-// handleIssueClusterKubeconfig returns the stored kubeconfig for a
-// Kubernetes cluster so the console can download it. When the target carries a
-// credential_ref (recorded at create/import), that exact secret reference is
-// resolved and a missing secret fails closed (404); legacy targets without a
-// reference fall back to the tenant's most recent kubeconfig secret.
-func (s *Server) handleIssueClusterKubeconfig(w http.ResponseWriter, r *http.Request) {
-	trusted, ok := iam.TrustedContextFrom(r.Context())
-	if !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized", "trusted context is required")
-		return
-	}
-	delegation, ok := iam.DelegationClaimsFrom(r.Context())
-	if !ok {
-		writeError(w, http.StatusUnauthorized, "invalid_delegation", "trusted service delegation is required")
-		return
-	}
-	id := r.PathValue("id")
-	if _, err := uuid.Parse(id); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid_request", "cluster id must be a UUID")
-		return
-	}
-	if delegation.ActorSubject != trusted.SubjectID || delegation.MembershipID != trusted.MembershipID ||
-		delegation.TenantID != trusted.TenantID ||
-		delegation.Scope.ResourceKind != string(iam.ResourceClusterMetadata) || delegation.Scope.ResourceID != id ||
-		delegation.Action != iam.ActionRead ||
-		delegation.CorrelationID != trusted.CorrelationID {
-		writeError(w, http.StatusUnauthorized, "delegation_evidence_mismatch", "delegation evidence does not match the request")
-		return
-	}
-	trusted, allowed := s.authorizeClusterAction(w, r, trusted, id, iam.ActionRead)
-	if !allowed {
-		return
-	}
-	rt, err := s.store.GetRuntimeTarget(r.Context(), id, trusted.TenantID)
-	if err != nil {
-		if errors.Is(err, store.ErrTargetNotFound) {
-			writeError(w, http.StatusNotFound, "cluster_not_found", "cluster not found")
-			return
-		}
-		log.Printf("platform-api: load cluster for kubeconfig: %v", err)
-		writeError(w, http.StatusInternalServerError, "internal", "failed to load cluster")
-		return
-	}
-	if rt.TargetType != "kubernetes" {
-		writeError(w, http.StatusConflict, "kubeconfig_unavailable", "kubeconfig download is only supported for Kubernetes clusters")
-		return
-	}
-	if s.secretCipher == nil {
-		writeError(w, http.StatusServiceUnavailable, "secret-store-unavailable", "secret storage is unavailable")
-		return
-	}
-	var encrypted string
-	if rt.CredentialRef != nil && strings.TrimSpace(rt.CredentialRef.Name) != "" {
-		encrypted, err = s.store.KubeConfigEncryptedForRef(r.Context(), trusted.TenantID, rt.CredentialRef.Scope, rt.CredentialRef.Name)
-	} else {
-		encrypted, err = s.store.LatestKubeConfigEncrypted(r.Context(), trusted.TenantID)
-	}
-	if err != nil {
-		if errors.Is(err, store.ErrSecretReferenceDenied) {
-			writeError(w, http.StatusNotFound, "kubeconfig_not_found", "no downloadable kubeconfig is registered for this cluster")
-			return
-		}
-		log.Printf("platform-api: load kubeconfig secret: %v", err)
-		writeError(w, http.StatusInternalServerError, "internal", "failed to load kubeconfig")
-		return
-	}
-	raw, err := s.secretCipher.Decrypt(encrypted)
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, "kubeconfig_decrypt_failed", "failed to decrypt kubeconfig")
-		return
-	}
-	writeJSON(w, http.StatusOK, map[string]string{
-		"kubeconfig": string(raw),
-		"filename":   id + ".kubeconfig",
-	})
-}
-
-func (s *Server) authorizeClusterAction(w http.ResponseWriter, r *http.Request, trusted iam.TrustedContext, resourceID string, action iam.AuthorizationAction) (iam.TrustedContext, bool) {
-	if s.permissionResolver != nil {
-		policyVersion, permissions, err := s.permissionResolver.ResolvePermissions(r.Context(), trusted.SubjectID, trusted.MembershipID, trusted.TenantID)
-		if err != nil {
-			writeError(w, http.StatusForbidden, "permission_denied", "permission denied")
-			return trusted, false
-		}
-		trusted.PolicyVersion, trusted.ScopedPermissions = policyVersion, permissions
-	}
-	decision := s.authz.Evaluate(trusted, iam.AuthorizationRequest{
-		SubjectID: trusted.SubjectID, TenantID: trusted.TenantID, ResourceKind: string(iam.ResourceCluster),
-		ResourceID: resourceID, Action: action,
-		ProjectID: trusted.ProjectID, EnvironmentID: trusted.EnvironmentID, NamespaceID: trusted.NamespaceID,
-	})
-	if !decision.Allowed {
-		writeError(w, http.StatusForbidden, decision.ReasonCode, "permission denied")
-		return trusted, false
-	}
-	return trusted, true
-}
-
-func (s *Server) handleHeartbeatCluster(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	// Authorization check for heartbeat (use ActionExecute on cluster resource)
-	if !s.hasAuthorizationCandidate(w, r, r.PathValue("id")) {
-		return
-	}
-	id := r.PathValue("id")
-	err := s.service.Heartbeat(ctx, id)
-	if err != nil {
-		if errors.Is(err, store.ErrClusterNotFound) {
-			writeError(w, http.StatusNotFound, "cluster_not_found", "cluster not found")
-			return
-		}
-		writeError(w, http.StatusInternalServerError, "heartbeat_failed", err.Error())
-		return
-	}
-	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
 func (s *Server) handleSaveManifest(w http.ResponseWriter, r *http.Request) {

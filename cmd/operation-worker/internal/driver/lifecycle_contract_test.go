@@ -50,6 +50,7 @@ func TestHTTPRunnerRoutesPinnedLifecycleProvider(t *testing.T) {
 			IdempotencyKey:     execution.IdempotencyKey,
 			ProviderVersion:    lifecycleVersion,
 			ProviderDigest:     lifecycleDigest,
+			ProtocolVersion:    contractVersion,
 			FencingGeneration:  strconv.FormatInt(execution.FencingGeneration, 10),
 			Status:             "succeeded",
 			Outputs:            map[string]string{"resource": "kubernetes/deployment-api"},

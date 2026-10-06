@@ -17,14 +17,16 @@ import (
 // pluginCatalogItem is the shape of a plugin catalog entry returned to the
 // console. It is consumed by the PluginMarketPage (资源 > 插件市场).
 type pluginCatalogItem struct {
-	Name        string `json:"name"`
-	DisplayName string `json:"displayName"`
-	Version     string `json:"version"`
-	Description string `json:"description"`
-	Category    string `json:"category"`
-	Kind        string `json:"kind"`
-	Provider    string `json:"provider,omitempty"`
-	Installed   bool   `json:"installed"`
+	Name         string `json:"name"`
+	DisplayName  string `json:"displayName"`
+	Version      string `json:"version"`
+	Description  string `json:"description"`
+	Category     string `json:"category"`
+	Kind         string `json:"kind"`
+	Provider     string `json:"provider,omitempty"`
+	InstallPhase string `json:"installPhase,omitempty"`
+	LastError    string `json:"lastError,omitempty"`
+	Installed    bool   `json:"installed"`
 }
 
 // marketProduct mirrors the relevant fields of app-market GET /products response.
@@ -79,26 +81,42 @@ func (h *PluginCatalogHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	clusterID := r.URL.Query().Get("clusterId")
-	installed, err := h.installedExtensions(r, trusted.TenantID, clusterID)
+	installed, err := h.installedExtensionStatuses(r, trusted.TenantID, clusterID)
 	if err != nil {
 		response.InternalError(w, err.Error())
 		return
 	}
 
 	items := make([]pluginCatalogItem, 0, len(catalog))
+	seen := make(map[string]int, len(catalog))
 	for _, p := range catalog {
-		items = append(items, pluginCatalogItem{
+		item := pluginCatalogItem{
 			Name:        p.Name,
 			DisplayName: p.DisplayName,
 			// version is carried on the product label (kept in sync with the
 			// product's latest published release by the app-market seed)
-			Version:     p.Labels["plugin.version"],
-			Description: p.Description,
-			Category:    p.Labels["plugin.category"],
-			Kind:        p.Labels["plugin.kind"],
-			Provider:    p.Labels["plugin.provider"],
-			Installed:   containsString(installed, p.Name),
-		})
+			Version:      p.Labels["plugin.version"],
+			Description:  p.Description,
+			Category:     p.Labels["plugin.category"],
+			Kind:         p.Labels["plugin.kind"],
+			Provider:     p.Labels["plugin.provider"],
+			InstallPhase: installed[p.Name].Phase,
+			LastError:    installed[p.Name].LastError,
+			Installed:    installed[p.Name].Phase == "ready",
+		}
+		if idx, ok := seen[p.Name]; ok {
+			if items[idx].Version == "" && item.Version != "" {
+				items[idx] = item
+			}
+			if item.InstallPhase != "" && phaseRank(item.InstallPhase) > phaseRank(items[idx].InstallPhase) {
+				items[idx].InstallPhase = item.InstallPhase
+				items[idx].LastError = item.LastError
+				items[idx].Installed = item.Installed
+			}
+			continue
+		}
+		seen[p.Name] = len(items)
+		items = append(items, item)
 	}
 	writeJSONRaw(w, items)
 }
@@ -150,40 +168,55 @@ func (h *PluginCatalogHandler) fetchCatalog(r *http.Request) ([]marketProductWit
 	return catalog, nil
 }
 
-// installedExtensions returns the names of extensions currently being installed
-// or ready on a target cluster. Degraded/uninstalling extensions are NOT
-// reported as installed (their deployment did not reach a working state).
-func (h *PluginCatalogHandler) installedExtensions(r *http.Request, tenantID, clusterID string) ([]string, error) {
+// installedExtensions returns extension lifecycle states on a target cluster.
+// Degraded extensions are reported so the UI can show retry; uninstalling is
+// reported so DELETE remains visibly asynchronous until the worker confirms.
+type extensionStatus struct {
+	Phase     string
+	LastError string
+}
+
+func (h *PluginCatalogHandler) installedExtensionStatuses(r *http.Request, tenantID, clusterID string) (map[string]extensionStatus, error) {
 	if clusterID == "" {
-		return nil, nil
+		return map[string]extensionStatus{}, nil
 	}
-	rows, err := h.db.Query(`SELECT e.name
+	rows, err := h.db.Query(`SELECT e.name, e.phase, COALESCE(e.last_error, '')
 		FROM extensions e
 		JOIN runtime_targets rt ON rt.id::text = COALESCE(e.runtime_target_id::text, e.target_id)
 		WHERE rt.id::text = $1 AND rt.tenant_id = $2
-		  AND e.phase IN ('installing','ready')`, clusterID, tenantID)
+		  AND e.phase IN ('pending','installing','ready','degraded','uninstalling')`, clusterID, tenantID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var names []string
+	statuses := map[string]extensionStatus{}
 	for rows.Next() {
-		var name string
-		if err := rows.Scan(&name); err != nil {
+		var name, phase, lastError string
+		if err := rows.Scan(&name, &phase, &lastError); err != nil {
 			return nil, err
 		}
-		names = append(names, name)
-	}
-	return names, rows.Err()
-}
-
-func containsString(hay []string, target string) bool {
-	for _, s := range hay {
-		if s == target {
-			return true
+		if phaseRank(phase) > phaseRank(statuses[name].Phase) {
+			statuses[name] = extensionStatus{Phase: phase, LastError: lastError}
 		}
 	}
-	return false
+	return statuses, rows.Err()
+}
+
+func phaseRank(phase string) int {
+	switch phase {
+	case "ready":
+		return 3
+	case "installing":
+		return 2
+	case "uninstalling":
+		return 2
+	case "pending":
+		return 1
+	case "degraded":
+		return 1
+	default:
+		return 0
+	}
 }
 
 // Install creates an extension record for the plugin bound to a target cluster.
@@ -220,15 +253,33 @@ func (h *PluginCatalogHandler) Install(w http.ResponseWriter, r *http.Request) {
 	}
 	_ = targetType
 
+	var existingID, existingPhase string
+	err = h.db.QueryRow(`SELECT e.id::text, e.phase
+		FROM extensions e
+		WHERE e.name=$1 AND COALESCE(e.runtime_target_id::text, e.target_id)=$2
+		  AND e.phase IN ('pending','installing','ready','uninstalling')
+		ORDER BY CASE e.phase WHEN 'ready' THEN 3 WHEN 'installing' THEN 2 WHEN 'uninstalling' THEN 2 WHEN 'pending' THEN 1 ELSE 0 END DESC, e.updated_at DESC
+		LIMIT 1`, req.Name, req.ClusterID).Scan(&existingID, &existingPhase)
+	if err == nil {
+		response.Success(w, map[string]string{"id": existingID, "name": req.Name, "status": existingPhase})
+		return
+	}
+	if err != sql.ErrNoRows {
+		response.InternalError(w, err.Error())
+		return
+	}
+
 	// Resolve the plugin's provider/key from the catalog so the extension is
 	// routed to the right provider worker (hnb.extension.provider.<provider>).
 	provider := "plugin"
+	labels := map[string]string{}
 	if h.marketURL != "" {
 		if catalog, err := h.fetchCatalog(r); err == nil {
 			for _, p := range catalog {
 				if p.Name != req.Name {
 					continue
 				}
+				labels = p.Labels
 				if v := p.Labels["plugin.provider"]; v != "" {
 					provider = v
 				}
@@ -239,13 +290,34 @@ func (h *PluginCatalogHandler) Install(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-
-	extID := uuid.NewString()
 	manifest := map[string]any{
 		"name": req.Name, "version": req.Version,
 		"provider": provider,
 	}
+	if helmConfig := helmConfigFromLabels(labels); len(helmConfig) > 0 {
+		manifest["config"] = map[string]any{"helm": helmConfig}
+	}
 	mJSON, _ := json.Marshal(manifest)
+
+	var retriedID string
+	err = h.db.QueryRow(`UPDATE extensions
+		SET version=$3, provider_type=$4, phase='pending', manifest=$5, health_failures=0, last_error='', updated_at=NOW()
+		WHERE id = (
+			SELECT e.id FROM extensions e
+			WHERE e.name=$1 AND COALESCE(e.runtime_target_id::text, e.target_id)=$2 AND e.phase='degraded'
+			ORDER BY e.updated_at DESC LIMIT 1
+		)
+		RETURNING id::text`, req.Name, req.ClusterID, req.Version, provider, string(mJSON)).Scan(&retriedID)
+	if err == nil {
+		response.Success(w, map[string]string{"id": retriedID, "name": req.Name, "status": "pending"})
+		return
+	}
+	if err != sql.ErrNoRows {
+		response.InternalError(w, err.Error())
+		return
+	}
+
+	extID := uuid.NewString()
 	if _, err := h.db.Exec(`INSERT INTO extensions (id, name, version, provider_type, target_id, phase, manifest, created_at, updated_at)
 		VALUES ($1,$2,$3,$4,$5,'pending',$6,NOW(),NOW())`,
 		extID, req.Name, req.Version, provider, req.ClusterID, string(mJSON)); err != nil {
@@ -255,7 +327,34 @@ func (h *PluginCatalogHandler) Install(w http.ResponseWriter, r *http.Request) {
 	response.Created(w, map[string]string{"id": extID, "name": req.Name, "status": "pending"})
 }
 
-// Uninstall removes the extension bound to (name, clusterId).
+func helmConfigFromLabels(labels map[string]string) map[string]any {
+	if len(labels) == 0 {
+		return nil
+	}
+	config := map[string]any{}
+	for label, key := range map[string]string{
+		"plugin.helm.chart":        "chart",
+		"plugin.helm.chartVersion": "chartVersion",
+		"plugin.helm.repoName":     "repoName",
+		"plugin.helm.repoURL":      "repoURL",
+		"plugin.helm.namespace":    "namespace",
+	} {
+		if value := strings.TrimSpace(labels[label]); value != "" {
+			config[key] = value
+		}
+	}
+	if value := strings.TrimSpace(labels["plugin.helm.preflight"]); value != "" {
+		var preflight map[string]any
+		if err := json.Unmarshal([]byte(value), &preflight); err == nil && len(preflight) > 0 {
+			config["preflight"] = preflight
+		}
+	}
+	return config
+}
+
+// Uninstall marks the extension bound to (name, clusterId) as uninstalling.
+// The extension reconciler performs the provider uninstall and deletes the row
+// only after the provider confirms success.
 // Request: DELETE /api/v1/plugin-catalog/installs/{name}?clusterId={id}
 func (h *PluginCatalogHandler) Uninstall(w http.ResponseWriter, r *http.Request) {
 	trusted, ok := iam.TrustedContextFrom(r.Context())
@@ -269,7 +368,8 @@ func (h *PluginCatalogHandler) Uninstall(w http.ResponseWriter, r *http.Request)
 		response.BadRequest(w, "name and clusterId are required")
 		return
 	}
-	result, err := h.db.Exec(`DELETE FROM extensions e
+	result, err := h.db.Exec(`UPDATE extensions e
+		SET phase='uninstalling', last_error=NULL, updated_at=NOW()
 		WHERE e.name=$1 AND e.target_id=$2 AND EXISTS (
 			SELECT 1 FROM runtime_targets rt WHERE rt.id::text=$2 AND rt.tenant_id=$3
 		)`, name, clusterID, trusted.TenantID)
@@ -281,5 +381,5 @@ func (h *PluginCatalogHandler) Uninstall(w http.ResponseWriter, r *http.Request)
 		response.NotFound(w, "plugin not installed on cluster")
 		return
 	}
-	response.Success(w, map[string]string{"name": name, "status": "uninstalled"})
+	response.Success(w, map[string]string{"name": name, "status": "uninstalling"})
 }

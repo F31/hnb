@@ -113,6 +113,7 @@ type executeResponse struct {
 	FencingGeneration  string            `json:"fencingGeneration"`
 	ProviderVersion    string            `json:"providerVersion"`
 	ProviderDigest     string            `json:"providerDigest"`
+	ProtocolVersion    string            `json:"providerProtocolVersion"`
 	Status             string            `json:"status"`
 	Outputs            map[string]string `json:"outputs,omitempty"`
 	Checkpoint         string            `json:"checkpoint,omitempty"`
@@ -243,6 +244,9 @@ func (r *HTTPRunner) Execute(
 	}
 	if result.SchemaVersion != contractVersion {
 		return result.Outputs, result.Checkpoint, protocolError(resp.StatusCode, fmt.Sprintf("runtime provider %q returned unsupported schema version %q", execution.ProviderID, result.SchemaVersion))
+	}
+	if result.ProtocolVersion != "" && result.ProtocolVersion != contractVersion {
+		return result.Outputs, result.Checkpoint, protocolError(resp.StatusCode, fmt.Sprintf("runtime provider %q returned unsupported providerProtocolVersion %q", execution.ProviderID, result.ProtocolVersion))
 	}
 	if result.ExecutionAttemptID != execution.ExecutionAttemptID {
 		return result.Outputs, result.Checkpoint, protocolError(resp.StatusCode, fmt.Sprintf("runtime provider %q returned mismatched execution attempt ID", execution.ProviderID))

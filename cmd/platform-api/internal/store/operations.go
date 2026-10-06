@@ -17,16 +17,14 @@ import (
 )
 
 type PGStore struct {
-	db           *sql.DB
-	clusterStore *ClusterStore
-	dialect      Dialect
+	db      *sql.DB
+	dialect Dialect
 }
 
 func NewPGStore(db *sql.DB) *PGStore {
 	return &PGStore{
-		db:           db,
-		clusterStore: NewClusterStore(db),
-		dialect:      postgresDialect{},
+		db:      db,
+		dialect: postgresDialect{},
 	}
 }
 
@@ -221,7 +219,14 @@ func (s *PGStore) ApproveOperation(ctx context.Context, id, tenantID, actorID, r
 	if err := tx.Commit(); err != nil {
 		return nil, fmt.Errorf("commit approve transaction: %w", err)
 	}
-	return s.GetOperation(ctx, id, tenantID)
+	// GetOperation already projects correlation_id from the read model;
+	// re-attach the write-side value defensively for action responses.
+	final, err := s.GetOperation(ctx, id, tenantID)
+	if err != nil {
+		return nil, err
+	}
+	final.CorrelationID = op.CorrelationID
+	return final, nil
 }
 
 func (s *PGStore) RejectOperation(ctx context.Context, id, tenantID, actorID, reason string) (*Operation, error) {
@@ -254,7 +259,12 @@ func (s *PGStore) RejectOperation(ctx context.Context, id, tenantID, actorID, re
 	if err := tx.Commit(); err != nil {
 		return nil, fmt.Errorf("commit reject transaction: %w", err)
 	}
-	return s.GetOperation(ctx, id, tenantID)
+	final, err := s.GetOperation(ctx, id, tenantID)
+	if err != nil {
+		return nil, err
+	}
+	final.CorrelationID = op.CorrelationID
+	return final, nil
 }
 
 func (s *PGStore) CancelOperation(ctx context.Context, id, tenantID, actorID, reason string) (*Operation, error) {
@@ -287,7 +297,12 @@ func (s *PGStore) CancelOperation(ctx context.Context, id, tenantID, actorID, re
 	if err := tx.Commit(); err != nil {
 		return nil, fmt.Errorf("commit cancel transaction: %w", err)
 	}
-	return s.GetOperation(ctx, id, tenantID)
+	final, err := s.GetOperation(ctx, id, tenantID)
+	if err != nil {
+		return nil, err
+	}
+	final.CorrelationID = op.CorrelationID
+	return final, nil
 }
 
 // dispatchReadySteps emits one step-requested outbox event per pending step
@@ -500,16 +515,17 @@ func upsertReadModel(ctx context.Context, tx *sql.Tx, op *Operation) error {
 			operation_id, tenant_id, project_id, environment_id, namespace_id,
 			plan_id, operation_type, status, total_steps,
 			completed_steps, failed_steps, initiated_by, approved_by,
-			summary, target_cluster_ids, tags, intent_id, created_at, started_at, completed_at,
+			summary, target_cluster_ids, tags, intent_id, correlation_id, created_at, started_at, completed_at,
 			last_state_changed_at
 		) VALUES ($1, $2, NULLIF($3, ''), NULLIF($4, ''), NULLIF($5, ''),
 			NULLIF($6, '')::uuid, $7, $8, $9, $10, $11, $12, NULLIF($13, ''),
-			$14, $15, $16, NULLIF($17, '')::uuid, $18, $19, $20, now())
+			$14, $15, $16, NULLIF($17, '')::uuid, NULLIF($18, ''), $19, $20, $21, now())
 		ON CONFLICT (operation_id) DO UPDATE SET
 			status = EXCLUDED.status,
 			completed_steps = EXCLUDED.completed_steps,
 			failed_steps = EXCLUDED.failed_steps,
 			approved_by = EXCLUDED.approved_by,
+			correlation_id = COALESCE(EXCLUDED.correlation_id, operation_read_model.correlation_id),
 			started_at = COALESCE(EXCLUDED.started_at, operation_read_model.started_at),
 			completed_at = COALESCE(EXCLUDED.completed_at, operation_read_model.completed_at),
 			intent_id = COALESCE(EXCLUDED.intent_id, operation_read_model.intent_id),
@@ -517,7 +533,7 @@ func upsertReadModel(ctx context.Context, tx *sql.Tx, op *Operation) error {
 		op.ID, op.TenantID, op.ProjectID, op.EnvironmentID, op.NamespaceID,
 		op.PlanID, op.OperationType, op.Status, op.TotalSteps,
 		op.CompletedSteps, op.FailedSteps, op.InitiatedBy, op.ApprovedBy,
-		summary, pq.Array(op.TargetClusterIDs), string(tagsJSON), op.IntentID, op.CreatedAt, op.StartedAt, op.CompletedAt,
+		summary, pq.Array(op.TargetClusterIDs), string(tagsJSON), op.IntentID, op.CorrelationID, op.CreatedAt, op.StartedAt, op.CompletedAt,
 	)
 	if err != nil {
 		return fmt.Errorf("upsert operation read model: %w", err)

@@ -18,7 +18,7 @@ const SCHEMA_OVERVIEW = {
     template: 'list',
     titleKey: 'page.title',
     layout: { type: 'grid' },
-    endpoints: [{ id: 'clusters.list', path: '/api/v1/clusters', method: 'GET' }],
+    endpoints: [{ id: 'clusters.list', path: '/api/v1/resources/clusters', method: 'GET' }],
     dataSources: [{ id: 'clusters', type: 'paginatedQuery', endpointId: 'clusters.list', responseMapping: { items: 'data.items', total: 'data.total' } }],
     actions: [{ id: 'refresh', type: 'api', labelKey: 'refresh', permission: 'schema:read', request: { method: 'GET', endpointId: 'clusters.list' } }],
     regions: [
@@ -106,7 +106,7 @@ test.describe('Schema page (server-delivered)', () => {
     })
 
     let clusterCalls = 0
-    await page.route(/\/api\/v1\/clusters/, async (route) => {
+    await page.route(/\/api\/v1\/resources\/clusters/, async (route) => {
       clusterCalls += 1
       await route.fulfill({
         status: 200,

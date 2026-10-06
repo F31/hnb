@@ -44,10 +44,6 @@ func NewWithCapabilities(db *sql.DB, ts *tunnel.TunnelServer, authMW *middleware
 	)
 	tenantH := handler.NewTenantHandler(db)
 	tenantAdminH := handler.NewTenantAdminHandler(db, harborURL, harborUser, harborPass)
-	clusterH := handler.NewClusterHandler(db)
-	if platformAPIURL != "" {
-		clusterH = handler.NewPlatformClusterHandler(platformAPIURL)
-	}
 	resourceClusterH := handler.NewResourceClusterHandler(db, platformAPIURL, clusterProjectionMode)
 	resourceClusterH.ConfigureDelegation(delegationSigner)
 	agentOnboardingH := handler.NewAgentOnboardingHandler(db, agentTunnelSigner, publicBaseURL, agentImage)
@@ -142,15 +138,12 @@ func NewWithCapabilities(db *sql.DB, ts *tunnel.TunnelServer, authMW *middleware
 		"namespaces.members.add":                tenantH.AddNamespaceMember,
 		"namespaces.members.remove":             tenantH.RemoveNamespaceMember,
 		"tenant-users.list":                     tenantH.ListTenantUsers,
-		"clusters.list":                         clusterH.List,
-		"clusters.create":                       clusterH.Register,
-		"clusters.get":                          clusterH.Get,
-		"clusters.delete":                       clusterH.Delete,
 		"resources.clusters.list":               readGate(resourceClusterH.ListClusters),
 		"resources.clusters.get":                readGate(resourceClusterH.GetCluster),
 		"resources.clusters.nodes":              readGate(resourceClusterH.ListClusterNodes),
 		"resources.clusters.plugins":            readGate(resourceClusterH.ListClusterPluginStatuses),
 		"resources.clusters.dictionary":         readGate(resourceClusterH.StatusDictionary),
+		"resources.clusters.versions":           readGate(resourceClusterH.KubernetesVersionDictionary),
 		"resources.clusters.updateDescription":  writeGate(resourceClusterH.UpdateClusterDescription),
 		"resources.clusters.downloadKubeconfig": readGate(resourceClusterH.DownloadKubeConfig),
 		"resources.clusters.agentOnboarding":    readGate(agentOnboardingH.AgentOnboarding),
@@ -172,8 +165,15 @@ func NewWithCapabilities(db *sql.DB, ts *tunnel.TunnelServer, authMW *middleware
 		"schema.publish":                        writeGate(schemaGate(contractGate(schemaH.Publish))),
 		"schema.rollback":                       writeGate(schemaGate(contractGate(schemaH.Rollback))),
 		"gslb.services.list":                    readGate(gslbH.ListServices),
+		"gslb.services.create":                  writeGate(gslbH.CreateService),
 		"gslb.services.get":                     readGate(gslbH.GetService),
+		"gslb.services.update":                  writeGate(gslbH.UpdateService),
+		"gslb.services.delete":                  writeGate(gslbH.DeleteService),
 		"gslb.services.drills":                  readGate(gslbH.ListDrills),
+		"gslb.services.pools":                   readGate(gslbH.ListPools),
+		"gslb.services.pools.replace":           writeGate(gslbH.ReplacePools),
+		"gslb.switch-requests.list":             readGate(gslbH.ListSwitchRequests),
+		"gslb.switch-requests.get":              readGate(gslbH.GetSwitchRequest),
 		"gslb.intents.submit":                   writeGate(gslbH.SubmitIntent),
 		"gslb.switch-requests.approve":          writeGate(gslbH.Approve),
 		"gslb.switch-requests.reject":           writeGate(gslbH.Reject),
@@ -282,10 +282,6 @@ func NewWithCapabilities(db *sql.DB, ts *tunnel.TunnelServer, authMW *middleware
 	coreMux.HandleFunc("POST /api/v1/workspaces/{workspace_id}/namespaces/{namespace_id}/members", coreHandlers["namespaces.members.add"])
 	coreMux.HandleFunc("DELETE /api/v1/workspaces/{workspace_id}/namespaces/{namespace_id}/members/{subject_id}", coreHandlers["namespaces.members.remove"])
 	coreMux.HandleFunc("GET /api/v1/workspaces/{workspace_id}/users", coreHandlers["tenant-users.list"])
-	coreMux.HandleFunc("GET /api/v1/clusters", coreHandlers["clusters.list"])
-	coreMux.HandleFunc("POST /api/v1/clusters", coreHandlers["clusters.create"])
-	coreMux.HandleFunc("GET /api/v1/clusters/{id}", coreHandlers["clusters.get"])
-	coreMux.HandleFunc("DELETE /api/v1/clusters/{id}", coreHandlers["clusters.delete"])
 	coreMux.HandleFunc("GET /api/v1/resources/clusters", coreHandlers["resources.clusters.list"])
 	coreMux.HandleFunc("GET /api/v1/resources/clusters/{id}", coreHandlers["resources.clusters.get"])
 	coreMux.HandleFunc("GET /api/v1/resources/clusters/{id}/nodes", coreHandlers["resources.clusters.nodes"])
@@ -296,6 +292,7 @@ func NewWithCapabilities(db *sql.DB, ts *tunnel.TunnelServer, authMW *middleware
 	coreMux.HandleFunc("POST /api/v1/resources/clusters/{id}/kubeconfig:download", coreHandlers["resources.clusters.downloadKubeconfig"])
 	coreMux.HandleFunc("POST /api/v1/resources/clusters/{id}/agent-onboarding", coreHandlers["resources.clusters.agentOnboarding"])
 	coreMux.HandleFunc("GET /api/v1/dictionaries/cluster.status", coreHandlers["resources.clusters.dictionary"])
+	coreMux.HandleFunc("GET /api/v1/dictionaries/cluster.versions", coreHandlers["resources.clusters.versions"])
 	coreMux.HandleFunc("POST /api/v1/runtime-intents", coreHandlers["runtime-intents.submit"])
 	coreMux.HandleFunc("POST /api/v1/runtime-intent-batches", coreHandlers["runtime-intents.batchDelete"])
 	coreMux.HandleFunc("POST /api/v1/secrets:register", coreHandlers["secrets.register"])
@@ -312,8 +309,15 @@ func NewWithCapabilities(db *sql.DB, ts *tunnel.TunnelServer, authMW *middleware
 	coreMux.HandleFunc("POST /api/v1/ui/pages/{id}/publish", coreHandlers["schema.publish"])
 	coreMux.HandleFunc("POST /api/v1/ui/pages/{id}/rollback", coreHandlers["schema.rollback"])
 	coreMux.HandleFunc("GET /api/v1/gslb/services", coreHandlers["gslb.services.list"])
+	coreMux.HandleFunc("POST /api/v1/gslb/services", coreHandlers["gslb.services.create"])
 	coreMux.HandleFunc("GET /api/v1/gslb/services/{id}", coreHandlers["gslb.services.get"])
+	coreMux.HandleFunc("PATCH /api/v1/gslb/services/{id}", coreHandlers["gslb.services.update"])
+	coreMux.HandleFunc("DELETE /api/v1/gslb/services/{id}", coreHandlers["gslb.services.delete"])
 	coreMux.HandleFunc("GET /api/v1/gslb/services/{id}/drills", coreHandlers["gslb.services.drills"])
+	coreMux.HandleFunc("GET /api/v1/gslb/services/{id}/pools", coreHandlers["gslb.services.pools"])
+	coreMux.HandleFunc("PUT /api/v1/gslb/services/{id}/pools", coreHandlers["gslb.services.pools.replace"])
+	coreMux.HandleFunc("GET /api/v1/gslb/switch-requests", coreHandlers["gslb.switch-requests.list"])
+	coreMux.HandleFunc("GET /api/v1/gslb/switch-requests/{id}", coreHandlers["gslb.switch-requests.get"])
 	coreMux.HandleFunc("POST /api/v1/gslb/services/{id}/intents", coreHandlers["gslb.intents.submit"])
 	coreMux.HandleFunc("POST /api/v1/gslb/switch-requests/{id}/approve", coreHandlers["gslb.switch-requests.approve"])
 	coreMux.HandleFunc("POST /api/v1/gslb/switch-requests/{id}/reject", coreHandlers["gslb.switch-requests.reject"])

@@ -265,6 +265,7 @@ func (w *Worker) handleMessage(ctx context.Context, msg jetstream.Msg) {
 		return
 	}
 
+	inputs := stepInputsForExecution(step.ProviderID, step.Inputs, request.IdempotencyKey, lease.Generation)
 	outputs, checkpoint, err := w.executeStep(
 		ctx, msg, request.StepID, lease,
 		time.Duration(step.TimeoutSeconds)*time.Second,
@@ -275,7 +276,7 @@ func (w *Worker) handleMessage(ctx context.Context, msg jetstream.Msg) {
 			ProjectID:          op.ProjectID,
 			EnvironmentID:      op.EnvironmentID,
 			StepType:           step.StepType,
-			Inputs:             step.Inputs,
+			Inputs:             inputs,
 			ProviderID:         step.ProviderID,
 			ProviderVersion:    step.ProviderVersion,
 			ProviderDigest:     step.ProviderDigest,
@@ -544,6 +545,24 @@ func stringMapToAny(in map[string]string) map[string]any {
 		return nil
 	}
 	out := make(map[string]any, len(in))
+	for k, v := range in {
+		out[k] = v
+	}
+	return out
+}
+
+func stepInputsForExecution(providerID string, inputs map[string]any, idempotencyKey string, fencingGeneration int64) map[string]any {
+	if !driver.IsLifecycleProvider(providerID) {
+		return inputs
+	}
+	out := copyInputs(inputs)
+	out["fencingGeneration"] = fencingGeneration
+	out["idempotencyKey"] = idempotencyKey
+	return out
+}
+
+func copyInputs(in map[string]any) map[string]any {
+	out := make(map[string]any, len(in)+2)
 	for k, v := range in {
 		out[k] = v
 	}

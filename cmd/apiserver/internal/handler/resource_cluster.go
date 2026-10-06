@@ -944,6 +944,14 @@ var freshnessDictionary = []dictionaryItem{
 	{Code: "STALE", LabelKey: "resource.clusterMgmt.freshness.STALE", Semantic: "warning", Icon: "alert", Terminal: false},
 }
 
+var kubernetesVersionDictionary = []dictionaryItem{
+	{Code: "1.36", LabelKey: "1.36", Semantic: "default", Icon: "kubernetes", Terminal: false},
+}
+
+func (h *ResourceClusterHandler) KubernetesVersionDictionary(w http.ResponseWriter, r *http.Request) {
+	writeJSONRaw(w, statusDictionaryPayload{DictionaryID: "resource.cluster.kubernetesVersions", Items: kubernetesVersionDictionary})
+}
+
 func (h *ResourceClusterHandler) StatusDictionary(w http.ResponseWriter, r *http.Request) {
 	dictID := r.PathValue("id")
 	var items []dictionaryItem
@@ -1423,7 +1431,7 @@ func (h *ResourceClusterHandler) UpdateClusterDescription(w http.ResponseWriter,
 		writeUpstreamUnavailable(w, r)
 		return
 	}
-	req, err := http.NewRequestWithContext(r.Context(), http.MethodPatch, h.platformURL+"/v1/clusters/"+id+"/description", strings.NewReader(string(body)))
+	req, err := http.NewRequestWithContext(r.Context(), http.MethodPatch, h.platformURL+"/v1/targets/"+id+"/description", strings.NewReader(string(body)))
 	if err != nil {
 		response.InternalError(w, err.Error())
 		return
@@ -1469,14 +1477,14 @@ func (h *ResourceClusterHandler) DownloadKubeConfig(w http.ResponseWriter, r *ht
 	id := r.PathValue("id")
 	token, err := h.delegationSigner.Sign(r.Context(), trusted, iam.DelegationEvidence{
 		Scope:         iam.DelegationScope{ResourceKind: string(iam.ResourceClusterMetadata), ResourceID: id},
-		Action:        iam.ActionExecute,
+		Action:        iam.ActionRead,
 		CorrelationID: trusted.CorrelationID,
 	})
 	if err != nil {
 		writeUpstreamUnavailable(w, r)
 		return
 	}
-	req, err := http.NewRequestWithContext(r.Context(), http.MethodPost, h.platformURL+"/v1/clusters/"+id+"/kubeconfig:issue", nil)
+	req, err := http.NewRequestWithContext(r.Context(), http.MethodPost, h.platformURL+"/v1/targets/"+id+"/kubeconfig:issue", nil)
 	if err != nil {
 		response.InternalError(w, err.Error())
 		return

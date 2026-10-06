@@ -50,32 +50,25 @@ func storageRequest(method, target string) *http.Request {
 	return req.WithContext(iam.WithTrustedContext(req.Context(), trusted))
 }
 
-func TestStorageDesiredStateListsAreContractShapedAndEmpty(t *testing.T) {
+func TestStorageDriverInstallationsListIsContractShapedAndEmpty(t *testing.T) {
 	h := NewStorageHandler(&fakeStorageStore{})
-	for name, invoke := range map[string]func(http.ResponseWriter, *http.Request){
-		"backends": h.Backends, "offerings": h.Offerings, "driver installations": h.DriverInstallations,
-	} {
-		t.Run(name, func(t *testing.T) {
-			recorder := httptest.NewRecorder()
-			invoke(recorder, storageRequest(http.MethodGet, "/api/v1/storage/"+strings.ReplaceAll(name, " ", "-")))
-			if recorder.Code != http.StatusOK || recorder.Header().Get("Content-Type") != "application/json" {
-				t.Fatalf("status=%d content-type=%q body=%s", recorder.Code, recorder.Header().Get("Content-Type"), recorder.Body.String())
-			}
-			for _, want := range []string{`"schemaVersion":"1.0.0"`, `"items":[]`, `"total":0`} {
-				if !strings.Contains(recorder.Body.String(), want) {
-					t.Fatalf("body missing %s: %s", want, recorder.Body.String())
-				}
-			}
-		})
+	recorder := httptest.NewRecorder()
+	h.DriverInstallations(recorder, storageRequest(http.MethodGet, "/api/v1/storage/driver-installations"))
+	if recorder.Code != http.StatusOK || recorder.Header().Get("Content-Type") != "application/json" {
+		t.Fatalf("status=%d content-type=%q body=%s", recorder.Code, recorder.Header().Get("Content-Type"), recorder.Body.String())
+	}
+	for _, want := range []string{`"schemaVersion":"1.0.0"`, `"items":[]`, `"total":0`} {
+		if !strings.Contains(recorder.Body.String(), want) {
+			t.Fatalf("body missing %s: %s", want, recorder.Body.String())
+		}
 	}
 }
 
 func TestStorageReadAPIsRequireTrustedTenant(t *testing.T) {
 	h := NewStorageHandler(&fakeStorageStore{})
 	for name, invoke := range map[string]func(http.ResponseWriter, *http.Request){
-		"overview": h.Overview, "backends": h.Backends, "offerings": h.Offerings,
-		"driver installations": h.DriverInstallations, "target inventory": h.TargetInventory,
-		"offering bindings": h.OfferingBindings, "target metrics": h.TargetMetrics,
+		"overview": h.Overview, "driver installations": h.DriverInstallations,
+		"target inventory": h.TargetInventory, "target metrics": h.TargetMetrics,
 	} {
 		t.Run(name, func(t *testing.T) {
 			req := httptest.NewRequest(http.MethodGet, "/api/v1/storage/overview", nil)

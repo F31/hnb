@@ -45,17 +45,16 @@ func TestHandlersHideForeignTenantResources(t *testing.T) {
 	}
 
 	trusted := iam.TrustedContext{SubjectID: "subject-b", TenantID: tenantB}
-	clusterHandler := NewClusterHandler(db)
+	resourceHandler := NewResourceClusterHandler(db, "")
 	for _, test := range []struct {
 		name    string
 		method  string
 		handler http.HandlerFunc
 	}{
-		{name: "get cluster", method: http.MethodGet, handler: clusterHandler.Get},
-		{name: "delete cluster", method: http.MethodDelete, handler: clusterHandler.Delete},
+		{name: "get cluster", method: http.MethodGet, handler: resourceHandler.GetCluster},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			request := httptest.NewRequest(test.method, "/api/v1/clusters/"+targetID, nil)
+			request := httptest.NewRequest(test.method, "/api/v1/resources/clusters/"+targetID, nil)
 			request.SetPathValue("id", targetID)
 			request = request.WithContext(iam.WithTrustedContext(request.Context(), trusted))
 			recorder := httptest.NewRecorder()

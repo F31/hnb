@@ -363,6 +363,9 @@ func lifecycleSteps(intent *RuntimeIntent, tenantID string, decision Compatibili
 	if len(intent.Spec.NodeGroupMappings) > 0 {
 		inputs["nodeGroupMappings"] = intent.Spec.NodeGroupMappings
 	}
+	if len(intent.Spec.Parameters) > 0 {
+		inputs["parameters"] = intent.Spec.Parameters
+	}
 	desiredVersion := intent.Spec.DesiredVersion
 	if desiredVersion == "" {
 		desiredVersion = intent.Spec.KubernetesVersion

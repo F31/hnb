@@ -23,6 +23,11 @@ type FailoverReporter interface {
 	EnsureFailoverForDomain(ctx context.Context, domain string) (bool, error)
 }
 
+// HealthConfigProvider 提供成员集群维度的服务级健康检查模板（GSLB 四期）。
+type HealthConfigProvider interface {
+	StrictestHealthConfigs(ctx context.Context) (map[string]store.ClusterHealthConfig, error)
+}
+
 // Reconciler 负责健康探测与状态投影。GSLB-005 起不再拥有 DNS 写能力：
 // reconciler 中不存在任何 dns.Manager 调用；DNS 数据面只由 executor
 // （经 NATS 执行命令驱动）访问。
@@ -31,6 +36,7 @@ type Reconciler struct {
 	healthMgr    *healthsource.HealthManager
 	decider      FailoverReporter
 	projector    ReadModelProjector
+	healthCfg    HealthConfigProvider
 	domain       string
 	interval     time.Duration
 }
@@ -44,8 +50,9 @@ func New(
 	projector ReadModelProjector,
 	domain string,
 	interval time.Duration,
+	healthCfg ...HealthConfigProvider,
 ) *Reconciler {
-	return &Reconciler{
+	r := &Reconciler{
 		clusterStore: clusterStore,
 		healthMgr:    healthMgr,
 		decider:      decider,
@@ -53,6 +60,10 @@ func New(
 		domain:       domain,
 		interval:     interval,
 	}
+	if len(healthCfg) > 0 {
+		r.healthCfg = healthCfg[0]
+	}
+	return r
 }
 
 func (r *Reconciler) Start(ctx context.Context) {
@@ -79,13 +90,30 @@ func (r *Reconciler) reconcile(ctx context.Context) {
 		return
 	}
 
+	// GSLB 四期：服务级健康检查模板下放到探测目标（同一集群被多服务引用时
+	// 已由 store 聚合为最严格配置）；读取失败时保持全局默认，不阻塞探测。
+	var healthConfigs map[string]store.ClusterHealthConfig
+	if r.healthCfg != nil {
+		if configs, err := r.healthCfg.StrictestHealthConfigs(ctx); err != nil {
+			log.Printf("[reconciler] health config load failed (using defaults): %v", err)
+		} else {
+			healthConfigs = configs
+		}
+	}
+
 	targets := make([]healthsource.ClusterTarget, 0, len(clusters))
 	for _, c := range clusters {
-		targets = append(targets, healthsource.ClusterTarget{
+		target := healthsource.ClusterTarget{
 			Name:     c.Name,
 			Endpoint: c.APIEndpoint,
 			Labels:   c.Labels,
-		})
+		}
+		if cfg, ok := healthConfigs[c.Name]; ok {
+			target.Path = cfg.Path
+			target.Timeout = time.Duration(cfg.TimeoutSeconds) * time.Second
+			target.FailureThreshold = cfg.FailureThreshold
+		}
+		targets = append(targets, target)
 	}
 
 	mergedStatus := r.healthMgr.ProbeAll(ctx, targets)

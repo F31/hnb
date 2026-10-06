@@ -86,6 +86,28 @@ func TestPlanDigestTracksParameters(t *testing.T) {
 	}
 }
 
+func TestLifecyclePlanPassesParametersToProviderInputs(t *testing.T) {
+	planner := NewPlanner(goldenLifecycleResolver{})
+	intent, err := ParseRuntimeIntent([]byte(`{"apiVersion":"hnb.io/v1","kind":"CreateKubernetesTarget","metadata":{"idempotencyKey":"k8s-create-params","correlationId":"018f6c2a-4a64-7b58-9cc3-9f70462f36c1"},"spec":{"targetKind":"KubernetesTarget","displayName":"prod-cluster","kubernetesVersion":"1.36","credentialSecretRef":{"provider":"vault","scope":"tenant","name":"cluster-credential","version":"1"},"parameters":{"replicas":3,"containerNetwork":"Kube-OVN","podCidr":"10.244.0.0/16"}}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	plan, err := planner.Plan(intent, "tenant-1", "proj-1", "env-1", "ns-1", "subj-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(plan.Steps) != 1 {
+		t.Fatalf("steps = %d, want 1", len(plan.Steps))
+	}
+	params, ok := plan.Steps[0].Inputs["parameters"].(map[string]any)
+	if !ok {
+		t.Fatalf("parameters missing from lifecycle inputs: %+v", plan.Steps[0].Inputs)
+	}
+	if params["containerNetwork"] != "Kube-OVN" || params["podCidr"] != "10.244.0.0/16" || params["replicas"] != float64(3) {
+		t.Fatalf("parameters = %+v", params)
+	}
+}
+
 func TestPlanDigestIgnoresTrackingFields(t *testing.T) {
 	planner := NewPlanner()
 

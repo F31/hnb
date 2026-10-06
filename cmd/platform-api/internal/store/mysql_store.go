@@ -70,24 +70,6 @@ func (m *mysqlStubStore) UpdateRuntimeTargetDescription(ctx context.Context, id,
 func (m *mysqlStubStore) DeleteRuntimeTarget(ctx context.Context, id, tenantID string) error {
 	return ErrMySQLNotImplemented
 }
-func (m *mysqlStubStore) CreateCluster(ctx context.Context, req CreateClusterRequest) (*Cluster, error) {
-	return nil, ErrMySQLNotImplemented
-}
-func (m *mysqlStubStore) GetCluster(ctx context.Context, id, tenantID string) (*Cluster, error) {
-	return nil, ErrMySQLNotImplemented
-}
-func (m *mysqlStubStore) ListClusters(ctx context.Context, tenantID string) ([]*Cluster, error) {
-	return nil, ErrMySQLNotImplemented
-}
-func (m *mysqlStubStore) DeleteCluster(ctx context.Context, id, tenantID string) error {
-	return ErrMySQLNotImplemented
-}
-func (m *mysqlStubStore) HeartbeatCluster(ctx context.Context, id, tenantID string) error {
-	return ErrMySQLNotImplemented
-}
-func (m *mysqlStubStore) UpdateCluster(ctx context.Context, id, tenantID string, req UpdateClusterRequest) (*Cluster, error) {
-	return nil, ErrMySQLNotImplemented
-}
 func (m *mysqlStubStore) GetManifest(ctx context.Context, providerID string) (*ProviderManifest, error) {
 	return nil, ErrMySQLNotImplemented
 }

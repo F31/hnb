@@ -98,7 +98,7 @@ services:
       AGENT_IMAGE: ${AGENT_IMAGE:-hnb/cluster-agent:latest}
       PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-}
     ports:
-      - "8080:8080"
+      - "38080:8080"
     volumes:
       - ${HNB_IDENTITY_KEYSET_DIR:?set HNB_IDENTITY_KEYSET_DIR containing manifest.json and private.pem}:/var/run/hnb-identity:ro
     depends_on:
@@ -129,8 +129,17 @@ services:
 
   operation-worker:
     build:
-      context: ../cmd/operation-worker
+      context: ../..
       network: host
+      dockerfile: cmd/operation-worker/Dockerfile
+      args:
+        GOLANG_IMAGE: ${GOLANG_IMAGE:-golang:1.24}
+        HTTP_PROXY: ""
+        HTTPS_PROXY: ""
+        ALL_PROXY: ""
+        http_proxy: ""
+        https_proxy: ""
+        all_proxy: ""
     image: hnb/operation-worker:latest
     environment:
       DB_HOST: postgres
@@ -146,6 +155,14 @@ services:
       WORKER_POOL_SIZE: "5"
       RUNTIME_PROVIDERS: '{"k8s":{"endpoint":"http://kubernetes-provider:18080/v2/steps:execute","audience":"hnb-kubernetes-provider","tokenFile":"/var/run/hnb-service-tokens/kubernetes-provider.jwt"},"edge":{"endpoint":"http://edge-provider:18081/v2/steps:execute","audience":"hnb-edge-provider","tokenFile":"/var/run/hnb-service-tokens/edge-provider.jwt"},"runtime-target.lifecycle.kubernetes":{"endpoint":"http://runtime-target-lifecycle-provider:18082/v2/steps:execute","audience":"hnb-runtime-target-lifecycle-provider","tokenFile":"/var/run/hnb-service-tokens/runtime-target-lifecycle-provider.jwt","requiredProvider":"runtime-target.lifecycle.kubernetes","providerVersion":"1.0.0","providerDigest":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},"runtime-target.lifecycle.edge":{"endpoint":"http://runtime-target-lifecycle-provider:18082/v2/steps:execute","audience":"hnb-runtime-target-lifecycle-provider","tokenFile":"/var/run/hnb-service-tokens/runtime-target-lifecycle-provider.jwt","requiredProvider":"runtime-target.lifecycle.edge","providerVersion":"1.0.0","providerDigest":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}}'
       LOG_LEVEL: debug
+      HTTP_PROXY: ""
+      HTTPS_PROXY: ""
+      ALL_PROXY: ""
+      http_proxy: ""
+      https_proxy: ""
+      all_proxy: ""
+      NO_PROXY: "*"
+      no_proxy: "*"
     volumes:
       - ${HNB_KUBERNETES_PROVIDER_TOKEN_FILE:?set a mode-0600 workload token file}:/var/run/hnb-service-tokens/kubernetes-provider.jwt:ro
       - ${HNB_EDGE_PROVIDER_TOKEN_FILE:?set a mode-0600 workload token file}:/var/run/hnb-service-tokens/edge-provider.jwt:ro
@@ -189,6 +206,12 @@ services:
       dockerfile: cmd/runtime-target-lifecycle-provider/Dockerfile
       args:
         GOLANG_IMAGE: ${GOLANG_IMAGE:-golang:1.24}
+        HTTP_PROXY: ""
+        HTTPS_PROXY: ""
+        ALL_PROXY: ""
+        http_proxy: ""
+        https_proxy: ""
+        all_proxy: ""
     image: hnb/runtime-target-lifecycle-provider:latest
     pull_policy: build
     environment:
@@ -197,6 +220,14 @@ services:
       DB_DSN: postgres://hnb:hnb123@postgres:5432/hnb?sslmode=disable
       # Dev-only placeholder; mount a per-environment key in production.
       HNB_MASTER_KEY: ${HNB_MASTER_KEY:-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef}
+      HTTP_PROXY: ""
+      HTTPS_PROXY: ""
+      ALL_PROXY: ""
+      http_proxy: ""
+      https_proxy: ""
+      all_proxy: ""
+      NO_PROXY: "*"
+      no_proxy: "*"
     ports:
       - "18082:18082"
     depends_on:
@@ -264,6 +295,14 @@ services:
       context: ../..
       network: host
       dockerfile: cmd/app-market/Dockerfile
+      args:
+        GOLANG_IMAGE: ${GOLANG_IMAGE:-golang:1.24}
+        HTTP_PROXY: ""
+        HTTPS_PROXY: ""
+        ALL_PROXY: ""
+        http_proxy: ""
+        https_proxy: ""
+        all_proxy: ""
     image: hnb/app-market:latest
     environment:
       DB_DSN: ${APP_MARKET_DB_DSN:?set APP_MARKET_DB_DSN to the independent App Market database}
@@ -304,8 +343,17 @@ services:
 
   gslb-controller:
     build:
-      context: ../../cmd/gslb-controller
+      context: ../..
       network: host
+      dockerfile: cmd/gslb-controller/Dockerfile
+      args:
+        GOLANG_IMAGE: ${GOLANG_IMAGE:-golang:1.24}
+        HTTP_PROXY: ""
+        HTTPS_PROXY: ""
+        ALL_PROXY: ""
+        http_proxy: ""
+        https_proxy: ""
+        all_proxy: ""
     image: hnb/gslb-controller:latest
     environment:
       DB_HOST: postgres
@@ -319,6 +367,8 @@ services:
       GSLB_HEALTH_SOURCES: ${GSLB_HEALTH_SOURCES:-http}
       RECONCILE_INTERVAL: ${GSLB_RECONCILE_INTERVAL:-15s}
       PROBE_INTERVAL: ${GSLB_PROBE_INTERVAL:-10s}
+      # 定时只读演练（0=关闭）；本地默认关闭，避免自动写入演练数据。
+      AUTO_DRILL_INTERVAL: ${GSLB_AUTO_DRILL_INTERVAL:-0}
       # 仅用于启动期 client-go 配置解析；DNS 数据面执行（ExternalDNS）需真实集群。
       KUBECONFIG: /var/run/hnb-identity/dev.kubeconfig
       HTTP_PROXY: ""
@@ -336,17 +386,6 @@ services:
         condition: service_healthy
       nats:
         condition: service_started
-
-  # 开发演示用假集群端点：/healthz 恒 200，供 gslb-controller HTTP 探活。
-  gslb-fake-cluster-a:
-    image: nginx:latest
-    volumes:
-      - ./gslb-fake-healthz.conf:/etc/nginx/conf.d/default.conf:ro
-
-  gslb-fake-cluster-b:
-    image: nginx:latest
-    volumes:
-      - ./gslb-fake-healthz.conf:/etc/nginx/conf.d/default.conf:ro
 
   extension-controller:
     build:
@@ -404,6 +443,7 @@ services:
       HNB_MASTER_KEY: ${HNB_MASTER_KEY:-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef}
       HELM_PATH: /usr/local/bin/helm
       KUBECONFIG_DIR: /tmp/hnb-plugin-worker
+      PLUGIN_WORKER_DRY_RUN: ${PLUGIN_WORKER_DRY_RUN:-true}
     expose:
       - "8080"
     depends_on:

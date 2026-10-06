@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -9,7 +8,6 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/F31/hnb/cmd/apiserver/internal/response"
 	"github.com/F31/hnb/pkg/iam"
@@ -125,10 +123,12 @@ type platformOperation struct {
 	TotalSteps       int              `json:"totalSteps"`
 	CompletedSteps   int              `json:"completedSteps"`
 	FailedSteps      int              `json:"failedSteps"`
+	CorrelationID    string           `json:"correlationId"`
 	TargetClusterIDs []string         `json:"targetClusterIds"`
 	CreatedAt        string           `json:"createdAt"`
 	StartedAt        string           `json:"startedAt"`
 	CompletedAt      string           `json:"completedAt"`
+	LastObservedAt   string           `json:"lastObservedAt"`
 	Steps            []platformOpStep `json:"steps"`
 }
 
@@ -136,6 +136,8 @@ type platformOpStep struct {
 	ID           string `json:"id"`
 	Name         string `json:"name"`
 	Status       string `json:"status"`
+	Attempt      int    `json:"attempt"`
+	MaxRetries   int    `json:"maxRetries"`
 	ErrorMessage string `json:"errorMessage"`
 	StartedAt    string `json:"startedAt"`
 	CompletedAt  string `json:"completedAt"`
@@ -153,6 +155,7 @@ type platformOperationSummary struct {
 	FailedSteps      int      `json:"failedSteps"`
 	InitiatedBy      string   `json:"initiatedBy"`
 	Summary          string   `json:"summary"`
+	CorrelationID    string   `json:"correlationId"`
 	TargetClusterIDs []string `json:"targetClusterIds"`
 	CreatedAt        string   `json:"createdAt"`
 	CompletedAt      string   `json:"completedAt"`
@@ -358,18 +361,32 @@ func (h *ResourceClusterHandler) toConsoleSummary(r *http.Request, item platform
 		TargetKind:    targetKind,
 		Progress:      consoleOperationProgress{CompletedSteps: item.CompletedSteps, TotalSteps: item.TotalSteps, Percent: percent},
 		Failure:       consoleFailureFor(item.Status, item.FailedSteps),
-		CorrelationID: item.ID,
+		CorrelationID: item.CorrelationID,
 		CreatedAt:     item.CreatedAt,
 		UpdatedAt:     item.LastObservedAt,
 		CompletedAt:   item.CompletedAt,
 	}
 }
 
+// platformLastObservedAt returns the lastObservedAt value echoed by
+// platform-api, treating the zero time it emits when unset as absent.
+func platformLastObservedAt(value string) string {
+	if value == "" || strings.HasPrefix(value, "0001-01-01") {
+		return ""
+	}
+	return value
+}
+
 func (h *ResourceClusterHandler) toConsoleDetail(r *http.Request, op platformOperation) consoleOperationDetail {
+	lastObservedAt := platformLastObservedAt(op.LastObservedAt)
+	if lastObservedAt == "" {
+		lastObservedAt = op.CompletedAt
+	}
 	summary := h.toConsoleSummary(r, platformOperationSummary{
 		ID: op.ID, IntentID: op.IntentID, TenantID: op.TenantID, OperationType: op.OperationType,
 		Status: op.Status, TotalSteps: op.TotalSteps, CompletedSteps: op.CompletedSteps, FailedSteps: op.FailedSteps,
-		TargetClusterIDs: op.TargetClusterIDs, CreatedAt: op.CreatedAt, CompletedAt: op.CompletedAt, LastObservedAt: op.CompletedAt,
+		CorrelationID: op.CorrelationID,
+		TargetClusterIDs: op.TargetClusterIDs, CreatedAt: op.CreatedAt, CompletedAt: op.CompletedAt, LastObservedAt: lastObservedAt,
 	})
 	if summary.CompletedAt == "" && op.CompletedAt != "" {
 		summary.CompletedAt = op.CompletedAt
@@ -378,9 +395,15 @@ func (h *ResourceClusterHandler) toConsoleDetail(r *http.Request, op platformOpe
 	for _, step := range op.Steps {
 		steps = append(steps, consoleOperationStep{
 			StepID: step.ID, Name: step.Name, Status: consoleStepStatus(step.Status),
+			Attempt: step.Attempt,
 			StartedAt: step.StartedAt, CompletedAt: step.CompletedAt,
-			Failure: consoleFailureFor(step.Status, boolInt(step.ErrorMessage != "")),
+			Failure: consoleStepFailure(step),
 		})
+	}
+	// The operation-level failure surfaces the real step error message instead
+	// of a synthetic placeholder whenever the detail payload carries steps.
+	if failure := operationFailureFromSteps(op.Status, op.Steps); failure != nil {
+		summary.Failure = failure
 	}
 	links := consoleOperationLinks{Operation: "/operations/" + op.ID}
 	if summary.IntentID != "" {
@@ -435,17 +458,27 @@ func consoleStepStatus(status string) string {
 	}
 }
 
+// allowedActionsFor mirrors the platform-api state machine
+// (cmd/platform-api/internal/store/state.go): only transitions the state
+// machine actually permits are offered, so the console never advertises an
+// action the write side would reject.
 func allowedActionsFor(status string) []string {
 	switch status {
-	case "pending_approval", "pending":
+	case "pending_approval":
+		// pending_approval -> queued (approve) / cancelled (reject).
 		return []string{"approve", "reject"}
-	case "queued", "queued_offline", "in_progress":
+	case "pending", "queued", "paused", "compensating":
+		// These states all allow a transition to cancelled; queued_offline and
+		// in_progress do not, and terminal states allow nothing.
 		return []string{"cancel"}
 	default:
 		return nil
 	}
 }
 
+// consoleFailureFor is the operation-level fallback used when no step detail
+// is available (list summaries). Detail responses replace it with the real
+// step error via operationFailureFromSteps.
 func consoleFailureFor(status string, failedSteps int) *consoleSafeFailure {
 	if status == "failed" {
 		return &consoleSafeFailure{Code: "OPERATION_FAILED", Message: "The operation failed.", Retryable: false}
@@ -456,12 +489,49 @@ func consoleFailureFor(status string, failedSteps int) *consoleSafeFailure {
 	return nil
 }
 
-func boolInt(b bool) int {
-	if b {
-		return 1
+// consoleStepFailure surfaces the real step error message. Retryable is
+// derived from the step's retry budget (maxRetries > attempt); when the
+// platform payload does not carry those fields it stays false.
+func consoleStepFailure(step platformOpStep) *consoleSafeFailure {
+	message := strings.TrimSpace(step.ErrorMessage)
+	if step.Status != "failed" && message == "" {
+		return nil
 	}
-	return 0
+	if message == "" {
+		message = "The step failed."
+	}
+	return &consoleSafeFailure{Code: "STEP_FAILED", Message: message, Retryable: step.MaxRetries > step.Attempt}
 }
 
-var _ = sql.ErrNoRows
-var _ = time.Now
+// operationFailureFromSteps builds the operation-level failure from the real
+// step errors: the first non-empty error message, prefixed with the failed
+// step count when more than one step failed.
+func operationFailureFromSteps(status string, steps []platformOpStep) *consoleSafeFailure {
+	failed := 0
+	firstMessage := ""
+	retryable := false
+	for _, step := range steps {
+		message := strings.TrimSpace(step.ErrorMessage)
+		if step.Status != "failed" && message == "" {
+			continue
+		}
+		failed++
+		if firstMessage == "" {
+			firstMessage = message
+		}
+		if step.MaxRetries > step.Attempt {
+			retryable = true
+		}
+	}
+	if failed == 0 {
+		return nil
+	}
+	if firstMessage == "" {
+		return nil // no real error text available; keep the generic fallback
+	}
+	message := firstMessage
+	if failed > 1 {
+		message = fmt.Sprintf("%d step(s) failed. First failure: %s", failed, firstMessage)
+	}
+	return &consoleSafeFailure{Code: "OPERATION_FAILED", Message: message, Retryable: retryable}
+}

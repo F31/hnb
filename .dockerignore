@@ -36,6 +36,12 @@ cmd/*
 !cmd/tunnel-server/**
 !cmd/plugin-worker
 !cmd/plugin-worker/**
+!cmd/operation-worker
+!cmd/operation-worker/**
+!cmd/gslb-controller
+!cmd/gslb-controller/**
+!cmd/runtime-target-lifecycle-provider
+!cmd/runtime-target-lifecycle-provider/**
 calico-provider
 cilium-provider
 kube-ovn-provider

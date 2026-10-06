@@ -10,6 +10,55 @@ import (
 	_ "github.com/lib/pq"
 )
 
+func TestRuntimeTargetGSLBStatus(t *testing.T) {
+	tests := []struct {
+		name         string
+		status       string
+		lifecycle    string
+		health       string
+		connectivity string
+		want         string
+	}{
+		{name: "online healthy", status: "online", health: "HEALTHY", connectivity: "CONNECTED", want: "healthy"},
+		{name: "degraded", status: "degraded", health: "DEGRADED", connectivity: "CONNECTED", want: "degraded"},
+		{name: "offline", status: "offline", health: "UNHEALTHY", connectivity: "DISCONNECTED", want: "unreachable"},
+		{name: "terminated", status: "online", lifecycle: "TERMINATED", health: "HEALTHY", connectivity: "CONNECTED", want: "unreachable"},
+		{name: "unknown", status: "unknown", health: "UNKNOWN", connectivity: "UNKNOWN", want: "unknown"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := runtimeTargetGSLBStatus(tt.status, tt.lifecycle, tt.health, tt.connectivity)
+			if got != tt.want {
+				t.Fatalf("runtimeTargetGSLBStatus() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestGSLBStatusRuntimeTargetState(t *testing.T) {
+	tests := []struct {
+		status           string
+		wantStatus       string
+		wantHealth       string
+		wantConnectivity string
+	}{
+		{status: "healthy", wantStatus: "online", wantHealth: "HEALTHY", wantConnectivity: "CONNECTED"},
+		{status: "degraded", wantStatus: "degraded", wantHealth: "DEGRADED", wantConnectivity: "CONNECTED"},
+		{status: "unreachable", wantStatus: "offline", wantHealth: "UNHEALTHY", wantConnectivity: "DISCONNECTED"},
+		{status: "unexpected", wantStatus: "unknown", wantHealth: "UNKNOWN", wantConnectivity: "UNKNOWN"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.status, func(t *testing.T) {
+			gotStatus, gotHealth, gotConnectivity := gslbStatusRuntimeTargetState(tt.status)
+			if gotStatus != tt.wantStatus || gotHealth != tt.wantHealth || gotConnectivity != tt.wantConnectivity {
+				t.Fatalf("gslbStatusRuntimeTargetState() = (%q, %q, %q), want (%q, %q, %q)", gotStatus, gotHealth, gotConnectivity, tt.wantStatus, tt.wantHealth, tt.wantConnectivity)
+			}
+		})
+	}
+}
+
 func openTestDB(t *testing.T) *sql.DB {
 	t.Helper()
 	dsn := os.Getenv("HNB_TEST_POSTGRES_DSN")

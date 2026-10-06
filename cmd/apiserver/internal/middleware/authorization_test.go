@@ -24,7 +24,7 @@ func TestAuthorizationAllowsExplicitPublicPathWithoutTrustedContext(t *testing.T
 
 func TestAuthorizationRequiresTrustedContextForProtectedPath(t *testing.T) {
 	middleware := NewAuthz()
-	request := httptest.NewRequest(http.MethodGet, "/api/v1/clusters", nil)
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/namespaces", nil)
 	recorder := httptest.NewRecorder()
 	ctx := &Context{Request: request, Response: recorder}
 	middleware.Handle(ctx, func() { t.Fatal("protected handler executed") })
@@ -36,7 +36,7 @@ func TestAuthorizationRequiresTrustedContextForProtectedPath(t *testing.T) {
 func TestAuthorizationDeniesUnknownRouteAndMissingPermission(t *testing.T) {
 	for name, request := range map[string]*http.Request{
 		"unknown": httptest.NewRequest(http.MethodGet, "/api/v1/unknown", nil),
-		"missing permission": httptest.NewRequest(http.MethodGet, "/api/v1/clusters", nil).WithContext(iam.WithTrustedContext(
+		"missing permission": httptest.NewRequest(http.MethodGet, "/api/v1/namespaces", nil).WithContext(iam.WithTrustedContext(
 			httptest.NewRequest(http.MethodGet, "/", nil).Context(),
 			iam.TrustedContext{SubjectID: "subject", TenantID: "tenant", PolicyVersion: "default:1"},
 		)),
@@ -53,8 +53,8 @@ func TestAuthorizationDeniesUnknownRouteAndMissingPermission(t *testing.T) {
 }
 
 func TestAuthorizationUsesDynamicResourceID(t *testing.T) {
-	request := httptest.NewRequest(http.MethodDelete, "/api/v1/clusters/cluster-a", nil)
-	trusted := iam.TrustedContext{SubjectID: "subject", TenantID: "tenant", PolicyVersion: "default:1", ScopedPermissions: []iam.ScopedPermission{{ResourceKind: "cluster", ResourceID: "cluster-a", Action: iam.ActionDelete, TenantID: "tenant"}}}
+	request := httptest.NewRequest(http.MethodDelete, "/api/v1/roles/role-a", nil)
+	trusted := iam.TrustedContext{SubjectID: "subject", TenantID: "tenant", PolicyVersion: "default:1", ScopedPermissions: []iam.ScopedPermission{{ResourceKind: "role", ResourceID: "role-a", Action: iam.ActionDelete, TenantID: "tenant"}}}
 	request = request.WithContext(iam.WithTrustedContext(request.Context(), trusted))
 	recorder := httptest.NewRecorder()
 	ctx := &Context{Request: request, Response: recorder}

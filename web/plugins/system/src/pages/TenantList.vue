@@ -84,8 +84,9 @@ const memberSaving = ref(false)
 async function bindCluster(workspaceId: string) {
   bindingWsId.value = workspaceId
   try {
-    const res = await apiGet<any[]>('/api/v1/clusters')
-    clusterList.value = (res || []).map((c: any) => ({ id: c.id || c.name, name: c.display_name || c.name }))
+    const res = await apiGet<any>('/api/v1/resources/clusters?pageSize=200')
+    const items = Array.isArray(res) ? res : (res?.items ?? [])
+    clusterList.value = (items || []).map((c: any) => ({ id: c.clusterId || c.id, name: c.displayName || c.name }))
     selectedCluster.value = ''
     clusterBindDialog.value = true
   } catch {

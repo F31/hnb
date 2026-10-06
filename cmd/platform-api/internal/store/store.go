@@ -14,7 +14,6 @@ var (
 	ErrStorageBindingConflict     = errors.New("storage binding version or identity conflict")
 	ErrStorageObservationConflict = errors.New("storage class observation is stale")
 	ErrSecretReferenceDenied      = errors.New("secret reference denied")
-	ErrClusterNotFound            = errors.New("cluster not found")
 	ErrTenantMismatch             = errors.New("tenant mismatch")
 	ErrIdempotencyConflict        = errors.New("idempotency key conflict: same key with different payload")
 	ErrForeignKeyViolation        = errors.New("foreign key violation")
@@ -108,6 +107,8 @@ type Step struct {
 	ProviderID   string
 	Status       string
 	DependsOn    []string
+	RetryCount   int
+	MaxRetries   int
 	ErrorMessage string
 	StartedAt    *time.Time
 	CompletedAt  *time.Time
@@ -128,6 +129,7 @@ type OperationSummary struct {
 	InitiatedBy        string
 	ApprovedBy         string
 	Summary            string
+	CorrelationID      string
 	TargetClusterIDs   []string
 	CreatedAt          time.Time
 	StartedAt          *time.Time
@@ -234,16 +236,6 @@ type SecurityAuditStore interface {
 	AppendSecurityAudit(context.Context, SecurityAuditRecord) error
 }
 
-// ClusterRepository defines the cluster registry data-access contract.
-type ClusterRepository interface {
-	CreateCluster(ctx context.Context, req CreateClusterRequest) (*Cluster, error)
-	GetCluster(ctx context.Context, id, tenantID string) (*Cluster, error)
-	ListClusters(ctx context.Context, tenantID string) ([]*Cluster, error)
-	DeleteCluster(ctx context.Context, id, tenantID string) error
-	HeartbeatCluster(ctx context.Context, id, tenantID string) error
-	UpdateCluster(ctx context.Context, id, tenantID string, req UpdateClusterRequest) (*Cluster, error)
-}
-
 // ManifestStore defines the provider manifest data-access contract.
 type ManifestStore interface {
 	GetManifest(ctx context.Context, providerID string) (*ProviderManifest, error)
@@ -311,7 +303,6 @@ type Store interface {
 	Ready(ctx context.Context) error
 	OperationStore
 	RuntimeTargetStore
-	ClusterRepository
 	ManifestStore
 	SecretMetadataStore
 	SecurityAuditStore

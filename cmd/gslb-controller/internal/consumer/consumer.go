@@ -65,13 +65,13 @@ func (c *Consumer) Start(ctx context.Context) error {
 		return fmt.Errorf("ensure domain-event stream: %w", err)
 	}
 	consumer, err := c.js.CreateOrUpdateConsumer(ctx, domainEventStream, jetstream.ConsumerConfig{
-		Name:           consumerName,
-		Durable:        consumerName,
-		FilterSubject:  commandSubject,
-		AckPolicy:      jetstream.AckExplicitPolicy,
-		MaxDeliver:     5,
-		AckWait:        time.Minute,
-		MaxAckPending:  1024,
+		Name:          consumerName,
+		Durable:       consumerName,
+		FilterSubject: commandSubject,
+		AckPolicy:     jetstream.AckExplicitPolicy,
+		MaxDeliver:    5,
+		AckWait:       time.Minute,
+		MaxAckPending: 1024,
 	})
 	if err != nil {
 		return fmt.Errorf("create gslb consumer: %w", err)
@@ -102,11 +102,36 @@ type commandPayload struct {
 	Plan      json.RawMessage `json:"plan"`
 }
 
-// HandleCommand 处理一条执行命令（可独立测试）。
-func (c *Consumer) HandleCommand(ctx context.Context, data []byte) error {
+type eventEnvelope struct {
+	Payload json.RawMessage `json:"payload"`
+}
+
+func parseCommandPayload(data []byte) (commandPayload, error) {
 	var payload commandPayload
 	if err := json.Unmarshal(data, &payload); err != nil {
-		return fmt.Errorf("parse gslb command: %w", err)
+		return commandPayload{}, fmt.Errorf("parse gslb command: %w", err)
+	}
+	if payload.RequestID != "" || len(payload.Plan) > 0 {
+		return payload, nil
+	}
+	var envelope eventEnvelope
+	if err := json.Unmarshal(data, &envelope); err != nil {
+		return commandPayload{}, fmt.Errorf("parse gslb command envelope: %w", err)
+	}
+	if len(envelope.Payload) == 0 {
+		return payload, nil
+	}
+	if err := json.Unmarshal(envelope.Payload, &payload); err != nil {
+		return commandPayload{}, fmt.Errorf("parse gslb command payload: %w", err)
+	}
+	return payload, nil
+}
+
+// HandleCommand 处理一条执行命令（可独立测试）。
+func (c *Consumer) HandleCommand(ctx context.Context, data []byte) error {
+	payload, err := parseCommandPayload(data)
+	if err != nil {
+		return err
 	}
 	if payload.RequestID == "" || len(payload.Plan) == 0 {
 		return errors.New("gslb command missing requestId/plan")

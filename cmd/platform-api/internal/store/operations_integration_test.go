@@ -465,9 +465,17 @@ func TestListOperationsTenantScopingFiltersAndPagination(t *testing.T) {
 	if total != 3 || len(summaries) != 3 {
 		t.Fatalf("tenant list: total=%d len=%d, want 3/3", total, len(summaries))
 	}
+	wantCorrelation := map[string]string{
+		deployA.ID:  deployA.CorrelationID,
+		deployB.ID:  deployB.CorrelationID,
+		deleteOp.ID: deleteOp.CorrelationID,
+	}
 	for _, s := range summaries {
 		if s.TenantID != tenantID {
 			t.Fatalf("list leaked operation %s of tenant %s", s.ID, s.TenantID)
+		}
+		if want, ok := wantCorrelation[s.ID]; !ok || s.CorrelationID != want {
+			t.Fatalf("list correlation_id for %s = %q, want %q", s.ID, s.CorrelationID, want)
 		}
 	}
 
@@ -532,6 +540,9 @@ func TestListOperationsTenantScopingFiltersAndPagination(t *testing.T) {
 	}
 	if got.ID != deployA.ID || got.TenantID != tenantID {
 		t.Fatalf("get returned wrong operation: %+v", got)
+	}
+	if got.CorrelationID != deployA.CorrelationID {
+		t.Fatalf("get correlation_id = %q, want %q", got.CorrelationID, deployA.CorrelationID)
 	}
 }
 

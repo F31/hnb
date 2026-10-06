@@ -126,6 +126,7 @@ func TestHTTPRunnerRejectsInvalidResponses(t *testing.T) {
 		{name: "unknown field", body: prefix + `"status":"succeeded","extra":true}`, part: "unknown field"},
 		{name: "trailing JSON", body: prefix + `"status":"succeeded"}{}`, part: "trailing JSON"},
 		{name: "wrong version", body: strings.Replace(prefix, "2.0.0", "1.0.0", 1) + `"status":"succeeded"}`, part: "unsupported schema version"},
+		{name: "wrong protocol version", body: prefix + `"providerProtocolVersion":"1.0.0","status":"succeeded"}`, part: "unsupported providerProtocolVersion"},
 		{name: "unknown status", body: prefix + `"status":"running"}`, part: "unknown status"},
 		{name: "contradictory success", body: prefix + `"status":"succeeded","error":"bad"}`, part: "success with error fields"},
 		{name: "noncanonical generation", body: strings.Replace(prefix, `"42"`, `"042"`, 1) + `"status":"succeeded"}`, part: "canonical positive decimal"},

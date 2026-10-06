@@ -60,6 +60,8 @@ type stepResponse struct {
 	StepType     string     `json:"stepType"`
 	ProviderID   string     `json:"providerId,omitempty"`
 	Status       string     `json:"status"`
+	Attempt      int        `json:"attempt"`
+	MaxRetries   int        `json:"maxRetries"`
 	DependsOn    []string   `json:"dependsOn,omitempty"`
 	ErrorMessage string     `json:"errorMessage,omitempty"`
 	StartedAt    *time.Time `json:"startedAt,omitempty"`
@@ -81,6 +83,10 @@ type operationResponse struct {
 	InitiatedBy        string         `json:"initiatedBy"`
 	ApprovedBy         string         `json:"approvedBy,omitempty"`
 	IdempotencyKey     string         `json:"idempotencyKey,omitempty"`
+	// CorrelationID is only populated when the store model carries it; the
+	// read-model projection does not include correlation_id yet, so GET paths
+	// may omit it until that projection is extended.
+	CorrelationID      string         `json:"correlationId,omitempty"`
 	TotalSteps         int            `json:"totalSteps"`
 	CompletedSteps     int            `json:"completedSteps"`
 	FailedSteps        int            `json:"failedSteps"`
@@ -108,6 +114,10 @@ type operationSummaryResponse struct {
 	InitiatedBy        string     `json:"initiatedBy"`
 	ApprovedBy         string     `json:"approvedBy,omitempty"`
 	Summary            string     `json:"summary,omitempty"`
+	// CorrelationID has the same read-model limitation as operationResponse:
+	// operation_read_model does not project correlation_id, so list responses
+	// omit it until the projection is extended.
+	CorrelationID      string     `json:"correlationId,omitempty"`
 	TargetClusterIDs   []string   `json:"targetClusterIds,omitempty"`
 	CreatedAt          time.Time  `json:"createdAt"`
 	StartedAt          *time.Time `json:"startedAt,omitempty"`
@@ -194,6 +204,7 @@ func toOperationResponse(op *store.Operation) operationResponse {
 		InitiatedBy:        op.InitiatedBy,
 		ApprovedBy:         op.ApprovedBy,
 		IdempotencyKey:     op.IdempotencyKey,
+		CorrelationID:      op.CorrelationID,
 		TotalSteps:         op.TotalSteps,
 		CompletedSteps:     op.CompletedSteps,
 		FailedSteps:        op.FailedSteps,
@@ -212,6 +223,8 @@ func toOperationResponse(op *store.Operation) operationResponse {
 			StepType:     step.StepType,
 			ProviderID:   step.ProviderID,
 			Status:       step.Status,
+			Attempt:      step.RetryCount,
+			MaxRetries:   step.MaxRetries,
 			DependsOn:    step.DependsOn,
 			ErrorMessage: step.ErrorMessage,
 			StartedAt:    step.StartedAt,
@@ -237,6 +250,7 @@ func toSummaryResponse(item store.OperationSummary) operationSummaryResponse {
 		InitiatedBy:        item.InitiatedBy,
 		ApprovedBy:         item.ApprovedBy,
 		Summary:            item.Summary,
+		CorrelationID:      item.CorrelationID,
 		TargetClusterIDs:   item.TargetClusterIDs,
 		CreatedAt:          item.CreatedAt,
 		StartedAt:          item.StartedAt,

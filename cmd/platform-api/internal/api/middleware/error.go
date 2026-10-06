@@ -59,13 +59,6 @@ func WriteAppError(w http.ResponseWriter, err error) {
 	}
 
 	// Map known store errors to appropriate codes
-	if errors.Is(err, store.ErrClusterNotFound) {
-		writeJSON(w, http.StatusNotFound, map[string]string{
-			"code":    "cluster_not_found",
-			"message": "Cluster not found",
-		})
-		return
-	}
 	if errors.Is(err, store.ErrTenantMismatch) {
 		writeJSON(w, http.StatusForbidden, map[string]string{
 			"code":    "tenant_mismatch",

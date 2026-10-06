@@ -24,6 +24,27 @@ func pluginCatalogTestContext(subjectID, tenantID string) context.Context {
 	return iam.WithRawAccessToken(ctx, "raw-token")
 }
 
+func TestHelmConfigFromLabels(t *testing.T) {
+	config := helmConfigFromLabels(map[string]string{
+		"plugin.helm.chart":        "kube-prometheus-stack",
+		"plugin.helm.chartVersion": "55.5.0",
+		"plugin.helm.repoName":     "prometheus-community",
+		"plugin.helm.repoURL":      "https://prometheus-community.github.io/helm-charts",
+		"plugin.helm.namespace":    "monitoring",
+		"plugin.helm.preflight":    `{"kubernetesMinVersion":"1.28.0"}`,
+		"plugin.helm.ignored":      "ignored",
+	})
+	if config["chart"] != "kube-prometheus-stack" || config["chartVersion"] != "55.5.0" || config["repoName"] != "prometheus-community" || config["namespace"] != "monitoring" {
+		t.Fatalf("config = %+v", config)
+	}
+	if _, ok := config["ignored"]; ok {
+		t.Fatalf("unexpected ignored label in config: %+v", config)
+	}
+	if preflight := config["preflight"].(map[string]any); preflight["kubernetesMinVersion"] != "1.28.0" {
+		t.Fatalf("preflight = %+v", preflight)
+	}
+}
+
 func TestPluginCatalogListMergeInstalled(t *testing.T) {
 	dsn := os.Getenv("HNB_TEST_POSTGRES_DSN")
 	if dsn == "" {
@@ -63,10 +84,11 @@ func TestPluginCatalogListMergeInstalled(t *testing.T) {
 		_ = json.NewEncoder(w).Encode(map[string]any{
 			"items": []map[string]any{
 				{"name": "calico", "display_name": "Calico", "description": "Calico CNI", "category": "tool", "labels": map[string]string{"plugin": "true", "plugin.category": "网络", "plugin.version": "v3.32.1"}},
+				{"name": "calico", "display_name": "Calico", "description": "Calico CNI duplicate", "category": "tool", "labels": map[string]string{"plugin": "true", "plugin.category": "网络", "plugin.version": "v3.32.1"}},
 				{"name": "hami", "display_name": "HAMi", "description": "HAMi", "category": "tool", "labels": map[string]string{"plugin": "true", "plugin.category": "GPU", "plugin.version": "v2.10.0"}},
 				{"name": "mysql", "display_name": "MySQL", "description": "DB", "category": "database", "labels": map[string]string{}},
 			},
-			"total":    3,
+			"total":    4,
 			"page":     1,
 			"pageSize": 100,
 		})
@@ -162,12 +184,11 @@ func TestPluginCatalogInstallUninstall(t *testing.T) {
 		t.Fatalf("uninstall status = %d body=%s", uninstallRec.Code, uninstallRec.Body.String())
 	}
 
-	var count int
-	if err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM extensions WHERE id=$1`, extID).Scan(&count); err != nil {
+	if err := db.QueryRowContext(ctx, `SELECT phase FROM extensions WHERE id=$1`, extID).Scan(&phase); err != nil {
 		t.Fatal(err)
 	}
-	if count != 0 {
-		t.Fatalf("extension still present after uninstall: %d", count)
+	if phase != "uninstalling" {
+		t.Fatalf("extension phase after uninstall = %s, want uninstalling", phase)
 	}
 }
 
@@ -202,7 +223,10 @@ func TestPluginCatalogInstallRoutesProviderFromCatalog(t *testing.T) {
 	market := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewEncoder(w).Encode(map[string]any{
 			"items": []map[string]any{
-				{"name": "cilium", "display_name": "Cilium", "category": "tool", "labels": map[string]string{"plugin": "true", "plugin.provider": "cni", "plugin.version": "v1.20.1"}},
+				{"name": "cilium", "display_name": "Cilium", "category": "tool", "labels": map[string]string{
+					"plugin": "true", "plugin.provider": "cni", "plugin.version": "v1.20.1",
+					"plugin.helm.chart": "cilium", "plugin.helm.repoName": "cilium", "plugin.helm.repoURL": "https://helm.cilium.io/", "plugin.helm.namespace": "kube-system",
+				}},
 			},
 			"total": 1, "page": 1, "pageSize": 100,
 		})
@@ -219,12 +243,21 @@ func TestPluginCatalogInstallRoutesProviderFromCatalog(t *testing.T) {
 	}
 
 	var version, provider string
-	if err := db.QueryRowContext(ctx, `SELECT version, provider_type FROM extensions WHERE name='cilium' AND target_id=$1`, clusterID).
-		Scan(&version, &provider); err != nil {
+	var manifestRaw []byte
+	if err := db.QueryRowContext(ctx, `SELECT version, provider_type, manifest FROM extensions WHERE name='cilium' AND target_id=$1`, clusterID).
+		Scan(&version, &provider, &manifestRaw); err != nil {
 		t.Fatalf("extension lookup: %v", err)
 	}
 	if provider != "cni" || version != "v1.20.1" {
 		t.Fatalf("extension = (version=%s provider=%s), want v1.20.1/cni", version, provider)
+	}
+	var manifest map[string]any
+	if err := json.Unmarshal(manifestRaw, &manifest); err != nil {
+		t.Fatal(err)
+	}
+	config := manifest["config"].(map[string]any)["helm"].(map[string]any)
+	if config["chart"] != "cilium" || config["repoName"] != "cilium" || config["namespace"] != "kube-system" {
+		t.Fatalf("helm config = %+v", config)
 	}
 }
 

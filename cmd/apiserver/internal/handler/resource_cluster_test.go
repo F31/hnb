@@ -49,6 +49,19 @@ func withTrusted(req *http.Request) *http.Request {
 	return req.WithContext(iam.WithTrustedContext(req.Context(), resourceTrustedContext()))
 }
 
+func TestResourceClusterHandlerKubernetesVersionDictionary(t *testing.T) {
+	handler := NewResourceClusterHandler(nil, "")
+	req := withTrusted(httptest.NewRequest(http.MethodGet, "/api/v1/dictionaries/cluster.versions", nil))
+	rec := httptest.NewRecorder()
+	handler.KubernetesVersionDictionary(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), `"dictionaryId":"resource.cluster.kubernetesVersions"`) || !strings.Contains(rec.Body.String(), `"code":"1.36"`) {
+		t.Fatalf("unexpected dictionary body: %s", rec.Body.String())
+	}
+}
+
 func validImportIntentBody(idempotencyKey string) string {
 	return `{"apiVersion":"hnb.io/v1","kind":"ImportRuntimeTarget","metadata":{"idempotencyKey":"` + idempotencyKey + `","correlationId":"018f6c2a-4a64-7b58-9cc3-9f70462f36c1"},"spec":{"targetKind":"KubernetesTarget","displayName":"cluster-a","credentialSecretRef":{"provider":"config","scope":"tenant-a","name":"kubeconfig-a"}}}`
 }
@@ -292,7 +305,7 @@ func TestResourceClusterHandlerFailsClosedWithoutPlatformAPI(t *testing.T) {
 func TestResourceClusterHandlerForwardsDescriptionUpdate(t *testing.T) {
 	const targetID = "3b9b7e0e-5a1c-4f2d-9b4a-7c6d5e4f3a2b"
 	platform := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPatch || r.URL.Path != "/v1/clusters/"+targetID+"/description" {
+		if r.Method != http.MethodPatch || r.URL.Path != "/v1/targets/"+targetID+"/description" {
 			t.Fatalf("unexpected request %s %s", r.Method, r.URL.Path)
 		}
 		if got := r.Header.Get("X-Tenant-ID"); got != "" {
@@ -348,7 +361,7 @@ func TestResourceClusterHandlerForwardsDescriptionUpdate(t *testing.T) {
 func TestResourceClusterHandlerForwardsKubeconfigDownload(t *testing.T) {
 	const targetID = "3b9b7e0e-5a1c-4f2d-9b4a-7c6d5e4f3a2b"
 	platform := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost || r.URL.Path != "/v1/clusters/"+targetID+"/kubeconfig:issue" {
+		if r.Method != http.MethodPost || r.URL.Path != "/v1/targets/"+targetID+"/kubeconfig:issue" {
 			t.Fatalf("unexpected request %s %s", r.Method, r.URL.Path)
 		}
 		got := r.Header.Get("Authorization")
@@ -368,7 +381,7 @@ func TestResourceClusterHandlerForwardsKubeconfigDownload(t *testing.T) {
 		if !ok || scope["resourceKind"] != "cluster-metadata" || scope["resourceId"] != targetID {
 			t.Fatalf("unexpected delegation scope: %#v", claims["scope"])
 		}
-		if claims["action"] != "execute" || claims["intentKind"] != "" || claims["semanticDigest"] != "" {
+		if claims["action"] != "read" || claims["intentKind"] != "" || claims["semanticDigest"] != "" {
 			t.Fatalf("unexpected delegation claims: %#v", claims)
 		}
 		w.Header().Set("Content-Type", "application/json")

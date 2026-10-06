@@ -138,3 +138,51 @@ func TestExecuteStepRejectsUnknownType(t *testing.T) {
 		t.Fatal("unknown step type must be rejected")
 	}
 }
+
+// TestExecutePlanWeightUpdateAppliesPerMemberWeights 权重链路闭环（GSLB 三期）：
+// weight-update 计划带 targets + weights，执行器按成员拆分加权 DNS 记录。
+func TestExecutePlanWeightUpdateAppliesPerMemberWeights(t *testing.T) {
+	fake := &fakeDNS{records: map[string][]dns.DNSRecord{}}
+	exec := NewExecutor(fake, 300)
+
+	intent := &gslb.Intent{
+		APIVersion: gslb.APIVersion,
+		Kind:       gslb.IntentWeightUpdate,
+		ServiceID:  "00000000-0000-4000-8000-0000000000a1",
+		TenantID:   "tenant-a",
+		Weights:    map[string]int{"cluster-a": 80, "cluster-b": 20},
+		Metadata: gslb.IntentMetadata{
+			IdempotencyKey: "k-weight-exec",
+			CorrelationID:  "00000000-0000-4000-8000-0000000000c1",
+		},
+	}
+	plan, err := intent.BuildPlan(gslb.PlanInput{
+		ServiceID: intent.ServiceID, TenantID: "tenant-a", Domain: "api.hnb.cloud",
+		Targets: []string{"cluster-a", "cluster-b"}, Weights: intent.Weights,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := exec.ExecutePlan(context.Background(), plan); err != nil {
+		t.Fatal(err)
+	}
+	if len(fake.writes) != 1 {
+		t.Fatalf("writes = %d", len(fake.writes))
+	}
+	records := fake.writes[0].records
+	if len(records) != 2 {
+		t.Fatalf("weighted records = %+v", records)
+	}
+	bySet := map[string]dns.DNSRecord{}
+	for _, r := range records {
+		bySet[r.SetID] = r
+	}
+	if bySet["cluster-a"].Weight != 80 || bySet["cluster-b"].Weight != 20 {
+		t.Fatalf("weights not applied: %+v", records)
+	}
+	for _, r := range records {
+		if r.DNSName != "api.hnb.cloud" || len(r.Targets) != 1 || r.TTL != 300 {
+			t.Fatalf("record = %+v", r)
+		}
+	}
+}

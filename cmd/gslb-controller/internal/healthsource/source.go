@@ -9,6 +9,10 @@ type ClusterTarget struct {
 	Name     string
 	Endpoint string
 	Labels   map[string]string
+	// 服务级健康检查模板下放（GSLB 四期，迁移 094）；0 值回退探测引擎默认。
+	Path             string
+	Timeout          time.Duration
+	FailureThreshold int
 }
 
 type HealthResult struct {

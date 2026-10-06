@@ -28,6 +28,12 @@ func clusterAccessibleTo(db *sql.DB, clusterID, tenantID, workspaceID string) bo
 	return exists
 }
 
+func copyHeader(dst, src http.Header, key string) {
+	if value := src.Get(key); value != "" {
+		dst.Set(key, value)
+	}
+}
+
 func requireClusterAccess(db *sql.DB, w http.ResponseWriter, r *http.Request, clusterID, workspaceID string) bool {
 	trusted, ok := iam.TrustedContextFrom(r.Context())
 	if !ok || !clusterAccessibleTo(db, clusterID, trusted.TenantID, workspaceID) {

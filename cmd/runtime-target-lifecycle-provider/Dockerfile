@@ -14,7 +14,6 @@ ENV GOPROXY=${GOPROXY} \
 WORKDIR /src
 COPY . .
 WORKDIR /src/cmd/runtime-target-lifecycle-provider
-RUN go mod download
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/runtime-target-lifecycle-provider .
 
 FROM scratch

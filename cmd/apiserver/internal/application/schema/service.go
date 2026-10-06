@@ -11,11 +11,11 @@ import (
 )
 
 var (
-	ErrNotFound          = errors.New("schema page not found")
-	ErrRevisionNotFound  = errors.New("schema page revision not found")
-	ErrForbidden         = errors.New("schema page forbidden")
-	ErrInvalid           = errors.New("schema page invalid")
-	pageIDPattern        = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$`)
+	ErrNotFound         = errors.New("schema page not found")
+	ErrRevisionNotFound = errors.New("schema page revision not found")
+	ErrForbidden        = errors.New("schema page forbidden")
+	ErrInvalid          = errors.New("schema page invalid")
+	pageIDPattern       = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$`)
 )
 
 const (
@@ -213,7 +213,7 @@ func NewStaticRepository() *StaticRepository {
 	page.Spec.TitleKey = "cluster.title"
 	page.Spec.DescriptionKey = "cluster.description"
 	page.Spec.Layout = map[string]any{"type": "grid", "columns": 12, "gap": "md"}
-	page.Spec.Endpoints = []EndpointDefinition{{ID: "clusters.list", Path: "/api/v1/clusters", Method: "GET"}}
+	page.Spec.Endpoints = []EndpointDefinition{{ID: "clusters.list", Path: "/api/v1/resources/clusters", Method: "GET"}}
 	page.Spec.DataSources = []DataSourceDefinition{{ID: "clusters", Type: "paginatedQuery", EndpointID: "clusters.list", QueryBindings: []string{"status", "provider"}, ResponseMapping: map[string]string{"items": "data.items", "total": "data.total"}}}
 	page.Spec.Actions = []Action{{ID: "refresh", Type: "api", LabelKey: "cluster.refresh", Permission: "schema:read", Request: &struct {
 		Method      string   `json:"method"`

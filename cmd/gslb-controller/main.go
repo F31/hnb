@@ -22,6 +22,7 @@ import (
 
 	"github.com/F31/hnb/cmd/gslb-controller/internal/consumer"
 	"github.com/F31/hnb/cmd/gslb-controller/internal/dns"
+	"github.com/F31/hnb/cmd/gslb-controller/internal/drill"
 	"github.com/F31/hnb/cmd/gslb-controller/internal/executor"
 	"github.com/F31/hnb/cmd/gslb-controller/internal/healthsource"
 	"github.com/F31/hnb/cmd/gslb-controller/internal/provider"
@@ -48,6 +49,7 @@ type Config struct {
 	MergePolicy       string
 	NATSURL           string
 	DNSTTL            int
+	AutoDrillInterval time.Duration
 }
 
 func loadConfig() *Config {
@@ -70,6 +72,8 @@ func loadConfig() *Config {
 		MergePolicy:       getEnv("HEALTH_MERGE_POLICY", "all-healthy"),
 		NATSURL:           getEnv("NATS_URL", "nats://localhost:4222"),
 		DNSTTL:            intEnv("GSLB_DNS_TTL", 300),
+		// GSLB 四期：定时自动演练；默认 0=关闭
+		AutoDrillInterval: durationEnv("AUTO_DRILL_INTERVAL", 0),
 	}
 }
 
@@ -204,6 +208,7 @@ func main() {
 		switchStore,
 		cfg.Domain,
 		cfg.ReconcileInterval,
+		switchStore, // GSLB 四期：服务级健康检查模板（StrictestHealthConfigs）
 	)
 
 	// GSLB-005：DNS 数据面唯一写入口 = executor（经 NATS 执行命令驱动）。
@@ -225,6 +230,13 @@ func main() {
 	}()
 
 	go rec.Start(ctx)
+
+	// GSLB 四期：定时自动演练（默认关闭）；只读演练，不落 DNS。
+	if cfg.AutoDrillInterval > 0 {
+		drillScheduler := drill.NewScheduler(switchStore, cfg.AutoDrillInterval)
+		log.Printf("auto-drill enabled: interval=%s", cfg.AutoDrillInterval)
+		go drillScheduler.Start(ctx)
+	}
 
 	mux := http.NewServeMux()
 
@@ -269,11 +281,11 @@ func main() {
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]any{
-			"records":       records,
-			"healthy":       len(healthy),
-			"total":         len(targets),
-			"statuses":      statuses,
-			"merge_policy":  cfg.MergePolicy,
+			"records":        records,
+			"healthy":        len(healthy),
+			"total":          len(targets),
+			"statuses":       statuses,
+			"merge_policy":   cfg.MergePolicy,
 			"health_sources": sourceNames(healthMgr.Sources()),
 		})
 	})
@@ -294,20 +306,10 @@ func main() {
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]any{
-			"clusters":      detailed,
-			"merge_policy":  cfg.MergePolicy,
+			"clusters":       detailed,
+			"merge_policy":   cfg.MergePolicy,
 			"health_sources": sourceNames(healthMgr.Sources()),
 		})
-	})
-
-	mux.HandleFunc("/api/v1/clusters", func(w http.ResponseWriter, r *http.Request) {
-		clusters, err := clusterStore.ListAll(ctx)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(clusters)
 	})
 
 	server := &http.Server{

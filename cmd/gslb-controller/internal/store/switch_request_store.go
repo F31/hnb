@@ -5,8 +5,8 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"sort"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/google/uuid"
@@ -26,24 +26,24 @@ const (
 
 // Event 常量（与 apiserver 应用层一致）
 const (
-	EventStatusChanged     = "hnb.event.gslb.status-changed.v1"
-	EventIntentSubmitted   = "hnb.event.gslb.intent-submitted.v1"
+	EventStatusChanged   = "hnb.event.gslb.status-changed.v1"
+	EventIntentSubmitted = "hnb.event.gslb.intent-submitted.v1"
 )
 
 // SwitchRequest 是控制器视角的切换请求投影。
 type SwitchRequest struct {
-	ID            string
-	TenantID      string
-	ServiceID     string
-	IntentKind    string
-	IntentDigest  string
-	PlanSnapshot  json.RawMessage
+	ID             string
+	TenantID       string
+	ServiceID      string
+	IntentKind     string
+	IntentDigest   string
+	PlanSnapshot   json.RawMessage
 	IdempotencyKey string
-	Status        string
-	ApprovedBy    string
-	Error         string
+	Status         string
+	ApprovedBy     string
+	Error          string
 	// OperationID 关联平台 operations 行（Operation Center 统一接线，迁移 082）。
-	OperationID   string
+	OperationID string
 }
 
 // SwitchRequestStore 读写 gslb_switch_requests（平台共享状态）。
@@ -86,10 +86,10 @@ func (s *SwitchRequestStore) FindServiceByDomain(ctx context.Context, domain str
 }
 
 type ServiceRow struct {
-	ID            string
-	TenantID      string
-	Domain        string
-	ActivePoolID  string
+	ID           string
+	TenantID     string
+	Domain       string
+	ActivePoolID string
 }
 
 // BackupPool 返回服务的备用池（优先级最高的非活跃池）及其成员。
@@ -357,6 +357,12 @@ func syncOperationTx(ctx context.Context, tx *sql.Tx, requestID, toStatus, error
 		return fmt.Errorf("sync gslb operation row: %w", err)
 	}
 	if toStatus == RequestStatusSucceeded {
+		if err := projectSucceededGSLBTx(ctx, tx, requestID); err != nil {
+			return err
+		}
+		if err := applyWeightUpdateTx(ctx, tx, requestID); err != nil {
+			return err
+		}
 		if _, err := tx.ExecContext(ctx, `
 			UPDATE operation_steps
 			SET status = CASE WHEN step_type = 'gslb_dns_revert' THEN 'skipped' ELSE 'succeeded' END,
@@ -379,6 +385,146 @@ func syncOperationTx(ctx context.Context, tx *sql.Tx, requestID, toStatus, error
 		return fmt.Errorf("sync gslb operation read model: %w", err)
 	}
 	return nil
+}
+
+func projectSucceededGSLBTx(ctx context.Context, tx *sql.Tx, requestID string) error {
+	var serviceID, tenantID, domain string
+	var activePoolID sql.NullString
+	var planJSON []byte
+	if err := tx.QueryRowContext(ctx, `
+		SELECT r.service_id::text, r.tenant_id, s.domain, s.active_pool_id::text, r.plan_snapshot
+		FROM gslb_switch_requests r
+		JOIN gslb_services s ON s.id = r.service_id
+		WHERE r.id = $1`, requestID).
+		Scan(&serviceID, &tenantID, &domain, &activePoolID, &planJSON); err != nil {
+		return fmt.Errorf("load succeeded gslb projection context: %w", err)
+	}
+
+	targetPoolID, targets, err := targetFromPlan(planJSON)
+	if err != nil {
+		return err
+	}
+	if targetPoolID == "" {
+		return nil
+	}
+	if _, err := tx.ExecContext(ctx, `
+		UPDATE gslb_services
+		SET active_pool_id = $2::uuid, lifecycle_state = 'Active', updated_at = now()
+		WHERE id = $1`, serviceID, targetPoolID); err != nil {
+		return fmt.Errorf("update gslb active pool: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, `
+		INSERT INTO gslb_read_model (
+			service_id, tenant_id, domain, active_pool_id, lifecycle_state,
+			healthy_pools, current_dns_targets, last_switch_request_id, last_switch_at, observed_at
+		) VALUES ($1, $2, $3, $4::uuid, 'Active', ARRAY[$4]::text[], $5, $6, now(), now())
+		ON CONFLICT (service_id) DO UPDATE SET
+			tenant_id = EXCLUDED.tenant_id,
+			domain = EXCLUDED.domain,
+			active_pool_id = EXCLUDED.active_pool_id,
+			lifecycle_state = EXCLUDED.lifecycle_state,
+			healthy_pools = CASE
+				WHEN $7::text IS NULL OR $7::text = $4::text THEN EXCLUDED.healthy_pools
+				ELSE ARRAY(SELECT DISTINCT unnest(gslb_read_model.healthy_pools || EXCLUDED.healthy_pools))
+			END,
+			current_dns_targets = EXCLUDED.current_dns_targets,
+			last_switch_request_id = EXCLUDED.last_switch_request_id,
+			last_switch_at = EXCLUDED.last_switch_at,
+			observed_at = EXCLUDED.observed_at`,
+		serviceID, tenantID, domain, targetPoolID, pq.Array(targets), requestID, nullableText(activePoolID)); err != nil {
+		return fmt.Errorf("upsert succeeded gslb read model: %w", err)
+	}
+	return nil
+}
+
+func targetFromPlan(planJSON []byte) (string, []string, error) {
+	var plan gslb.Plan
+	if err := json.Unmarshal(planJSON, &plan); err != nil {
+		return "", nil, fmt.Errorf("unmarshal succeeded gslb plan: %w", err)
+	}
+	for _, step := range plan.Steps {
+		if step.StepType != gslb.StepDNSApply {
+			continue
+		}
+		poolID, _ := step.Inputs["targetPoolId"].(string)
+		targets := stringSlice(step.Inputs["targets"])
+		return poolID, targets, nil
+	}
+	return "", nil, nil
+}
+
+// weightsFromPlan 提取计划 apply 步骤中钉死的成员权重（weight-update）。
+func weightsFromPlan(planJSON []byte) map[string]int {
+	var plan gslb.Plan
+	if err := json.Unmarshal(planJSON, &plan); err != nil {
+		return nil
+	}
+	for _, step := range plan.Steps {
+		if step.StepType != gslb.StepDNSApply {
+			continue
+		}
+		raw, ok := step.Inputs["weights"].(map[string]any)
+		if !ok {
+			return nil
+		}
+		weights := make(map[string]int, len(raw))
+		for member, value := range raw {
+			if n, ok := value.(float64); ok {
+				weights[member] = int(n)
+			}
+		}
+		return weights
+	}
+	return nil
+}
+
+// applyWeightUpdateTx 在 weight-update 请求成功时将计划权重落到池成员
+// （gslb_pool_members.weight），使平台状态与 DNS 数据面一致（GSLB 三期）。
+// 非 weight-update 请求为空操作。
+func applyWeightUpdateTx(ctx context.Context, tx *sql.Tx, requestID string) error {
+	var serviceID, intentKind string
+	var planJSON []byte
+	if err := tx.QueryRowContext(ctx, `
+		SELECT service_id::text, intent_kind, plan_snapshot
+		FROM gslb_switch_requests WHERE id = $1`, requestID).
+		Scan(&serviceID, &intentKind, &planJSON); err != nil {
+		return fmt.Errorf("load weight-update context: %w", err)
+	}
+	if intentKind != string(gslb.IntentWeightUpdate) {
+		return nil
+	}
+	weights := weightsFromPlan(planJSON)
+	for member, weight := range weights {
+		if _, err := tx.ExecContext(ctx, `
+			UPDATE gslb_pool_members pm SET weight = $3
+			FROM gslb_pools p
+			WHERE pm.pool_id = p.id AND p.service_id = $1 AND pm.cluster_id = $2`,
+			serviceID, member, weight); err != nil {
+			return fmt.Errorf("apply gslb member weight: %w", err)
+		}
+	}
+	return nil
+}
+
+func stringSlice(value any) []string {
+	items, ok := value.([]any)
+	if !ok {
+		return nil
+	}
+	out := make([]string, 0, len(items))
+	for _, item := range items {
+		if s, ok := item.(string); ok && s != "" {
+			out = append(out, s)
+		}
+	}
+	return out
+}
+
+func nullableText(value sql.NullString) any {
+	if !value.Valid || value.String == "" {
+		return nil
+	}
+	return value.String
 }
 
 // EmitStatusChanged 写执行结果领域事件（状态流转审计）。

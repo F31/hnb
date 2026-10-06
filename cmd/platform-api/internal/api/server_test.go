@@ -119,7 +119,6 @@ type fakeStore struct {
 	ops          map[string]*store.Operation
 	byIdemKey    map[string]string
 	targets      map[string]*store.RuntimeTarget
-	clusters     map[string]*store.Cluster
 	pingErr      error
 	calls        int
 	audits       []store.SecurityAuditRecord
@@ -135,7 +134,6 @@ func newFakeStore() *fakeStore {
 		ops:          map[string]*store.Operation{},
 		byIdemKey:    map[string]string{},
 		targets:      map[string]*store.RuntimeTarget{},
-		clusters:     map[string]*store.Cluster{},
 		commitments:  map[string]*store.IntentCommitment{},
 		manifests:    map[string]*store.ProviderManifest{},
 		secretValues: map[string]string{},
@@ -378,111 +376,6 @@ func (f *fakeStore) DeleteRuntimeTarget(ctx context.Context, id, tenantID string
 	}
 	delete(f.targets, id)
 	return nil
-}
-
-// ClusterStore interface implementations for fakeStore
-func (f *fakeStore) CreateCluster(ctx context.Context, req store.CreateClusterRequest) (*store.Cluster, error) {
-	f.recordCall()
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	now := time.Now().UTC()
-	c := &store.Cluster{
-		ID:            uuid.NewString(),
-		Name:          req.Name,
-		TenantID:      req.TenantID,
-		ClusterType:   req.ClusterType,
-		APIEndpoint:   req.APIEndpoint,
-		KubeconfigRef: req.KubeconfigRef,
-		Region:        req.Region,
-		Zone:          req.Zone,
-		Labels:        req.Labels,
-		Status:        "pending",
-		CreatedAt:     now,
-		UpdatedAt:     now,
-		Version:       1,
-		Scope:         "tenant", // default scope
-	}
-	f.clusters[c.ID] = c
-	return c, nil
-}
-
-func (f *fakeStore) GetCluster(ctx context.Context, id, tenantID string) (*store.Cluster, error) {
-	f.recordCall()
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	c, ok := f.clusters[id]
-	if !ok || c.TenantID != tenantID {
-		return nil, store.ErrClusterNotFound
-	}
-	cloned := *c
-	return &cloned, nil
-}
-
-func (f *fakeStore) ListClusters(ctx context.Context, tenantID string) ([]*store.Cluster, error) {
-	f.recordCall()
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	var result []*store.Cluster
-	for _, c := range f.clusters {
-		if c.TenantID != tenantID || c.Scope != "tenant" {
-			continue
-		}
-		cloned := *c
-		result = append(result, &cloned)
-	}
-	return result, nil
-}
-
-func (f *fakeStore) DeleteCluster(ctx context.Context, id, tenantID string) error {
-	f.recordCall()
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	c, ok := f.clusters[id]
-	if !ok || c.TenantID != tenantID {
-		return store.ErrClusterNotFound
-	}
-	delete(f.clusters, id)
-	return nil
-}
-
-func (f *fakeStore) HeartbeatCluster(ctx context.Context, id, tenantID string) error {
-	f.recordCall()
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	c, ok := f.clusters[id]
-	if !ok || c.TenantID != tenantID {
-		return store.ErrClusterNotFound
-	}
-	now := time.Now().UTC()
-	c.Status = "heartbeat"
-	c.LastHeartbeat = &now
-	c.UpdatedAt = now
-	return nil
-}
-
-func (f *fakeStore) UpdateCluster(ctx context.Context, id, tenantID string, req store.UpdateClusterRequest) (*store.Cluster, error) {
-	f.recordCall()
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	c, ok := f.clusters[id]
-	if !ok || c.TenantID != tenantID {
-		return nil, store.ErrClusterNotFound
-	}
-	if req.Region != nil {
-		c.Region = *req.Region
-	}
-	if req.Zone != nil {
-		c.Zone = *req.Zone
-	}
-	if req.Labels != nil {
-		c.Labels = *req.Labels
-	}
-	if req.Status != nil {
-		c.Status = *req.Status
-	}
-	c.UpdatedAt = time.Now().UTC()
-	cloned := *c
-	return &cloned, nil
 }
 
 func (f *fakeStore) GetManifest(ctx context.Context, providerID string) (*store.ProviderManifest, error) {
@@ -808,9 +701,17 @@ func setTestSecretDelegation(t *testing.T, srv *Server, req *http.Request) {
 	req.Header.Set("X-Correlation-ID", correlationID)
 }
 
-// setTestDescriptionDelegation signs a cluster-description update delegation
-// mirroring the BFF forwarding for PATCH /v1/clusters/{id}/description.
-func setTestDescriptionDelegation(t *testing.T, srv *Server, req *http.Request, resourceID string) {
+func doUnauthenticatedRequest(srv *Server, method, target, body string) *httptest.ResponseRecorder {
+	req := httptest.NewRequest(method, target, strings.NewReader(body))
+	rec := httptest.NewRecorder()
+	srv.ServeHTTP(rec, req)
+	return rec
+}
+
+// setTestTargetDelegation signs a runtime-target metadata delegation (no
+// intent kind or semantic digest) mirroring the BFF forwarding for
+// PATCH /v1/targets/{id}/description and POST /v1/targets/{id}/kubeconfig:issue.
+func setTestTargetDelegation(t *testing.T, srv *Server, req *http.Request, resourceID string, action iam.AuthorizationAction) {
 	t.Helper()
 	value, ok := testDelegationSigners.Load(srv)
 	if !ok {
@@ -845,7 +746,7 @@ func setTestDescriptionDelegation(t *testing.T, srv *Server, req *http.Request, 
 		SubjectID: "signed-subject", SubjectType: "user", MembershipID: "membership-a", TenantID: "tenant-a", PolicyVersion: "default:2",
 	}, iam.DelegationEvidence{
 		Scope:         iam.DelegationScope{ResourceKind: string(iam.ResourceClusterMetadata), ResourceID: resourceID},
-		Action:        iam.ActionUpdate,
+		Action:        action,
 		CorrelationID: correlationID,
 	})
 	if err != nil {
@@ -853,30 +754,6 @@ func setTestDescriptionDelegation(t *testing.T, srv *Server, req *http.Request, 
 	}
 	req.Header.Set("Authorization", "Bearer "+token)
 	req.Header.Set("X-Correlation-ID", correlationID)
-}
-
-// setTestKubeconfigDelegation signs a read-scoped cluster-metadata delegation
-// mirroring the BFF forwarding for POST /v1/clusters/{id}/kubeconfig:issue.
-func setTestKubeconfigDelegation(t *testing.T, srv *Server, req *http.Request, resourceID string) {
-	t.Helper()
-	signer := testDelegationSignerFor(t, srv)
-	token, err := signer.Sign(req.Context(), delegatedTrustedContext(), iam.DelegationEvidence{
-		Scope:         iam.DelegationScope{ResourceKind: string(iam.ResourceClusterMetadata), ResourceID: resourceID},
-		Action:        iam.ActionRead,
-		CorrelationID: testCorrelationID,
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	req.Header.Set("Authorization", "Bearer "+token)
-	req.Header.Set("X-Correlation-ID", testCorrelationID)
-}
-
-func doUnauthenticatedRequest(srv *Server, method, target, body string) *httptest.ResponseRecorder {
-	req := httptest.NewRequest(method, target, strings.NewReader(body))
-	rec := httptest.NewRecorder()
-	srv.ServeHTTP(rec, req)
-	return rec
 }
 
 func TestProviderManifestRegistryRejectsInvalidStorageDriverPackage(t *testing.T) {
@@ -1358,12 +1235,12 @@ func TestEveryProtectedRouteDeniesBeforeStoreWithoutPermission(t *testing.T) {
 		req := httptest.NewRequest(route.Method, path, strings.NewReader(body))
 		if route.Pattern == "/v1/intents" {
 			setTestIntentDelegation(t, srv, req, body)
-		} else if strings.Contains(route.Pattern, "/description") {
-			setTestDescriptionDelegation(t, srv, req, resourceID)
-		} else if strings.Contains(route.Pattern, "/kubeconfig:issue") {
-			setTestKubeconfigDelegation(t, srv, req, resourceID)
 		} else if route.Pattern == "/v1/secrets:register" {
 			setTestSecretDelegation(t, srv, req)
+		} else if strings.Contains(route.Pattern, "/description") {
+			setTestTargetDelegation(t, srv, req, resourceID, iam.ActionUpdate)
+		} else if strings.Contains(route.Pattern, "/kubeconfig:issue") {
+			setTestTargetDelegation(t, srv, req, resourceID, iam.ActionRead)
 		} else {
 			req.Header.Set("Authorization", "Bearer valid-token")
 		}

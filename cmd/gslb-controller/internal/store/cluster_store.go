@@ -34,67 +34,54 @@ func NewClusterStore(db *sql.DB) *ClusterStore {
 
 func (s *ClusterStore) ListActive(ctx context.Context) ([]*Cluster, error) {
 	rows, err := s.db.QueryContext(ctx, `
-		SELECT id, name, tenant_id, cluster_type, api_endpoint, region, zone, labels, status, last_heartbeat, created_at, updated_at
-		FROM clusters WHERE status IN ('active', 'healthy')
+		SELECT id::text, name, tenant_id, target_type, COALESCE(connection_endpoint, ''), labels,
+		       status, lifecycle_state, health_state, connectivity_state, observed_at, created_at, updated_at
+		FROM runtime_targets
+		WHERE target_type = 'kubernetes'
+		  AND is_active
+		  AND COALESCE(status, 'unknown') <> 'decommissioned'
+		  AND COALESCE(lifecycle_state, 'UNKNOWN') <> 'TERMINATED'
+		  AND COALESCE(connection_endpoint, '') <> ''
 		ORDER BY name`)
 	if err != nil {
-		return nil, fmt.Errorf("query active clusters: %w", err)
+		return nil, fmt.Errorf("query active runtime targets: %w", err)
 	}
-	defer rows.Close()
-
-	var clusters []*Cluster
-	for rows.Next() {
-		c := &Cluster{}
-		var labelsJSON []byte
-		var region, zone, lastHeartbeat sql.NullString
-
-		if err := rows.Scan(&c.ID, &c.Name, &c.TenantID, &c.ClusterType, &c.APIEndpoint, &region, &zone, &labelsJSON, &c.Status, &lastHeartbeat, &c.CreatedAt, &c.UpdatedAt); err != nil {
-			return nil, fmt.Errorf("scan cluster: %w", err)
-		}
-		c.Region = region.String
-		c.Zone = zone.String
-		if lastHeartbeat.Valid {
-			t, _ := time.Parse(time.RFC3339, lastHeartbeat.String)
-			c.LastHeartbeat = &t
-		}
-		if len(labelsJSON) > 0 {
-			_ = json.Unmarshal(labelsJSON, &c.Labels)
-		}
-		clusters = append(clusters, c)
-	}
-	if clusters == nil {
-		clusters = []*Cluster{}
-	}
-	return clusters, rows.Err()
+	return scanRuntimeTargetClusters(rows)
 }
 
 func (s *ClusterStore) ListAll(ctx context.Context) ([]*Cluster, error) {
 	rows, err := s.db.QueryContext(ctx, `
-		SELECT id, name, tenant_id, cluster_type, api_endpoint, region, zone, labels, status, last_heartbeat, created_at, updated_at
-		FROM clusters ORDER BY name`)
+		SELECT id::text, name, tenant_id, target_type, COALESCE(connection_endpoint, ''), labels,
+		       status, lifecycle_state, health_state, connectivity_state, observed_at, created_at, updated_at
+		FROM runtime_targets
+		WHERE target_type = 'kubernetes'
+		ORDER BY name`)
 	if err != nil {
-		return nil, fmt.Errorf("query all clusters: %w", err)
+		return nil, fmt.Errorf("query all runtime targets: %w", err)
 	}
+	return scanRuntimeTargetClusters(rows)
+}
+
+func scanRuntimeTargetClusters(rows *sql.Rows) ([]*Cluster, error) {
 	defer rows.Close()
 
 	var clusters []*Cluster
 	for rows.Next() {
 		c := &Cluster{}
 		var labelsJSON []byte
-		var region, zone, lastHeartbeat sql.NullString
+		var status, lifecycleState, healthState, connectivityState sql.NullString
+		var observedAt sql.NullTime
 
-		if err := rows.Scan(&c.ID, &c.Name, &c.TenantID, &c.ClusterType, &c.APIEndpoint, &region, &zone, &labelsJSON, &c.Status, &lastHeartbeat, &c.CreatedAt, &c.UpdatedAt); err != nil {
-			return nil, fmt.Errorf("scan cluster: %w", err)
+		if err := rows.Scan(&c.ID, &c.Name, &c.TenantID, &c.ClusterType, &c.APIEndpoint, &labelsJSON, &status, &lifecycleState, &healthState, &connectivityState, &observedAt, &c.CreatedAt, &c.UpdatedAt); err != nil {
+			return nil, fmt.Errorf("scan runtime target cluster: %w", err)
 		}
-		c.Region = region.String
-		c.Zone = zone.String
-		if lastHeartbeat.Valid {
-			t, _ := time.Parse(time.RFC3339, lastHeartbeat.String)
-			c.LastHeartbeat = &t
+		if observedAt.Valid {
+			c.LastHeartbeat = &observedAt.Time
 		}
 		if len(labelsJSON) > 0 {
 			_ = json.Unmarshal(labelsJSON, &c.Labels)
 		}
+		c.Status = runtimeTargetGSLBStatus(status.String, lifecycleState.String, healthState.String, connectivityState.String)
 		clusters = append(clusters, c)
 	}
 	if clusters == nil {
@@ -104,29 +91,82 @@ func (s *ClusterStore) ListAll(ctx context.Context) ([]*Cluster, error) {
 }
 
 func (s *ClusterStore) UpdateStatus(ctx context.Context, id, status string) error {
-	_, err := s.db.ExecContext(ctx, `UPDATE clusters SET status = $1, updated_at = now() WHERE id = $2`, status, id)
+	runtimeStatus, healthState, connectivityState := gslbStatusRuntimeTargetState(status)
+	_, err := s.db.ExecContext(ctx, `
+		UPDATE runtime_targets
+		SET status = $1,
+		    health_state = $2,
+		    connectivity_state = $3,
+		    observed_at = now(),
+		    last_known_state_at = now(),
+		    updated_at = now(),
+		    projection_version = projection_version + 1
+		WHERE id = $4`, runtimeStatus, healthState, connectivityState, id)
 	return err
 }
 
 func (s *ClusterStore) RecordHeartbeat(ctx context.Context, clusterID, status, version string, nodeCount int, capacity map[string]any) error {
-	capacityJSON, err := json.Marshal(capacity)
+	snapshot := map[string]any{
+		"capacity":   capacity,
+		"nodeCount":  nodeCount,
+		"source":     "gslb-controller",
+		"gslbStatus": status,
+	}
+	capacityJSON, err := json.Marshal(snapshot)
 	if err != nil {
 		return fmt.Errorf("marshal capacity: %w", err)
 	}
 
+	runtimeStatus, healthState, connectivityState := gslbStatusRuntimeTargetState(status)
 	now := time.Now().UTC()
 	_, err = s.db.ExecContext(ctx, `
-		INSERT INTO cluster_heartbeats (cluster_id, status, version, node_count, capacity, observed_at)
-		VALUES ($1, $2, $3, $4, $5, $6)`,
-		clusterID, status, nullable(version), nodeCount, capacityJSON, now,
+		INSERT INTO capability_snapshots (target_id, tenant_id, kube_version, snapshot_json, observed_at)
+		SELECT id, tenant_id, $2, $3, $4
+		FROM runtime_targets
+		WHERE id = $1`,
+		clusterID, nullable(version), capacityJSON, now,
 	)
 	if err != nil {
-		return fmt.Errorf("insert heartbeat: %w", err)
+		return fmt.Errorf("insert capability snapshot heartbeat: %w", err)
 	}
 
-	_, err = s.db.ExecContext(ctx, `UPDATE clusters SET status = $1, last_heartbeat = $2, updated_at = $2 WHERE id = $3`,
-		status, now, clusterID)
+	_, err = s.db.ExecContext(ctx, `
+		UPDATE runtime_targets
+		SET status = $1,
+		    health_state = $2,
+		    connectivity_state = $3,
+		    observed_at = $4,
+		    last_known_state_at = $4,
+		    updated_at = $4,
+		    projection_version = projection_version + 1
+		WHERE id = $5`, runtimeStatus, healthState, connectivityState, now, clusterID)
 	return err
+}
+
+func runtimeTargetGSLBStatus(status, lifecycleState, healthState, connectivityState string) string {
+	if status == "decommissioned" || lifecycleState == "TERMINATED" || connectivityState == "DISCONNECTED" || status == "offline" {
+		return "unreachable"
+	}
+	if status == "degraded" || healthState == "DEGRADED" || healthState == "UNHEALTHY" {
+		return "degraded"
+	}
+	if status == "online" || healthState == "HEALTHY" || connectivityState == "CONNECTED" {
+		return "healthy"
+	}
+	return "unknown"
+}
+
+func gslbStatusRuntimeTargetState(status string) (runtimeStatus, healthState, connectivityState string) {
+	switch status {
+	case "healthy":
+		return "online", "HEALTHY", "CONNECTED"
+	case "degraded":
+		return "degraded", "DEGRADED", "CONNECTED"
+	case "unreachable":
+		return "offline", "UNHEALTHY", "DISCONNECTED"
+	default:
+		return "unknown", "UNKNOWN", "UNKNOWN"
+	}
 }
 
 func nullable(s string) *string {

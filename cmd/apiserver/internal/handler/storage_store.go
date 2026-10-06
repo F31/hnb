@@ -26,6 +26,7 @@ type storageSnapshotProjection struct {
 
 type storageOverviewProjection struct {
 	Targets, KnownCapacity, NotReportedCapacity int
+	Backends, Offerings, Bindings               int
 	ObservedAt                                  *time.Time
 	Fresh                                       bool
 }
@@ -76,13 +77,17 @@ func (s *postgresStorageStore) Overview(ctx context.Context, tenantID string) (s
 		SELECT count(DISTINCT target_id), max(observed_at),
 		       COALESCE(bool_and(stale_after > now()), false),
 		       count(*) FILTER (WHERE resource_kind = 'CSIStorageCapacity' AND attributes ? 'capacityBytes'),
-		       count(*) FILTER (WHERE resource_kind = 'CSIStorageCapacity' AND NOT (attributes ? 'capacityBytes'))
+		       count(*) FILTER (WHERE resource_kind = 'CSIStorageCapacity' AND NOT (attributes ? 'capacityBytes')),
+		       (SELECT count(*) FROM storage_backends WHERE tenant_id = $1),
+		       (SELECT count(*) FROM workload_storage_offerings WHERE tenant_id = $1),
+		       (SELECT count(*) FROM storage_class_bindings WHERE tenant_id = $1)
 		FROM runtime_target_storage_inventory
 		WHERE tenant_id = $1 AND deleted_at IS NULL`
 	var result storageOverviewProjection
 	var observedAt sql.NullTime
 	if err := s.db.QueryRowContext(ctx, query, tenantID).Scan(
 		&result.Targets, &observedAt, &result.Fresh, &result.KnownCapacity, &result.NotReportedCapacity,
+		&result.Backends, &result.Offerings, &result.Bindings,
 	); err != nil {
 		return result, fmt.Errorf("read storage overview projection: %w", err)
 	}

@@ -20,7 +20,7 @@ func (s *PGStore) GetOperation(ctx context.Context, id, tenantID string) (*Opera
 	err := s.db.QueryRowContext(ctx, `
 		SELECT operation_id, tenant_id, project_id, environment_id, namespace_id,
 			plan_id, operation_type, status, total_steps, completed_steps, failed_steps,
-			initiated_by, approved_by, target_cluster_ids,
+			initiated_by, approved_by, target_cluster_ids, COALESCE(correlation_id, ''),
 			created_at, started_at, completed_at,
 			last_state_changed_at
 		FROM operation_read_model
@@ -28,7 +28,7 @@ func (s *PGStore) GetOperation(ctx context.Context, id, tenantID string) (*Opera
 	).Scan(
 		&op.ID, &op.TenantID, &projectID, &environmentID, &namespaceID,
 		&planID, &op.OperationType, &op.Status, &op.TotalSteps, &op.CompletedSteps, &op.FailedSteps,
-		&op.InitiatedBy, &approvedBy, pq.Array(&op.TargetClusterIDs),
+		&op.InitiatedBy, &approvedBy, pq.Array(&op.TargetClusterIDs), &op.CorrelationID,
 		&op.CreatedAt, &startedAt, &completedAt,
 		&op.LastStateChangedAt,
 	)
@@ -53,7 +53,7 @@ func (s *PGStore) GetOperation(ctx context.Context, id, tenantID string) (*Opera
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT id, COALESCE(plan_step_id, ''), step_name, step_type,
 			COALESCE(provider_id, ''), status, depends_on,
-			COALESCE(error_message, ''), started_at, completed_at
+			COALESCE(error_message, ''), retry_count, max_retries, started_at, completed_at
 		FROM operation_steps
 		WHERE operation_id = $1
 		ORDER BY created_at`, id)
@@ -68,7 +68,7 @@ func (s *PGStore) GetOperation(ctx context.Context, id, tenantID string) (*Opera
 		if err := rows.Scan(
 			&step.ID, &step.PlanStepID, &step.Name, &step.StepType,
 			&step.ProviderID, &step.Status, pq.Array(&dependsOn),
-			&step.ErrorMessage, &startedAt, &completedAt,
+			&step.ErrorMessage, &step.RetryCount, &step.MaxRetries, &startedAt, &completedAt,
 		); err != nil {
 			return nil, fmt.Errorf("scan operation step: %w", err)
 		}
@@ -88,6 +88,9 @@ func (s *PGStore) GetOperation(ctx context.Context, id, tenantID string) (*Opera
 }
 
 // ListOperations queries only operation_read_model, always scoped by tenant.
+// correlation_id is projected by migration 095 and the operation-worker /
+// platform-api upsertReadModel paths; pre-095 rows without a backfilled value
+// surface an empty CorrelationID.
 func (s *PGStore) ListOperations(ctx context.Context, q ListQuery) ([]OperationSummary, int, error) {
 	conditions := []string{"tenant_id = $1"}
 	args := []any{q.TenantID}
@@ -113,7 +116,7 @@ func (s *PGStore) ListOperations(ctx context.Context, q ListQuery) ([]OperationS
 		SELECT operation_id, tenant_id, project_id, environment_id, namespace_id,
 			operation_type, status, total_steps, completed_steps, failed_steps,
 			initiated_by, approved_by, COALESCE(summary, ''),
-			target_cluster_ids, COALESCE(intent_id::text, ''),
+			target_cluster_ids, COALESCE(intent_id::text, ''), COALESCE(correlation_id, ''),
 			created_at, started_at, completed_at, last_state_changed_at
 		FROM operation_read_model
 		WHERE `+where+`
@@ -135,7 +138,7 @@ func (s *PGStore) ListOperations(ctx context.Context, q ListQuery) ([]OperationS
 			&item.ID, &item.TenantID, &projectID, &environmentID, &namespaceID,
 			&item.OperationType, &item.Status, &item.TotalSteps, &item.CompletedSteps, &item.FailedSteps,
 			&item.InitiatedBy, &approvedBy, &item.Summary,
-			pq.Array(&item.TargetClusterIDs), &item.IntentID,
+			pq.Array(&item.TargetClusterIDs), &item.IntentID, &item.CorrelationID,
 			&item.CreatedAt, &startedAt, &completedAt, &item.LastStateChangedAt,
 		); err != nil {
 			return nil, 0, fmt.Errorf("scan operation summary: %w", err)

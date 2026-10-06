@@ -140,36 +140,23 @@ func (h *StorageHandler) Overview(w http.ResponseWriter, r *http.Request) {
 	writeStorageJSON(w, map[string]any{
 		"schemaVersion": storageSchemaVersion, "source": "runtime_target_storage_inventory",
 		"observedAt": observedAt, "freshness": freshness,
-		"counts":         map[string]int{"backends": 0, "offerings": 0, "driverInstallations": 0, "targets": projection.Targets, "bindings": 0},
+		// backends/offerings/bindings are real tenant-scoped counts from the
+		// desired-state tables (migration 070). driverInstallations has no
+		// backing data source yet, so it stays 0 until driver installation
+		// records are projected.
+		"counts": map[string]int{"backends": projection.Backends, "offerings": projection.Offerings, "driverInstallations": 0, "targets": projection.Targets, "bindings": projection.Bindings},
+		// Known/NotReported come from the CSIStorageCapacity projection; there
+		// is no observed signal distinguishing Elastic from Unknown capacity,
+		// so both stay 0 until such a signal exists.
 		"capacityStates": map[string]int{"Known": projection.KnownCapacity, "Elastic": 0, "Unknown": 0, "NotReported": projection.NotReportedCapacity},
 	})
 }
 
-func (h *StorageHandler) Backends(w http.ResponseWriter, r *http.Request) {
-	h.emptyList(w, r, map[string]bool{"providerType": true, "healthState": true, "keyword": true})
-}
-func (h *StorageHandler) Offerings(w http.ResponseWriter, r *http.Request) {
-	h.emptyList(w, r, map[string]bool{"scope": true, "serviceMode": true, "keyword": true})
-}
+// DriverInstallations intentionally returns an empty contract-shaped list:
+// driver installation records are not projected yet, and the console hides
+// the tab while the list is empty.
 func (h *StorageHandler) DriverInstallations(w http.ResponseWriter, r *http.Request) {
 	h.emptyList(w, r, map[string]bool{"targetId": true, "healthState": true, "freshness": true, "keyword": true})
-}
-
-func (h *StorageHandler) OfferingBindings(w http.ResponseWriter, r *http.Request) {
-	if _, ok := storageTenant(r); !ok {
-		writeStorageProblem(w, r, http.StatusUnauthorized, "UNAUTHORIZED", "Authentication is required.")
-		return
-	}
-	if _, err := uuid.Parse(r.PathValue("offeringId")); err != nil {
-		writeStorageProblem(w, r, http.StatusNotFound, "STORAGE_OFFERING_NOT_FOUND", "Storage offering was not found.")
-		return
-	}
-	if !validStorageListQuery(r, map[string]bool{"targetId": true, "syncState": true, "keyword": true}) {
-		writeStorageProblem(w, r, http.StatusBadRequest, "INVALID_QUERY", "Pagination or filter parameters are invalid.")
-		return
-	}
-	// Offering desired state is introduced by task 4.1. Do not infer bindings from StorageClasses.
-	writeStorageJSON(w, map[string]any{"schemaVersion": storageSchemaVersion, "items": []any{}, "total": 0})
 }
 
 func (h *StorageHandler) emptyList(w http.ResponseWriter, r *http.Request, filters map[string]bool) {

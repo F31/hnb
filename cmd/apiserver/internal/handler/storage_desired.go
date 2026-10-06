@@ -693,6 +693,9 @@ func (h *StorageDesiredHandler) DeleteBinding(w http.ResponseWriter, r *http.Req
 }
 
 func backendResponse(item storageBackendRecord) map[string]any {
+	// healthState/freshness stay "Unknown": the backend health projection is
+	// not wired up yet (no observed health signal per backend), and the
+	// console no longer displays that column.
 	result := map[string]any{"schemaVersion": storageSchemaVersion, "id": item.ID, "tenantId": item.TenantID, "providerType": item.ProviderType, "backendId": item.BackendID, "displayName": item.DisplayName, "healthState": "Unknown", "source": "platform.desired-state", "observedAt": item.UpdatedAt.UTC(), "freshness": "Unknown", "conditions": []any{}, "version": item.Version, "createdAt": item.CreatedAt.UTC(), "updatedAt": item.UpdatedAt.UTC()}
 	if item.ProviderSchemaVersion != "" {
 		result["providerSchemaVersion"] = item.ProviderSchemaVersion

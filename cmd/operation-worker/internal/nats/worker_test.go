@@ -89,3 +89,28 @@ func TestClassifyExecutionError(t *testing.T) {
 		})
 	}
 }
+
+func TestStepInputsForExecutionInjectsLifecycleFence(t *testing.T) {
+	input := map[string]any{
+		"schemaVersion":      "1.0.0",
+		"fencingGeneration":  float64(1),
+		"idempotencyKey":     "stored-key",
+		"unrelatedAttribute": "kept",
+	}
+
+	got := stepInputsForExecution("runtime-target.lifecycle.kubernetes", input, "request-key", 42)
+	if got["fencingGeneration"] != int64(42) || got["idempotencyKey"] != "request-key" {
+		t.Fatalf("lifecycle inputs were not fenced from the lease: %#v", got)
+	}
+	if got["unrelatedAttribute"] != "kept" {
+		t.Fatalf("lifecycle input did not preserve existing fields: %#v", got)
+	}
+	if input["fencingGeneration"] != float64(1) || input["idempotencyKey"] != "stored-key" {
+		t.Fatalf("stored step input was mutated: %#v", input)
+	}
+
+	ordinary := stepInputsForExecution("provider-test", input, "request-key", 42)
+	if ordinary["fencingGeneration"] != float64(1) || ordinary["idempotencyKey"] != "stored-key" {
+		t.Fatalf("ordinary provider input should not be rewritten: %#v", ordinary)
+	}
+}
