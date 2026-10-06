@@ -71,7 +71,7 @@ func main() {
 		cancel()
 	}()
 
-	w := worker.New(db, cipher, nc, cfg.HelmPath, cfg.KubeconfigDir)
+	w := worker.New(db, cipher, nc, cfg.HelmPath, cfg.KubeconfigDir, cfg.DryRun)
 	log.Println("[plugin-worker] starting")
 	if err := w.Start(ctx); err != nil {
 		log.Fatalf("plugin-worker failed: %v", err)

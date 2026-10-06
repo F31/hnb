@@ -9,6 +9,7 @@ type Config struct {
 	HelmPath      string
 	ListenAddr    string
 	KubeconfigDir string
+	DryRun        bool
 }
 
 func Load() Config {
@@ -19,6 +20,7 @@ func Load() Config {
 		HelmPath:      getEnv("HELM_PATH", "helm"),
 		ListenAddr:    getEnv("LISTEN_ADDR", ":8080"),
 		KubeconfigDir: getEnv("KUBECONFIG_DIR", "/tmp/hnb-plugin-worker"),
+		DryRun:        getEnv("PLUGIN_WORKER_DRY_RUN", "") == "true",
 	}
 }
 

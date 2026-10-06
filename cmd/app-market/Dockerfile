@@ -1,6 +1,15 @@
 FROM golang:1.24 AS build
 ARG GOPROXY=https://goproxy.cn,direct
-ENV GOPROXY=${GOPROXY} GOWORK=off
+ENV GOPROXY=${GOPROXY} \
+    GOWORK=off \
+    HTTP_PROXY= \
+    HTTPS_PROXY= \
+    ALL_PROXY= \
+    http_proxy= \
+    https_proxy= \
+    all_proxy= \
+    NO_PROXY="*" \
+    no_proxy="*"
 WORKDIR /src
 COPY . .
 WORKDIR /src/cmd/app-market

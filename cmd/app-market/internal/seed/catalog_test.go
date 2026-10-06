@@ -15,6 +15,37 @@ func randomSuffix() string {
 	return strings.ReplaceAll(uuid.NewString()[:8], "-", "")
 }
 
+func TestLabelsForEntryIncludesHelmMetadata(t *testing.T) {
+	var prometheus PluginCatalogEntry
+	for _, entry := range Catalog() {
+		if entry.Name == "prometheus-operator" {
+			prometheus = entry
+			break
+		}
+	}
+	labels := labelsForEntry(prometheus)
+	if labels["plugin.helm.chart"] != "kube-prometheus-stack" || labels["plugin.helm.chartVersion"] != "91.7.0" || labels["plugin.helm.repoName"] != "prometheus-community" || labels["plugin.helm.namespace"] != "monitoring" {
+		t.Fatalf("labels missing helm metadata: %+v", labels)
+	}
+	if !strings.Contains(labels["plugin.helm.preflight"], "kubernetesMinVersion") {
+		t.Fatalf("labels missing preflight metadata: %+v", labels)
+	}
+}
+
+func TestKubeEdgeSeedDoesNotExposeInvalidHelmRepo(t *testing.T) {
+	var kubeedge PluginCatalogEntry
+	for _, entry := range Catalog() {
+		if entry.Name == "kubeedge" {
+			kubeedge = entry
+			break
+		}
+	}
+	labels := labelsForEntry(kubeedge)
+	if labels["plugin.helm.repoURL"] != "" || labels["plugin.helm.chart"] != "" {
+		t.Fatalf("kubeedge should not expose unverified helm metadata: %+v", labels)
+	}
+}
+
 func TestSeedPluginCatalogIdempotent(t *testing.T) {
 	dsn := os.Getenv("HNB_TEST_POSTGRES_DSN")
 	if dsn == "" {
