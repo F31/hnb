@@ -120,6 +120,11 @@ func (i *Intent) BuildPlan(input PlanInput) (*Plan, error) {
 			},
 			IdempotencyKey: fmt.Sprintf("%s-apply", i.Metadata.IdempotencyKey),
 		}
+		// 权重作用的成员集合由应用层钉进计划（活跃池成员），执行器据此构造
+		// 按成员加权的 DNS 记录（GSLB 三期权重链路）。
+		if len(input.Targets) > 0 {
+			apply.Inputs["targets"] = input.Targets
+		}
 		verify := Step{
 			StepID:        "verify",
 			StepType:      StepDNSVerify,
@@ -129,6 +134,9 @@ func (i *Intent) BuildPlan(input PlanInput) (*Plan, error) {
 				"domain":    input.Domain,
 			},
 			IdempotencyKey: fmt.Sprintf("%s-verify", i.Metadata.IdempotencyKey),
+		}
+		if len(input.Targets) > 0 {
+			verify.Inputs["targets"] = input.Targets
 		}
 		steps = []Step{apply, verify}
 	case IntentDrill:
