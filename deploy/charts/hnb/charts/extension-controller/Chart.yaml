@@ -1,6 +1,6 @@
 apiVersion: v2
-name: {{ .Chart.Name }}
-description: {{ .Chart.Name }} - HNB platform component
+name: extension-controller
+description: extension-controller - HNB platform component
 type: application
 version: 0.1.0
 appVersion: "0.1.0"

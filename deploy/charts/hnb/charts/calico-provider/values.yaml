@@ -1,4 +1,6 @@
 replicaCount: 1
+global:
+  imageTag: ""
 image:
   repository: hnb/{{ .Chart.Name }}
   tag: ""
@@ -8,6 +10,11 @@ nats:
   existingClientTLSSecret: ""
 db:
   dsn: ""
+masterKey:
+  # Secret holding the platform master key (HNB_MASTER_KEY) used to decrypt
+  # stored target kubeconfigs; without it credential resolution fails closed.
+  existingSecret: ""
+  key: "master-key"
 resources:
   requests:
     cpu: 200m

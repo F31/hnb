@@ -30,6 +30,13 @@ spec:
               value: /var/run/hnb-nats/ca.crt
             - name: DB_DSN
               value: {{ .Values.db.dsn | default $.Values.global.postgresql.dsn }}
+            {{- if .Values.masterKey.existingSecret }}
+            - name: HNB_MASTER_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.masterKey.existingSecret }}
+                  key: {{ .Values.masterKey.key | default "master-key" }}
+            {{- end }}
           ports:
             - containerPort: 8080
               name: http
