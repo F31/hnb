@@ -10,26 +10,42 @@ import (
 	"github.com/google/uuid"
 	natslib "github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
-var (
-	opDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
-		Name:    "hnb_cni_operation_duration_seconds",
-		Help:    "Duration of CNI provider operations",
-		Buckets: prometheus.DefBuckets,
-	}, []string{"provider", "operation", "status"})
-)
+// opDuration aliases the shared OperationDuration collector from metrics.go
+// (registering a second histogram with the same name would panic at init).
+var opDuration = OperationDuration
 
-type Worker struct {
-	js        jetstream.JetStream
-	providers map[string]NetworkProvider
-	workerID  string
-	subject   string
+// jsPublisher is the narrow slice of jetstream.JetStream the worker needs to
+// publish results; it exists so tests can substitute a fake.
+type jsPublisher interface {
+	Publish(ctx context.Context, subject string, payload []byte, opts ...jetstream.PublishOpt) (*jetstream.PubAck, error)
 }
 
-func NewWorker(nc *natslib.Conn, providers map[string]NetworkProvider, subject string) (*Worker, error) {
+// replyPublisher is the narrow slice of *nats.Conn used to answer
+// request/reply messages; it exists so tests can substitute a fake.
+type replyPublisher interface {
+	Publish(subj string, data []byte) error
+}
+
+type Worker struct {
+	js          jetstream.JetStream
+	publisher   jsPublisher
+	replier     replyPublisher
+	providers   map[string]NetworkProvider
+	credentials CredentialResolver
+	workerID    string
+	subject     string
+}
+
+// NewWorker builds a worker. The credential resolver is required: requests
+// carry only a target ID, and the worker must resolve the target's kubeconfig
+// from the platform secret store instead of falling back to its local kube
+// context.
+func NewWorker(nc *natslib.Conn, providers map[string]NetworkProvider, subject string, creds CredentialResolver) (*Worker, error) {
+	if creds == nil {
+		return nil, fmt.Errorf("credential resolver is required")
+	}
 	js, err := jetstream.New(nc)
 	if err != nil {
 		return nil, fmt.Errorf("jetstream: %w", err)
@@ -41,10 +57,13 @@ func NewWorker(nc *natslib.Conn, providers map[string]NetworkProvider, subject s
 	}
 
 	return &Worker{
-		js:        js,
-		providers: providers,
-		workerID:  fmt.Sprintf("net-provider-%s", id),
-		subject:   subject,
+		js:          js,
+		publisher:   js,
+		replier:     nc,
+		providers:   providers,
+		credentials: creds,
+		workerID:    fmt.Sprintf("net-provider-%s", id),
+		subject:     subject,
 	}, nil
 }
 
@@ -102,7 +121,7 @@ func (w *Worker) handleMessage(ctx context.Context, msg jetstream.Msg) {
 	prov, ok := w.providers[req.Provider]
 	if !ok {
 		log.Printf("[%s] unknown provider: %s", w.workerID, req.Provider)
-		w.publishResult(ctx, msg.Subject()+".result", NetworkResultMessage{
+		w.publishResult(ctx, msg, NetworkResultMessage{
 			OperationID: req.OperationID, Status: "failed", Provider: req.Provider,
 			Error: fmt.Sprintf("unknown provider: %s", req.Provider),
 		})
@@ -110,7 +129,16 @@ func (w *Worker) handleMessage(ctx context.Context, msg jetstream.Msg) {
 		return
 	}
 
-	target := &RuntimeTarget{ID: req.TargetID}
+	target, credErr := w.resolveTarget(ctx, &req)
+	if credErr != nil {
+		log.Printf("[%s] %s failed: %v", w.workerID, req.Action, credErr)
+		w.publishResult(ctx, msg, NetworkResultMessage{
+			OperationID: req.OperationID, Status: "failed", Provider: req.Provider,
+			Error: credErr.Error(),
+		})
+		msg.Ack()
+		return
+	}
 	operationStart := time.Now()
 	var err error
 
@@ -232,7 +260,7 @@ func (w *Worker) handleMessage(ctx context.Context, msg jetstream.Msg) {
 			} else {
 				resultPayload, _ := json.Marshal(traceResult)
 				opDuration.WithLabelValues(req.Provider, req.Action, "succeeded").Observe(time.Since(operationStart).Seconds())
-				w.publishResult(ctx, msg.Subject()+".result", NetworkResultMessage{
+				w.publishResult(ctx, msg, NetworkResultMessage{
 					OperationID: req.OperationID, Status: "succeeded", Provider: req.Provider,
 					Message: fmt.Sprintf("policy trace: %s", traceResult.Verdict), TraceResult: string(resultPayload),
 				})
@@ -253,7 +281,7 @@ func (w *Worker) handleMessage(ctx context.Context, msg jetstream.Msg) {
 	if err != nil {
 		opDuration.WithLabelValues(req.Provider, req.Action, "failed").Observe(time.Since(operationStart).Seconds())
 		log.Printf("[%s] %s failed: %v", w.workerID, req.Action, err)
-		w.publishResult(ctx, msg.Subject()+".result", NetworkResultMessage{
+		w.publishResult(ctx, msg, NetworkResultMessage{
 			OperationID: req.OperationID, Status: "failed", Provider: req.Provider, Error: err.Error(),
 		})
 		msg.Nak()
@@ -262,7 +290,7 @@ func (w *Worker) handleMessage(ctx context.Context, msg jetstream.Msg) {
 
 	opDuration.WithLabelValues(req.Provider, req.Action, "succeeded").Observe(time.Since(operationStart).Seconds())
 	log.Printf("[%s] %s succeeded", w.workerID, req.Action)
-	w.publishResult(ctx, msg.Subject()+".result", NetworkResultMessage{
+	w.publishResult(ctx, msg, NetworkResultMessage{
 		OperationID: req.OperationID, Status: "succeeded", Provider: req.Provider,
 		Message: fmt.Sprintf("%s %s by %s", req.Action, req.Provider, w.workerID),
 	})
@@ -272,18 +300,48 @@ func (w *Worker) handleMessage(ctx context.Context, msg jetstream.Msg) {
 func (w *Worker) fail(ctx context.Context, start time.Time, msg jetstream.Msg, req NetworkRequestMessage, format string, args ...any) {
 	opDuration.WithLabelValues(req.Provider, req.Action, "failed").Observe(time.Since(start).Seconds())
 	log.Printf("[%s] %s failed: %s", w.workerID, req.Action, fmt.Sprintf(format, args...))
-	w.publishResult(ctx, msg.Subject()+".result", NetworkResultMessage{
+	w.publishResult(ctx, msg, NetworkResultMessage{
 		OperationID: req.OperationID, Status: "failed", Provider: req.Provider,
 		Error: fmt.Sprintf(format, args...),
 	})
 	msg.Ack()
 }
 
-func (w *Worker) publishResult(ctx context.Context, subject string, data any) error {
+// resolveTarget builds the RuntimeTarget for a request, resolving the
+// target's kubeconfig from the platform secret store. It fails closed: a
+// request without resolvable credentials must never fall back to the worker's
+// local kube context, which in multi-target deployments would silently point
+// helm at the wrong cluster.
+func (w *Worker) resolveTarget(ctx context.Context, req *NetworkRequestMessage) (*RuntimeTarget, error) {
+	if req.TargetID == "" {
+		return nil, fmt.Errorf("missing target_id: cannot resolve target credentials")
+	}
+	kubeconfig, err := w.credentials.KubeconfigFor(ctx, req.TargetID)
+	if err != nil {
+		return nil, fmt.Errorf("resolve credentials for target %s: %w", req.TargetID, err)
+	}
+	return &RuntimeTarget{
+		ID:         req.TargetID,
+		Kubeconfig: kubeconfig,
+	}, nil
+}
+
+// publishResult stores the result on <subject>.result for audit and, when the
+// request carried a reply subject (the reconciler's request/reply health
+// checks), also answers the reply inbox directly — JetStream delivery
+// preserves the original reply subject, and the requester awaits it.
+func (w *Worker) publishResult(ctx context.Context, msg jetstream.Msg, data any) error {
 	payload, err := json.Marshal(data)
 	if err != nil {
 		return err
 	}
-	_, err = w.js.Publish(ctx, subject, payload)
-	return err
+	if _, err := w.publisher.Publish(ctx, msg.Subject()+".result", payload); err != nil {
+		return err
+	}
+	if reply := msg.Reply(); reply != "" {
+		if err := w.replier.Publish(reply, payload); err != nil {
+			return err
+		}
+	}
+	return nil
 }

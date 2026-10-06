@@ -90,9 +90,17 @@ func main() {
 		for _, route := range routes {
 			if route.Action == req.Action {
 				target := fmt.Sprintf(route.TargetSub, req.Provider)
+				if target == msg.Subject() {
+					// Already on the provider-specific subject (e.g. the
+					// reconciler's request/reply health checks go straight to
+					// hnb.network.<provider>.health); re-publishing would loop
+					// and would drop the original reply subject.
+					msg.Ack()
+					return
+				}
 				_, pubErr := js.Publish(context.Background(), target, msg.Data())
 				if pubErr != nil {
-					log.Printf("route %s→%s failed: %v", msg.Subject(), target, err)
+					log.Printf("route %s→%s failed: %v", msg.Subject(), target, pubErr)
 					msg.Nak()
 					return
 				}

@@ -29,3 +29,6 @@ out/
 /cmd/kube-ovn-provider/kube-ovn-provider
 /cmd/network-registry/network-registry
 /cmd/provider-conformance/provider-conformance
+
+# Local compose environment (dev credentials, identity paths)
+deploy/docker-compose/.env

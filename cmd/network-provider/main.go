@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
@@ -9,17 +10,41 @@ import (
 	"os/signal"
 	"syscall"
 
+	_ "github.com/lib/pq"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/F31/hnb/cmd/network-provider/internal/config"
+	"github.com/F31/hnb/cmd/network-provider/internal/credentials"
 	"github.com/F31/hnb/cmd/network-provider/internal/nats"
 	"github.com/F31/hnb/cmd/network-provider/internal/provider"
 	"github.com/F31/hnb/cmd/network-provider/internal/provider/network"
+	"github.com/F31/hnb/pkg/kms"
 	"github.com/F31/hnb/pkg/messaging"
 )
 
 func main() {
 	cfg := config.Load()
+
+	db, err := sql.Open("postgres", cfg.DBDSN)
+	if err != nil {
+		log.Fatalf("db: %v", err)
+	}
+	defer db.Close()
+	if err := db.Ping(); err != nil {
+		log.Fatalf("db ping: %v", err)
+	}
+
+	var cipher kms.Decrypter
+	if key, kerr := kms.MasterKeyFromHex(cfg.MasterKeyHex); kerr == nil {
+		cipher, err = kms.NewAESGCM(key)
+		if err != nil {
+			log.Fatalf("kms: %v", err)
+		}
+	} else if cfg.MasterKeyHex != "" {
+		log.Fatalf("kms: %v", kerr)
+	} else {
+		log.Printf("WARNING: no HNB_MASTER_KEY configured; target credential resolution will fail closed")
+	}
 
 	nc, err := messaging.ConnectNATSFromEnv(cfg.NATSURL)
 	if err != nil {
@@ -29,7 +54,8 @@ func main() {
 
 	providers := registerProviders(cfg)
 
-	w, err := nats.NewWorker(nc, providers)
+	resolver := credentials.NewPGResolver(db, cipher, cfg.KubeconfigDir)
+	w, err := nats.NewWorker(nc, providers, resolver)
 	if err != nil {
 		log.Fatalf("worker: %v", err)
 	}
