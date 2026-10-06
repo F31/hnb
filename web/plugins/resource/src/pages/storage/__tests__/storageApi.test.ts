@@ -4,8 +4,8 @@ import { setClusterApiClient } from '../../cluster-management/api/clusterApi'
 import {
   getStorageOverview,
   createStorageBackend,
+  listStorageAlertRules,
   listStorageBackends,
-  listStorageDriverInstallations,
   listStorageOfferingBindings,
   listStorageOfferings,
   listStorageProviderSchemas,
@@ -30,7 +30,7 @@ describe('storage read adapter', () => {
       listStorageBackends(),
       listStorageProviderSchemas(),
       listStorageOfferings(),
-      listStorageDriverInstallations(),
+      listStorageAlertRules(),
       listStorageOfferingBindings('offering/a'),
     ])
 
@@ -39,7 +39,7 @@ describe('storage read adapter', () => {
       '/api/v1/storage/backends',
       '/api/v1/storage/provider-schemas',
       '/api/v1/storage/offerings',
-      '/api/v1/storage/driver-installations',
+      '/api/v1/storage/alert-rules',
       '/api/v1/storage/offerings/offering%2Fa/bindings',
     ])
   })

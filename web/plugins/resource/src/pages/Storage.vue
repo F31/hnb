@@ -13,9 +13,9 @@ import {
 } from '@hnb/ui-kit'
 import type { HNBTableColumn, HNBTab, StatusSemantic } from '@hnb/ui-kit'
 import type {
+  StorageAlertRule,
   StorageBackend,
   StorageClassBinding,
-  StorageDriverInstallation,
   StorageOverview,
   WorkloadStorageOffering,
   ProviderBackendSchema,
@@ -24,8 +24,8 @@ import type {
 import {
   getStorageOverview,
   createStorageBackend,
+  listStorageAlertRules,
   listStorageBackends,
-  listStorageDriverInstallations,
   listStorageOfferingBindings,
   listStorageOfferings,
   listStorageProviderSchemas,
@@ -43,7 +43,7 @@ const overview = ref<SectionState<StorageOverview | null>>({ data: null, loading
 const backends = ref<SectionState<StorageBackend[]>>({ data: [], loading: true, error: '' })
 const offerings = ref<SectionState<WorkloadStorageOffering[]>>({ data: [], loading: true, error: '' })
 const offeringBindings = ref<Record<string, StorageClassBinding[]>>({})
-const drivers = ref<SectionState<StorageDriverInstallation[]>>({ data: [], loading: true, error: '' })
+const alertRules = ref<SectionState<StorageAlertRule[]>>({ data: [], loading: true, error: '' })
 const providerSchemas = ref<ProviderBackendSchema[]>([])
 const selectedProvider = ref('')
 const creatingBackend = ref(false)
@@ -62,7 +62,7 @@ const tabs = computed<HNBTab[]>(() => [
   { id: 'overview', label: t('resource.storage.tab.overview') },
   { id: 'systems', label: t('resource.storage.tab.systems') },
   { id: 'services', label: t('resource.storage.tab.services') },
-  { id: 'drivers', label: t('resource.storage.tab.drivers') },
+  // 「驱动与连接器」页签隐藏：driverInstallations 后端为 stub，永远返回空，无真实数据源。
   { id: 'alerts', label: t('resource.storage.tab.alerts') },
 ])
 
@@ -90,14 +90,6 @@ const capacityCards = computed(() => {
 function freshnessSemantic(freshness: Freshness): StatusSemantic {
   if (freshness === 'Fresh') return 'success'
   if (freshness === 'Stale') return 'warning'
-  return 'default'
-}
-
-function healthSemantic(health: string): StatusSemantic {
-  if (health === 'Healthy' || health === 'Ready' || health === 'Connected') return 'success'
-  if (health === 'Degraded') return 'warning'
-  if (health === 'Unhealthy' || health === 'Failed' || health === 'Disconnected') return 'error'
-  if (health === 'Installing' || health === 'Upgrading' || health === 'Pending') return 'processing'
   return 'default'
 }
 
@@ -134,16 +126,6 @@ function formatProviderType(providerType: string): string {
   return key ? t(`resource.storage.providerType.${key}`) : providerType
 }
 
-function formatHealthState(healthState: string): string {
-  const key = {
-    Unknown: 'Unknown',
-    Healthy: 'Healthy',
-    Degraded: 'Degraded',
-    Unhealthy: 'Unhealthy',
-  }[healthState]
-  return key ? t(`resource.storage.healthState.${key}`) : healthState
-}
-
 function metadata(source: string, observedAt: string, freshness: Freshness) {
   return h('div', { class: 'storage-metadata' }, [
     h('span', { title: source }, [h('strong', `${t('resource.storage.source')}: `), formatSource(source)]),
@@ -158,11 +140,7 @@ function metadata(source: string, observedAt: string, freshness: Freshness) {
 const backendColumns = computed<HNBTableColumn<StorageBackend>[]>(() => [
   { key: 'displayName', title: t('resource.storage.column.name') },
   { key: 'providerType', title: t('resource.storage.column.provider'), render: (row) => formatProviderType(row.providerType) },
-  {
-    key: 'healthState',
-    title: t('resource.storage.column.health'),
-    render: (row) => h(StatusBadge, { label: formatHealthState(row.healthState), semantic: healthSemantic(row.healthState) }),
-  },
+  // 健康列移除：后端 healthState 恒为 Unknown，展示它没有信息量。
   {
     key: 'capacity',
     title: t('resource.storage.column.capacity'),
@@ -216,24 +194,35 @@ const offeringColumns = computed<HNBTableColumn<WorkloadStorageOffering>[]>(() =
   },
 ])
 
-const driverColumns = computed<HNBTableColumn<StorageDriverInstallation>[]>(() => [
-  { key: 'packageId', title: t('resource.storage.column.package') },
-  { key: 'packageVersion', title: t('resource.storage.column.version') },
-  { key: 'targetId', title: t('resource.storage.column.target') },
+function alertSeveritySemantic(severity: StorageAlertRule['severity']): StatusSemantic {
+  if (severity === 'critical') return 'error'
+  if (severity === 'warning') return 'warning'
+  return 'info'
+}
+
+const alertColumns = computed<HNBTableColumn<StorageAlertRule>[]>(() => [
+  { key: 'name', title: t('resource.storage.column.name') },
   {
-    key: 'lifecycleState',
-    title: t('resource.storage.column.lifecycle'),
-    render: (row) => h(StatusBadge, { label: row.lifecycleState, semantic: healthSemantic(row.lifecycleState) }),
+    key: 'severity',
+    title: t('resource.storage.alert.colSeverity'),
+    render: (row) => h(StatusBadge, {
+      label: t(`resource.storage.alert.severity.${row.severity}`),
+      semantic: alertSeveritySemantic(row.severity),
+    }),
   },
   {
-    key: 'healthState',
-    title: t('resource.storage.column.health'),
-    render: (row) => h(StatusBadge, { label: row.healthState, semantic: healthSemantic(row.healthState) }),
+    key: 'condition',
+    title: t('resource.storage.alert.colCondition'),
+    render: (row) => `${row.metric.kind} ${row.metric.operator} ${row.metric.threshold} ${row.metric.unit}`,
   },
+  { key: 'duration', title: t('resource.storage.alert.colDuration'), render: (row) => row.duration },
   {
-    key: 'observation',
-    title: t('resource.storage.column.observation'),
-    render: (row) => metadata(row.source, row.observedAt, row.freshness),
+    key: 'enabled',
+    title: t('resource.storage.alert.colState'),
+    render: (row) => h(StatusBadge, {
+      label: t(row.enabled ? 'resource.storage.alert.enabled' : 'resource.storage.alert.disabled'),
+      semantic: row.enabled ? 'success' : 'default',
+    }),
   },
 ])
 
@@ -308,20 +297,20 @@ async function loadOfferings(): Promise<void> {
   }
 }
 
-async function loadDrivers(): Promise<void> {
-  drivers.value.loading = true
-  drivers.value.error = ''
+async function loadAlertRules(): Promise<void> {
+  alertRules.value.loading = true
+  alertRules.value.error = ''
   try {
-    drivers.value.data = (await listStorageDriverInstallations()).items
+    alertRules.value.data = (await listStorageAlertRules()).items
   } catch (error) {
-    drivers.value.error = errorMessage(error)
+    alertRules.value.error = errorMessage(error)
   } finally {
-    drivers.value.loading = false
+    alertRules.value.loading = false
   }
 }
 
 onMounted(() => {
-  void Promise.all([loadOverview(), loadBackends(), loadProviderSchemas(), loadOfferings(), loadDrivers()])
+  void Promise.all([loadOverview(), loadBackends(), loadProviderSchemas(), loadOfferings(), loadAlertRules()])
 })
 </script>
 
@@ -434,26 +423,18 @@ onMounted(() => {
         />
       </template>
 
-      <template #panel-drivers>
-        <HNBTable
-          :columns="driverColumns"
-          :data="drivers.data"
-          :loading="drivers.loading"
-          :error="drivers.error"
-          row-key="id"
-          min-width="980px"
-          :aria-label="$t('resource.storage.tab.drivers')"
-          :empty-title="$t('resource.storage.state.emptyDrivers')"
-          :error-retry-text="$t('resource.storage.state.retry')"
-          @error-retry="loadDrivers"
-        />
-      </template>
-
       <template #panel-alerts>
-        <HNBPageState
-          state="empty"
-          :title="$t('resource.storage.state.alertsUnavailable')"
-          :description="$t('resource.storage.state.alertsUnavailableDesc')"
+        <HNBTable
+          :columns="alertColumns"
+          :data="alertRules.data"
+          :loading="alertRules.loading"
+          :error="alertRules.error"
+          row-key="id"
+          min-width="720px"
+          :aria-label="$t('resource.storage.tab.alerts')"
+          :empty-title="$t('resource.storage.alert.empty')"
+          :error-retry-text="$t('resource.storage.state.retry')"
+          @error-retry="loadAlertRules"
         />
       </template>
     </HNBTabs>

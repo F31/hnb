@@ -31,7 +31,7 @@ export const operationListSchema: PageSchema = {
         id: 'resource.operation.list',
         type: 'paginatedQuery',
         endpointId: 'resource.operations.list',
-        queryBindings: ['page', 'pageSize', 'status', 'type', 'targetId'],
+        queryBindings: ['page', 'pageSize', 'status', 'type'],
         responseMapping: { items: 'items', total: 'pagination.total' },
       },
     ],
@@ -67,4 +67,24 @@ export const OPERATION_STATUS_OPTIONS: Array<{ value: OperationStatus | ''; labe
   { value: 'succeeded', labelKey: 'resource.operationCenter.status.succeeded' },
   { value: 'failed', labelKey: 'resource.operationCenter.status.failed' },
   { value: 'cancelled', labelKey: 'resource.operationCenter.status.cancelled' },
+]
+
+/**
+ * Operation 类型过滤选项（platform-api 合法枚举，cmd/platform-api/internal/store/state.go）。
+ * 自由文本输入会被后端 400 拒绝，这里固定为下拉选择。
+ */
+export const OPERATION_TYPE_OPTIONS: Array<{ value: string; labelKey: string }> = [
+  { value: '', labelKey: 'resource.operationCenter.filter.allTypes' },
+  { value: 'deploy', labelKey: 'resource.operationCenter.type.deploy' },
+  { value: 'upgrade', labelKey: 'resource.operationCenter.type.upgrade' },
+  { value: 'delete', labelKey: 'resource.operationCenter.type.delete' },
+  { value: 'rollback', labelKey: 'resource.operationCenter.type.rollback' },
+  { value: 'config_change', labelKey: 'resource.operationCenter.type.config_change' },
+  { value: 'scale', labelKey: 'resource.operationCenter.type.scale' },
+  { value: 'backup', labelKey: 'resource.operationCenter.type.backup' },
+  { value: 'restore', labelKey: 'resource.operationCenter.type.restore' },
+  { value: 'switchover', labelKey: 'resource.operationCenter.type.switchover' },
+  { value: 'gc', labelKey: 'resource.operationCenter.type.gc' },
+  { value: 'ota', labelKey: 'resource.operationCenter.type.ota' },
+  { value: 'storage_reclaim', labelKey: 'resource.operationCenter.type.storage_reclaim' },
 ]

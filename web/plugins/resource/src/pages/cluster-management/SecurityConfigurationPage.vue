@@ -92,9 +92,6 @@ onMounted(async () => {
           {{ t('resource.clusterMgmt.security.dbStatus') }}：{{ dbStatus.label }}
         </p>
       </div>
-      <a class="help-link" href="https://docs.hnb.example.io/security" target="_blank" rel="noopener noreferrer">
-        {{ t('resource.clusterMgmt.security.help') }}
-      </a>
     </header>
 
     <nav class="security-tabs" :aria-label="t('resource.clusterMgmt.aria.securityTabs')">
@@ -181,7 +178,6 @@ onMounted(async () => {
 }
 .security-title { margin: 0; font-size: 18px; font-weight: 600; color: var(--hnb-color-text-primary, #12172a); }
 .security-status { margin: 4px 0 0; font-size: 13px; color: var(--hnb-color-text-secondary, #5b6675); }
-.help-link { color: var(--hnb-color-primary, #2f6fed); font-size: 13px; text-decoration: none; }
 .security-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--hnb-color-border, #e2e7ef); }
 .security-tab {
   position: relative;

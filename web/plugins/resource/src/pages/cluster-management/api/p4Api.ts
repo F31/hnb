@@ -127,13 +127,19 @@ export async function getPluginMarketCatalog(clusterId?: string): Promise<Market
 }
 
 /** 安装插件：为 clusterId 集群创建 Extension（extension-controller 驱动落地） */
-export async function installPlugin(pluginName: string, version: string, clusterId: string): Promise<void> {
+export interface PluginInstallReceipt {
+  id?: string
+  name?: string
+  status?: string
+}
+
+export async function installPlugin(pluginName: string, version: string, clusterId: string): Promise<PluginInstallReceipt> {
   if (USE_FIXTURES) {
     const target = pluginMarketCatalogFixture.find((p) => p.name === pluginName)
     if (target) target.installed = true
-    return
+    return { name: pluginName, status: 'ready' }
   }
-  await getClusterApiClient().post('/api/v1/plugin-catalog/installs', {
+  return getClusterApiClient().post<PluginInstallReceipt>('/api/v1/plugin-catalog/installs', {
     name: pluginName,
     version,
     clusterId,
@@ -166,20 +172,18 @@ export async function getVulnerabilityDbStatus(): Promise<VulnerabilityDbStatus 
   return vulnerabilityDbStatusFixture
 }
 
-/** 上传漏洞库 .tgz（模拟进度；生产走 POST /api/v1/security/vulnerability-database） */
+/** 上传漏洞库 .tgz（fixture 模拟进度；生产后端无该路由，直接抛"未开放"） */
 export async function uploadVulnerabilityDatabase(
   file: File,
   onProgress?: (percent: number) => void,
 ): Promise<void> {
   if (!USE_FIXTURES) {
-    const form = new FormData()
-    form.append('file', file)
-    await (await import('./clusterApi')).getClusterApiClient().post('/api/v1/security/vulnerability-database', form, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    })
-    return
+    // 后端不存在 POST /api/v1/security/vulnerability-database 路由（生产必然 404），
+    // 页面整体已被 advanced flag 隐藏；这里不伪装进度，直接报未开放。
+    throw new Error(pluginT('resource.clusterMgmt.error.vulnDbUploadUnavailable'))
   }
   // fixture：模拟分步进度
+  void file
   for (let i = 10; i <= 100; i += 20) {
     onProgress?.(i)
     await new Promise((resolve) => setTimeout(resolve, 200))

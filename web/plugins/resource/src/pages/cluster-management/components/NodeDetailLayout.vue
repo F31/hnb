@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * NodeDetailLayout — 节点详情页签壳层（OpenSpec node-detail）。
- * 面包屑「节点列表 / 节点名称」+ 六个页签（基础配置/节点监控/磁盘/网卡/容器组/虚拟机），
+ * 面包屑「节点列表 / 节点名称」+ 页签（基础配置/虚拟机；fixture 模式另有节点监控/磁盘/网卡/容器组），
  * 激活页签紫色文字+下划线；内容以默认 slot 包裹。
  */
 import { computed, onMounted, ref, watch } from 'vue'
@@ -41,14 +41,28 @@ watch(
   { immediate: true },
 )
 
-const tabs = computed(() => [
-  { key: 'basic', label: t('resource.clusterMgmt.nodeDetail.tab.basic'), suffix: 'basic' },
-  { key: 'monitoring', label: t('resource.clusterMgmt.nodeDetail.tab.monitoring'), suffix: 'monitoring' },
-  { key: 'disks', label: t('resource.clusterMgmt.nodeDetail.tab.disks'), suffix: 'disks' },
-  { key: 'nics', label: t('resource.clusterMgmt.nodeDetail.tab.nics'), suffix: 'nics' },
-  { key: 'pods', label: t('resource.clusterMgmt.nodeDetail.tab.pods'), suffix: 'pods' },
-  { key: 'virtual-machines', label: t('resource.clusterMgmt.nodeDetail.tab.virtualMachines'), suffix: 'virtual-machines' },
-])
+const tabs = computed(() => {
+  // monitoring/disks/nics/pods 页签依赖节点级后端接口（getNodeDisks/getNodeNics/
+  // getNodePods/getNodeMonitoringSummary），后端接口待补，生产模式返回 null/[]。
+  // 非 fixture 模式下隐藏这些页签，避免展示无数据源的页面。
+  const USE_FIXTURES = import.meta.env.VITE_CLUSTER_DETAIL_USE_FIXTURES === 'true'
+  const base = [
+    { key: 'basic', label: t('resource.clusterMgmt.nodeDetail.tab.basic'), suffix: 'basic' },
+  ]
+  const fixtureOnly = USE_FIXTURES
+    ? [
+      { key: 'monitoring', label: t('resource.clusterMgmt.nodeDetail.tab.monitoring'), suffix: 'monitoring' },
+      { key: 'disks', label: t('resource.clusterMgmt.nodeDetail.tab.disks'), suffix: 'disks' },
+      { key: 'nics', label: t('resource.clusterMgmt.nodeDetail.tab.nics'), suffix: 'nics' },
+      { key: 'pods', label: t('resource.clusterMgmt.nodeDetail.tab.pods'), suffix: 'pods' },
+    ]
+    : []
+  return [
+    ...base,
+    ...fixtureOnly,
+    { key: 'virtual-machines', label: t('resource.clusterMgmt.nodeDetail.tab.virtualMachines'), suffix: 'virtual-machines' },
+  ]
+})
 
 function isActive(suffix: string): boolean {
   return route.path.endsWith(`/${suffix}`)

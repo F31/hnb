@@ -495,6 +495,7 @@ const selectedAll = computed<boolean>({
         </header>
         <div class="modal-body">
           <p>{{ t('resource.clusterMgmt.confirm.upgradeMessage', { name: upgradeModal.cluster.displayName }) }}</p>
+          <p class="upgrade-mode-note">{{ t('resource.clusterMgmt.confirm.upgradeModeNote') }}</p>
           <dl class="intent-info">
             <dt>{{ t('resource.clusterMgmt.form.targetVersion') }}</dt>
             <dd>{{ upgradeModal.cluster.runtimeVersion || '-' }}</dd>
@@ -738,6 +739,16 @@ const selectedAll = computed<boolean>({
   gap: var(--hnb-space-xs);
   font-size: var(--hnb-font-size-caption);
   color: var(--hnb-color-text-secondary);
+}
+.upgrade-mode-note {
+  margin: 0 0 var(--hnb-space-sm);
+  padding: 8px 10px;
+  border: 1px solid color-mix(in srgb, var(--hnb-color-status-warning, #f79009) 28%, transparent);
+  border-radius: var(--hnb-radius-sm);
+  background: color-mix(in srgb, var(--hnb-color-status-warning, #f79009) 10%, transparent);
+  color: var(--hnb-color-text-secondary);
+  font-size: var(--hnb-font-size-caption);
+  line-height: 1.5;
 }
 .version-input {
   padding: 8px 10px;

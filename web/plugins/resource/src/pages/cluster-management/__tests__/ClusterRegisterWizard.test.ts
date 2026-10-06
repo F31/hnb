@@ -20,28 +20,38 @@ describe('ClusterRegisterWizard (9.4/9.5/9.6)', () => {
       operationId: 'op-1',
       createdAt: '2026-08-01T00:00:00Z',
     }) as T)
-    const getMock = vi.fn(async <T,>(_url: string) => ({
-      data: {
-        operationId: 'op-1',
-        intentId: 'intent-1',
-        type: 'create-cluster',
-        status: 'in_progress',
-        targetId: 'target-1',
-        targetKind: 'KubernetesTarget',
-        progress: { completedSteps: 1, totalSteps: 3, percent: 33 },
-        correlationId: 'c',
-        createdAt: '2026-08-01T00:00:00Z',
-        updatedAt: '2026-08-01T00:00:00Z',
-        executionPlanId: 'plan-1',
-        steps: [
-          { stepId: 's1', name: 'validate', status: 'succeeded', attempt: 1 },
-          { stepId: 's2', name: 'provision', status: 'in_progress', attempt: 1 },
-          { stepId: 's3', name: 'observe', status: 'pending', attempt: 0 },
-        ],
-        allowedActions: [],
-        links: { operation: '/resource/operations/op-1' },
-      },
-    }) as T)
+    const getMock = vi.fn(async <T,>(url: string) => {
+      if (url.includes('/api/v1/plugin-catalog')) {
+        return [
+          { name: 'calico', displayName: 'Calico', version: 'v3.32.1', description: 'Calico CNI', category: '网络', installed: false },
+          { name: 'cilium', displayName: 'Cilium', version: 'v1.20.1', description: 'Cilium eBPF CNI', category: 'tool', provider: 'cni', installed: false },
+          { name: 'kube-ovn', displayName: 'Kube-OVN', version: 'v1.16.2', description: 'Kube-OVN', category: '网络', installed: true },
+          { name: 'hami', displayName: 'HAMi', version: 'v2.10.0', description: 'HAMi GPU', category: 'GPU', installed: false },
+        ] as T
+      }
+      return {
+        data: {
+          operationId: 'op-1',
+          intentId: 'intent-1',
+          type: 'create-cluster',
+          status: 'in_progress',
+          targetId: 'target-1',
+          targetKind: 'KubernetesTarget',
+          progress: { completedSteps: 1, totalSteps: 3, percent: 33 },
+          correlationId: 'c',
+          createdAt: '2026-08-01T00:00:00Z',
+          updatedAt: '2026-08-01T00:00:00Z',
+          executionPlanId: 'plan-1',
+          steps: [
+            { stepId: 's1', name: 'validate', status: 'succeeded', attempt: 1 },
+            { stepId: 's2', name: 'provision', status: 'in_progress', attempt: 1 },
+            { stepId: 's3', name: 'observe', status: 'pending', attempt: 0 },
+          ],
+          allowedActions: [],
+          links: { operation: '/resource/operations/op-1' },
+        },
+      } as T
+    })
     apiClient = stubApiClient({
       post: postMock as unknown as ApiClient['post'],
       get: getMock as unknown as ApiClient['get'],
@@ -66,6 +76,31 @@ describe('ClusterRegisterWizard (9.4/9.5/9.6)', () => {
   function queryAll(sel: string): NodeListOf<HTMLElement> {
     return document.querySelectorAll<HTMLElement>(sel)
   }
+
+  it('创建集群时容器网络只承载 CNI，插件清单排除网络类插件', async () => {
+    const wrapper = mount(ClusterRegisterWizard, {
+      attachTo: document.body,
+      props: { modelValue: true },
+      global: { plugins: [createTestI18n()] },
+    })
+    wrappers.push(wrapper)
+    await flushPromises()
+
+    const pluginLabels = Array.from(queryAll('.checkbox-field label')).map((el) => el.textContent ?? '')
+    expect(pluginLabels.some((text) => text.includes('HAMi'))).toBe(true)
+    expect(pluginLabels.some((text) => text.includes('Calico'))).toBe(false)
+    expect(pluginLabels.some((text) => text.includes('Cilium'))).toBe(false)
+    expect(pluginLabels.some((text) => text.includes('Kube-OVN'))).toBe(false)
+
+    const networkSelect = Array.from(queryAll('select')).find((select) =>
+      Array.from(select.querySelectorAll('option')).some((option) => option.textContent?.includes('Kube-OVN')),
+    ) as HTMLSelectElement | undefined
+    expect(networkSelect).toBeTruthy()
+    const networkOptions = Array.from(networkSelect!.querySelectorAll('option')).map((option) => option.textContent ?? '')
+    expect(networkOptions.some((text) => text.includes('Kube-OVN'))).toBe(true)
+    expect(networkOptions.some((text) => text.includes('Calico'))).toBe(true)
+    expect(networkOptions.some((text) => text.includes('Cilium'))).toBe(true)
+  })
 
   async function mountToConfirm() {
     const wrapper = mount(ClusterRegisterWizard, {

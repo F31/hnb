@@ -11,8 +11,8 @@ import type {
   OperationDetailResponse,
   OperationListParams,
   OperationListResponse,
-  OperationStatus,
 } from '../types/operation'
+import { isTerminalStatus } from '../types/operation'
 
 const OPERATIONS_PATH = '/api/v1/operations'
 
@@ -34,7 +34,7 @@ export async function listOperations(params: OperationListParams = {}): Promise<
       pageSize: params.pageSize ?? 20,
       status: params.status || undefined,
       type: params.type || undefined,
-      targetId: params.targetId || undefined,
+      // 注意：后端 BFF 只识别 page/pageSize/status/type，targetId 为死参数，不下发。
     },
   })
 }
@@ -101,7 +101,7 @@ export function createOperationPoller(options: OperationPollingOptions): Operati
       const res = await getOperation(operationId)
       const detail = res.data
       options.onUpdate?.(detail)
-      terminal = detail.status === 'succeeded' || detail.status === 'failed' || detail.status === 'cancelled'
+      terminal = isTerminalStatus(detail.status)
       if (terminal) {
         stopped = true
         options.onTerminal?.(detail)
@@ -135,7 +135,11 @@ export function createOperationPoller(options: OperationPollingOptions): Operati
     }
   }
 
-  return {
+  function handleBeforeUnload(): void {
+    poller.cancel()
+  }
+
+  const poller: OperationPoller = {
     start(id: string): void {
       if (running) return
       running = true
@@ -146,7 +150,7 @@ export function createOperationPoller(options: OperationPollingOptions): Operati
       document.addEventListener('visibilitychange', handleVisibility)
       window.addEventListener('offline', handleVisibility)
       window.addEventListener('online', handleVisibility)
-      window.addEventListener('beforeunload', () => this.cancel())
+      window.addEventListener('beforeunload', handleBeforeUnload)
       schedule()
     },
     stop(): void {
@@ -158,11 +162,14 @@ export function createOperationPoller(options: OperationPollingOptions): Operati
       document.removeEventListener('visibilitychange', handleVisibility)
       window.removeEventListener('offline', handleVisibility)
       window.removeEventListener('online', handleVisibility)
+      window.removeEventListener('beforeunload', handleBeforeUnload)
     },
     cancel(): void {
       this.stop()
       running = false
     },
   }
+
+  return poller
 }
 

@@ -2,8 +2,6 @@ import type { HNBPlugin, PluginContext, MenuItem } from '@hnb/types'
 import { definePlugin } from '@hnb/plugin-sdk'
 import ResourceLayout from './pages/ResourceLayout.vue'
 import NodeList from './pages/NodeList.vue'
-import GPUResources from './pages/GPUResources.vue'
-import Network from './pages/Network.vue'
 import NetworkManagementPage from './pages/cluster-management/NetworkManagementPage.vue'
 import Storage from './pages/Storage.vue'
 import GSLB from './pages/GSLB.vue'
@@ -49,6 +47,10 @@ const clusterMgmtEnabled = import.meta.env.VITE_FEATURE_RESOURCE_CLUSTER_MGMT !=
 // This avoids presenting fixture-backed or empty screens as usable controls.
 const clusterAdvancedEnabled = import.meta.env.VITE_FEATURE_RESOURCE_CLUSTER_ADVANCED === 'true'
 const clusterMonitoringEnabled = import.meta.env.VITE_FEATURE_RESOURCE_CLUSTER_MONITORING === 'true'
+// 网络管理页的后端路由尚不存在（全部读写无真实 HTTP）。
+// 构建时设置 VITE_FEATURE_RESOURCE_NETWORK=true 才会启用菜单项与真实页面；
+// 默认关闭：菜单不展示该入口，/resource/network 降级为占位页。
+const networkEnabled = import.meta.env.VITE_FEATURE_RESOURCE_NETWORK === 'true'
 
 const plugin: HNBPlugin = definePlugin({
   name: 'resource',
@@ -71,16 +73,14 @@ const plugin: HNBPlugin = definePlugin({
     TenantAllocationPage: clusterMgmtEnabled && clusterAdvancedEnabled ? TenantAllocationPage : ClusterPlaceholder,
     PluginInstancesPage: clusterMgmtEnabled && clusterAdvancedEnabled ? PluginInstancesPage : ClusterPlaceholder,
     SecurityConfigurationPage: clusterMgmtEnabled && clusterAdvancedEnabled ? SecurityConfigurationPage : ClusterPlaceholder,
-    PluginMarketPage: clusterMgmtEnabled && clusterAdvancedEnabled ? PluginMarketPage : ClusterPlaceholder,
+    PluginMarketPage: clusterMgmtEnabled ? PluginMarketPage : ClusterPlaceholder,
     BackupRestorePage: clusterMgmtEnabled && clusterAdvancedEnabled ? BackupRestorePage : ClusterPlaceholder,
     ClusterRegisterWizard,
     ClusterSummaryCards,
     OperationList,
     OperationDetail,
     NodeList,
-    GPUResources,
-    Network,
-    NetworkManagementPage: clusterMgmtEnabled ? NetworkManagementPage : ClusterPlaceholder,
+    NetworkManagementPage: clusterMgmtEnabled && networkEnabled ? NetworkManagementPage : ClusterPlaceholder,
     Storage,
     GSLB,
   },
@@ -124,7 +124,6 @@ const plugin: HNBPlugin = definePlugin({
         { path: '/resource/operations', componentKey: 'OperationList', pluginId: 'resource', permission: 'operation:list' },
         { path: '/resource/operations/:operationId', componentKey: 'OperationDetail', pluginId: 'resource', permission: 'operation:read' },
         { path: '/resource/nodes', componentKey: 'NodeList', pluginId: 'resource' },
-        { path: '/resource/gpu', componentKey: 'GPUResources', pluginId: 'resource' },
         { path: '/resource/network', componentKey: 'NetworkManagementPage', pluginId: 'resource' },
         { path: '/resource/storage', componentKey: 'Storage', pluginId: 'resource' },
         { path: '/resource/gslb', componentKey: 'GSLB', pluginId: 'resource' },
@@ -134,11 +133,13 @@ const plugin: HNBPlugin = definePlugin({
       menuItems: [
         { title: t('menu.clusters'), path: '/resource/clusters', icon: 'cluster', permission: 'cluster:list' },
         { title: t('menu.operations'), path: '/resource/operations', icon: 'operation', permission: 'operation:list' },
-        { title: t('menu.network'), path: '/resource/network', icon: 'network' },
+        ...(networkEnabled ? [
+          { title: t('menu.network'), path: '/resource/network', icon: 'network' },
+        ] : []),
         { title: t('menu.storage'), path: '/resource/storage', icon: 'storage' },
         { title: t('menu.gslb'), path: '/resource/gslb', icon: 'globe' },
+        { title: t('menu.pluginMarket'), path: '/resource/plugin-market', icon: 'plugin', permission: 'cluster:read' },
         ...(clusterAdvancedEnabled ? [
-          { title: t('menu.pluginMarket'), path: '/resource/plugin-market', icon: 'plugin', permission: 'cluster:read' },
           { title: t('menu.security'), path: '/security/configuration', icon: 'shield', permission: 'cluster:read' },
         ] : []),
       ],

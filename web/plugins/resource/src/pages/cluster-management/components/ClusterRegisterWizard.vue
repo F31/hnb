@@ -153,12 +153,64 @@ function endSubmission(): void {
   emit('update:modelValue', false)
 }
 
-const versionOptions = ['1.36']
+const fallbackVersionOptions = ['1.36']
+const versionOptions = ref<string[]>([...fallbackVersionOptions])
 const replicaOptions = [1, 3, 5]
 const architectureOptions = ['X86_64', 'AARCH64']
-const containerNetworkOptions = ['Kube-OVN']
 
 const marketPlugins = ref<MarketPlugin[]>([])
+
+type SelectOption = { value: string; label: string }
+
+const fallbackContainerNetworkOptions: SelectOption[] = [
+  { value: 'Kube-OVN', label: 'Kube-OVN' },
+]
+
+const cniNames = new Set(['calico', 'cilium', 'kube-ovn', 'kubeovn', 'multus', 'multus-sriov'])
+
+function normalized(value: string | undefined): string {
+  return (value ?? '').trim().toLowerCase()
+}
+
+function isNetworkPlugin(plugin: MarketPlugin): boolean {
+  const name = normalized(plugin.name)
+  const category = normalized(plugin.category)
+  const provider = normalized(plugin.provider)
+  const kind = normalized(plugin.kind)
+  const desc = normalized(plugin.description)
+  return category === '网络'
+    || category === 'network'
+    || provider === 'cni'
+    || kind === 'cni'
+    || cniNames.has(name)
+    || desc.includes(' cni')
+    || desc.includes('cni：')
+}
+
+function displayPluginName(plugin: MarketPlugin): string {
+  return plugin.displayName?.trim() || plugin.name
+}
+
+function containerNetworkValue(plugin: MarketPlugin): string {
+  const name = normalized(plugin.name)
+  if (name === 'kube-ovn' || name === 'kubeovn') return 'Kube-OVN'
+  if (name === 'cilium') return 'Cilium'
+  if (name === 'calico') return 'Calico'
+  if (name === 'multus' || name === 'multus-sriov') return 'Multus + SR-IOV'
+  return displayPluginName(plugin)
+}
+
+function uniqueByValue(options: SelectOption[]): SelectOption[] {
+  const seen = new Set<string>()
+  const out: SelectOption[] = []
+  for (const option of options) {
+    const key = normalized(option.value)
+    if (!key || seen.has(key)) continue
+    seen.add(key)
+    out.push(option)
+  }
+  return out
+}
 
 const dialogEl = ref<HTMLElement | null>(null)
 let previousFocus: HTMLElement | null = null
@@ -223,15 +275,52 @@ function onKeydown(event: KeyboardEvent): void {
 
 async function loadMarketPlugins(): Promise<void> {
   try {
-    marketPlugins.value = await getPluginMarketCatalog()
+    const plugins = await getPluginMarketCatalog()
+    marketPlugins.value = Array.isArray(plugins) ? plugins : []
+    pruneSelectedPlugins()
   } catch {
     marketPlugins.value = []
   }
 }
 
+async function loadKubernetesVersions(): Promise<void> {
+  try {
+    const versions = await api.listSupportedKubernetesVersions()
+    versionOptions.value = versions.length ? versions : [...fallbackVersionOptions]
+    if (!versionOptions.value.includes(form.value.targetVersion)) {
+      form.value.targetVersion = versionOptions.value[0] ?? fallbackVersionOptions[0]
+    }
+  } catch {
+    versionOptions.value = [...fallbackVersionOptions]
+  }
+}
+
 const pluginOptions = computed(() =>
-  marketPlugins.value.map((p) => ({ value: p.name, label: p.name })),
+  uniqueByValue(
+    marketPlugins.value
+      .filter((p) => !isNetworkPlugin(p))
+      .map((p) => ({
+        value: p.name,
+        label: p.version ? `${displayPluginName(p)} ${p.version}` : displayPluginName(p),
+      })),
+  ),
 )
+
+const containerNetworkOptions = computed(() => {
+  const fromCatalog = marketPlugins.value
+    .filter(isNetworkPlugin)
+    .map((p) => {
+      const value = containerNetworkValue(p)
+      return { value, label: p.version ? `${value} ${p.version}` : value }
+    })
+  const options = uniqueByValue([...fallbackContainerNetworkOptions, ...fromCatalog])
+  return options.length ? options : fallbackContainerNetworkOptions
+})
+
+function pruneSelectedPlugins(): void {
+  const allowed = new Set(pluginOptions.value.map((p) => p.value))
+  form.value.plugins = form.value.plugins.filter((name) => allowed.has(name))
+}
 
 const alertChannelOptions = computed(() => [
   { value: 'email', label: t('resource.clusterMgmt.form.alertChannel.email') },
@@ -296,6 +385,7 @@ watch(
     if (visible) {
       reset()
       loadUsers()
+      loadKubernetesVersions()
       loadMarketPlugins()
       previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null
       previousBodyOverflow = document.body.style.overflow
@@ -365,6 +455,8 @@ async function submit(): Promise<void> {
     })
     const credentialSecretRef = api.toSecretReference(reg)
 
+    // 后端 RuntimeIntent spec.parameters 支持透传自定义参数（仅拒绝 tenant/provider/
+    // steps/commands 等 server-owned 键），以下字段全部随意图提交，不再静默丢弃。
     const createParams: Record<string, string | number | boolean | null> = {
       replicas: form.value.replicas,
       architecture: form.value.architecture.trim() || null,
@@ -374,13 +466,25 @@ async function submit(): Promise<void> {
       containerNetwork: form.value.containerNetwork.trim() || null,
       ipv6DualStack: form.value.ipv6DualStack,
       managementVip: form.value.managementVip.trim() || null,
+      managementNicName: form.value.managementNicName.trim() || null,
       clusterVip: form.value.clusterVip.trim() || null,
+      clusterNicName: form.value.clusterNicName.trim() || null,
       podCidr: form.value.podCidr.trim() || null,
       serviceCidr: form.value.serviceCidr.trim() || null,
+      joinCidr: form.value.joinCidr.trim() || null,
+      customCertSANs: form.value.customCertSANs.trim() || null,
+      clusterDomain: form.value.clusterDomain.trim() || null,
+      alertNotifyChannel: form.value.alertNotifyChannel,
+      alertNotifyInterval: form.value.alertNotifyInterval,
+      alertNotifyOnResolved: form.value.alertNotifyOnResolved,
+      alertContacts: form.value.alertContacts.length ? form.value.alertContacts.join(',') : null,
     }
     const importParams: Record<string, string | number | boolean | null> = {
       description: form.value.description.trim() || null,
       clusterDomain: form.value.clusterDomain.trim() || null,
+      domainResolverIp: form.value.domainResolverIp.trim() || null,
+      managementVip: form.value.managementVip.trim() || null,
+      clusterVip: form.value.clusterVip.trim() || null,
     }
 
     let envelope
@@ -613,7 +717,7 @@ function sourceLabel(m: SourceMode): string {
                 <label>
                   <span>{{ t('resource.clusterMgmt.form.containerNetwork') }}</span>
                   <select v-model="form.containerNetwork">
-                    <option v-for="n in containerNetworkOptions" :key="n" :value="n">{{ n }}</option>
+                    <option v-for="n in containerNetworkOptions" :key="n.value" :value="n.value">{{ n.label }}</option>
                   </select>
                 </label>
 
@@ -1115,6 +1219,17 @@ function sourceLabel(m: SourceMode): string {
 .checkbox-group label { flex-direction: row; align-items: center; gap: 6px; cursor: pointer; }
 .checkbox-group input { width: 14px; height: 14px; accent-color: var(--hnb-color-primary); }
 .empty-hint { color: var(--hnb-color-text-tertiary); font-size: var(--hnb-font-size-caption); }
+
+.create-scope-note {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--hnb-color-primary, #2f6fed) 24%, transparent);
+  border-radius: var(--hnb-radius-sm);
+  background: color-mix(in srgb, var(--hnb-color-primary, #2f6fed) 8%, transparent);
+  color: var(--hnb-color-text-secondary);
+  font-size: var(--hnb-font-size-caption);
+  line-height: 1.55;
+}
 
 .advanced {
   border: 1px solid var(--hnb-color-border);

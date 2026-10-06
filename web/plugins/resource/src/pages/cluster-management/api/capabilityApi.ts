@@ -14,8 +14,16 @@ import { getPluginMarketCatalog } from './p4Api'
 
 const CNI_NAMES: CniName[] = ['kube-ovn', 'cilium', 'calico']
 
+const USE_FIXTURES = import.meta.env.VITE_CLUSTER_DETAIL_USE_FIXTURES === 'true'
+
 /** 能力总览：全部 CNI 矩阵 + 已安装 CNI（由插件市场目录推导） */
 export async function getCniCapabilityOverview(): Promise<CniCapabilityOverview> {
+  if (!USE_FIXTURES) {
+    // 生产：后端 capability snapshot（GET /api/v1/resources/clusters/{id}/plugins）
+    // 只携带 installed/unknown 等安装状态，没有能力评级（strong/medium/weak）语义，
+    // 无法推导能力矩阵 → 返回诚实空态，绝不回退到 fixture。
+    return { cnis: [], installedCni: null }
+  }
   const catalog = await getPluginMarketCatalog()
   const installed = catalog.find((p) => CNI_NAMES.includes(p.name as CniName) && p.installed)
   const installedCni = installed ? (installed.name as CniName) : null

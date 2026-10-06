@@ -9,7 +9,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { listOperations } from './api/operationApi'
 import { getClusterNavigate } from './api/clusterApi'
-import { OPERATION_STATUS_OPTIONS, operationListColumns } from './schemas/operation.list'
+import { OPERATION_STATUS_OPTIONS, OPERATION_TYPE_OPTIONS, operationListColumns } from './schemas/operation.list'
 import type { OperationStatus, OperationSummary } from './types/operation'
 
 const { t } = useI18n()
@@ -95,11 +95,11 @@ onMounted(load)
           {{ t(opt.labelKey) }}
         </option>
       </select>
-      <input
-        v-model="typeFilter"
-        class="search-input"
-        :placeholder="t('resource.operationCenter.filter.type')"
-      />
+      <select v-model="typeFilter" class="filter-select" :aria-label="t('resource.operationCenter.filter.type')">
+        <option v-for="opt in OPERATION_TYPE_OPTIONS" :key="opt.value" :value="opt.value">
+          {{ t(opt.labelKey) }}
+        </option>
+      </select>
       <button class="secondary-button" type="button" @click="refresh">{{ t('resource.operationCenter.action.refresh') }}</button>
     </div>
 
@@ -171,11 +171,6 @@ onMounted(load)
 .page-header h1 { margin: 0; font-size: var(--hnb-font-size-title); }
 .page-header p { margin: var(--hnb-space-xs) 0 0; color: var(--hnb-color-text-secondary); font-size: var(--hnb-font-size-body); }
 .toolbar { display: flex; gap: var(--hnb-space-sm); align-items: center; flex-wrap: wrap; }
-.search-input {
-  flex: 1; min-width: 160px; padding: 8px 12px; border: 1px solid var(--hnb-color-border);
-  border-radius: var(--hnb-radius-md); background: var(--hnb-color-bg-elevated); color: var(--hnb-color-text-primary);
-  font-size: var(--hnb-font-size-body);
-}
 .filter-select {
   padding: 8px 10px; border: 1px solid var(--hnb-color-border); border-radius: var(--hnb-radius-md);
   background: var(--hnb-color-bg-elevated); color: var(--hnb-color-text-primary); font-size: var(--hnb-font-size-body);

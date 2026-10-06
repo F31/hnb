@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 import { spawnSync } from "node:child_process";
@@ -151,6 +151,13 @@ try {
       const baselineFiles = run("git", [
         "ls-tree", "-r", "--name-only", "origin/main", "--", "contracts/schema", "contracts/openapi",
       ], { capture: true }).stdout.trim().split("\n").filter(Boolean);
+      const baselineRoot = path.join(temporaryDirectory, "baseline");
+      for (const baselineFile of baselineFiles) {
+        const target = path.join(baselineRoot, baselineFile);
+        await mkdir(path.dirname(target), { recursive: true });
+        const previous = run("git", ["show", `origin/main:${baselineFile}`], { capture: true });
+        await writeFile(target, previous.stdout);
+      }
       const baselineSchemas = baselineFiles.filter((name) => name.endsWith(".schema.json"));
       const currentSchemaNames = new Set(schemas.map((schema) => path.relative(repositoryRoot, schema).split(path.sep).join("/")));
       const deletedSchemas = baselineSchemas.filter((schema) => !currentSchemaNames.has(schema));
@@ -159,9 +166,7 @@ try {
       for (const { file: openapiFile } of specifications) {
         const relative = path.relative(repositoryRoot, openapiFile).split(path.sep).join("/");
         if (!baselineFiles.includes(relative)) continue;
-        const baselineOpenapi = path.join(temporaryDirectory, `baseline-${relative.replaceAll("/", "-")}`);
-        const previous = run("git", ["show", `origin/main:${relative}`], { capture: true });
-        await writeFile(baselineOpenapi, previous.stdout);
+        const baselineOpenapi = path.join(baselineRoot, relative);
         run(path.join(binDirectory, "oasdiff"), ["breaking", "--fail-on", "ERR", baselineOpenapi, openapiFile]);
       }
       run(path.join(binDirectory, "buf"), [

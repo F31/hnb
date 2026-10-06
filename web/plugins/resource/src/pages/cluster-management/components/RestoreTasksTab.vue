@@ -93,7 +93,7 @@ function openCreate(): void {
 }
 
 async function onDrawerConfirm(): Promise<void> {
-  if (!formName.value.trim() || !formRestoredFile.value.trim()) {
+  if (!formName.value.trim() || !formTargetCluster.value.trim() || !formTargetNamespace.value.trim() || !formRestoredFile.value.trim()) {
     drawerError.value = t('resource.clusterMgmt.backup.restore.form.required')
     return
   }
@@ -103,8 +103,8 @@ async function onDrawerConfirm(): Promise<void> {
   try {
     await createRestoreTask('', {
       name: formName.value.trim(),
-      targetCluster: formTargetCluster.value.trim() || 'graphify',
-      targetNamespace: formTargetNamespace.value.trim() || 'default',
+      targetCluster: formTargetCluster.value.trim(),
+      targetNamespace: formTargetNamespace.value.trim(),
       restoredFile: formRestoredFile.value.trim(),
       status: 'pending',
       progress: 0,
@@ -172,11 +172,11 @@ onMounted(load)
         </label>
         <label class="form-field">
           <span>{{ t('resource.clusterMgmt.backup.restore.form.cluster') }}</span>
-          <input v-model="formTargetCluster" type="text" placeholder="graphify" />
+          <input v-model="formTargetCluster" type="text" :placeholder="t('resource.clusterMgmt.backup.restore.form.clusterPlaceholder')" />
         </label>
         <label class="form-field">
           <span>{{ t('resource.clusterMgmt.backup.restore.form.namespace') }}</span>
-          <input v-model="formTargetNamespace" type="text" placeholder="default" />
+          <input v-model="formTargetNamespace" type="text" :placeholder="t('resource.clusterMgmt.backup.restore.form.namespacePlaceholder')" />
         </label>
         <label class="form-field">
           <span>{{ t('resource.clusterMgmt.backup.restore.form.file') }}</span>

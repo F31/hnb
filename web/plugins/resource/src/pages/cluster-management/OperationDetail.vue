@@ -169,7 +169,6 @@ watch(detail, (value) => {
             <tr>
               <th>{{ t('resource.operationCenter.step.name') }}</th>
               <th>{{ t('resource.operationCenter.step.statusHeader') }}</th>
-              <th>{{ t('resource.operationCenter.step.attempt') }}</th>
               <th>{{ t('resource.operationCenter.step.completedAt') }}</th>
             </tr>
           </thead>
@@ -179,7 +178,6 @@ watch(detail, (value) => {
               <td>
                 <span class="status-badge" :data-status="step.status">{{ t(`resource.operationCenter.step.status.${step.status}`) }}</span>
               </td>
-              <td>{{ step.attempt }}</td>
               <td>{{ step.completedAt || '-' }}</td>
             </tr>
           </tbody>

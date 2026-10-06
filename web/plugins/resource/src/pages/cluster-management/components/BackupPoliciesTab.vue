@@ -122,8 +122,8 @@ function openEdit(p: BackupPolicy): void {
 }
 
 async function onDrawerConfirm(): Promise<void> {
-  if (!formName.value.trim()) {
-    drawerError.value = t('resource.clusterMgmt.backup.policy.form.nameRequired')
+  if (!formName.value.trim() || !formCluster.value.trim()) {
+    drawerError.value = t('resource.clusterMgmt.backup.policy.form.required')
     return
   }
   drawerBusy.value = true
@@ -131,7 +131,7 @@ async function onDrawerConfirm(): Promise<void> {
   const now = new Date().toISOString().slice(0, 19).replace('T', ' ')
   const payload: BackupPolicy = {
     name: formName.value.trim(),
-    cluster: formCluster.value.trim() || 'graphify',
+    cluster: formCluster.value.trim(),
     status: 'enabled',
     backupMethod: formMethod.value,
     nextBackupAt: '--',
@@ -229,7 +229,7 @@ onMounted(load)
         </label>
         <label class="form-field">
           <span>{{ t('resource.clusterMgmt.backup.policy.form.cluster') }}</span>
-          <input v-model="formCluster" type="text" placeholder="graphify" />
+          <input v-model="formCluster" type="text" :placeholder="t('resource.clusterMgmt.backup.policy.form.clusterPlaceholder')" />
         </label>
         <label class="form-field">
           <span>{{ t('resource.clusterMgmt.backup.policy.form.method') }}</span>

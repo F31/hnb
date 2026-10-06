@@ -29,6 +29,7 @@ const drawerVisible = ref(false)
 const drawerBusy = ref(false)
 const drawerError = ref('')
 const formName = ref('')
+const formCluster = ref('')
 const formAccessUrl = ref('')
 const formRegion = ref('')
 const formBucket = ref('')
@@ -85,6 +86,7 @@ async function load(): Promise<void> {
 function openCreate(): void {
   if (!canUpdate.value) return
   formName.value = ''
+  formCluster.value = ''
   formAccessUrl.value = ''
   formRegion.value = ''
   formBucket.value = ''
@@ -94,7 +96,7 @@ function openCreate(): void {
 }
 
 async function onDrawerConfirm(): Promise<void> {
-  if (!formName.value.trim() || !formBucket.value.trim()) {
+  if (!formName.value.trim() || !formCluster.value.trim() || !formAccessUrl.value.trim() || !formRegion.value.trim() || !formBucket.value.trim()) {
     drawerError.value = t('resource.clusterMgmt.backup.repo.form.required')
     return
   }
@@ -103,9 +105,9 @@ async function onDrawerConfirm(): Promise<void> {
   try {
     await createBackupRepository('', {
       name: formName.value.trim(),
-      cluster: 'graphify',
-      accessUrl: formAccessUrl.value.trim() || 's3://backup.local',
-      region: formRegion.value.trim() || 'cn-east-1',
+      cluster: formCluster.value.trim(),
+      accessUrl: formAccessUrl.value.trim(),
+      region: formRegion.value.trim(),
       bucket: formBucket.value.trim(),
       availability: 'available',
       forcePathStyle: formForcePathStyle.value,
@@ -170,12 +172,16 @@ onMounted(load)
           <input v-model="formName" type="text" :placeholder="t('resource.clusterMgmt.backup.repo.form.namePlaceholder')" />
         </label>
         <label class="form-field">
+          <span>{{ t('resource.clusterMgmt.backup.repo.form.cluster') }}</span>
+          <input v-model="formCluster" type="text" :placeholder="t('resource.clusterMgmt.backup.repo.form.clusterPlaceholder')" />
+        </label>
+        <label class="form-field">
           <span>{{ t('resource.clusterMgmt.backup.repo.form.access') }}</span>
-          <input v-model="formAccessUrl" type="text" placeholder="s3://backup.local" />
+          <input v-model="formAccessUrl" type="text" :placeholder="t('resource.clusterMgmt.backup.repo.form.accessPlaceholder')" />
         </label>
         <label class="form-field">
           <span>{{ t('resource.clusterMgmt.backup.repo.form.region') }}</span>
-          <input v-model="formRegion" type="text" placeholder="cn-east-1" />
+          <input v-model="formRegion" type="text" :placeholder="t('resource.clusterMgmt.backup.repo.form.regionPlaceholder')" />
         </label>
         <label class="form-field">
           <span>{{ t('resource.clusterMgmt.backup.repo.form.bucket') }}</span>

@@ -102,7 +102,7 @@ export interface OperationListParams {
   pageSize?: number
   status?: OperationStatus | ''
   type?: string
-  targetId?: string
+  // 后端 BFF 不支持 targetId 过滤，故不提供该参数。
 }
 
 /** 已提交（非终态）状态，轮询应继续 */

@@ -32,7 +32,8 @@ describe('Resource Storage page', () => {
     await flushPromises()
 
     expect(wrapper.text()).toContain('Storage Systems')
-    expect(wrapper.text()).toContain('Drivers & Connectors')
+    // 「驱动与连接器」页签已隐藏（driverInstallations 后端 stub 无数据源）
+    expect(wrapper.text()).not.toContain('Drivers & Connectors')
     expect(wrapper.text()).toContain('Stale')
     expect(wrapper.text()).toContain('Not reported')
     expect(wrapper.text()).toContain('Cluster agent storage observation')
@@ -42,9 +43,9 @@ describe('Resource Storage page', () => {
     await wrapper.get('[role="tab"][aria-controls$="panel-systems"]').trigger('click')
     expect(wrapper.text()).toContain('No storage systems')
 
+    // 告警页签接真实 GET /api/v1/storage/alert-rules（此处 mock 返回空列表）
     await wrapper.get('[role="tab"][aria-controls$="panel-alerts"]').trigger('click')
-    expect(wrapper.text()).toContain('No storage alert data')
-    expect(wrapper.text()).toContain('no simulated alerts are shown')
+    expect(wrapper.text()).toContain('No alert rules yet')
   })
 
   it('renders an error state when the overview endpoint fails', async () => {
@@ -77,7 +78,8 @@ describe('Resource Storage page', () => {
 
     expect(wrapper.text()).toContain('提供方类型')
     expect(wrapper.text()).toContain('通用 CSI')
-    expect(wrapper.text()).toContain('健康')
+    // 健康列已移除（后端 healthState 恒 Unknown），不再展示
+    expect(wrapper.text()).not.toContain('健康')
     expect(wrapper.text()).toContain('集群 Agent 存储观测')
     expect(wrapper.text()).toContain('已过期')
     expect(wrapper.text()).not.toContain('generic-csi')

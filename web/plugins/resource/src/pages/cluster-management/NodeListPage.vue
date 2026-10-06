@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * NodeListPage — 集群详情 > 节点列表（OpenSpec node-management）。
- * 工具栏（增加云端 worker/搜索字段/关键词/查询/刷新/设置）+ 节点表格（名称可点、
+ * 工具栏（搜索字段/关键词/查询/刷新）+ 节点表格（名称可点、
  * 状态圆点）+ 分页；节点名称或「节点详情」进入节点基础配置页。
  */
 import { computed, h, onMounted, ref } from 'vue'
@@ -10,16 +10,12 @@ import { useI18n } from 'vue-i18n'
 import { HNBTable, HNBTableActions, HNBSelectInput, StatusBadge } from '@hnb/ui-kit'
 import type { HNBTableColumn, HNBTablePagination, HNBTableAction } from '@hnb/ui-kit'
 import { getNodeList } from './api/nodeApi'
-import { getClusterPermissionStore } from './api/clusterApi'
-import { usePluginContext } from './composables/usePluginContext'
 import ClusterDetailLayout from './components/ClusterDetailLayout.vue'
 import type { NodeSummary } from './types/cluster'
 
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
-const pluginCtx = usePluginContext()
-const permissionStore = getClusterPermissionStore()
 
 const clusterId = String(route.params.clusterId ?? '')
 
@@ -30,8 +26,6 @@ const keyword = ref('')
 const page = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
-
-const canUpdate = computed(() => permissionStore.hasPermission('cluster:update') || permissionStore.hasPermission('*'))
 
 const searchFieldOptions = computed(() => [
   { label: t('resource.clusterMgmt.nodeDetail.pod.keyword'), value: 'name' },
@@ -79,13 +73,11 @@ const columns = computed<HNBTableColumn<NodeSummary>[]>(() => [
     render: (row) => {
       const actions: HNBTableAction[] = [
         { label: t('resource.clusterMgmt.nodeList.action.detail'), key: 'detail' },
-        { label: t('resource.clusterMgmt.nodeList.action.alias'), key: 'alias' },
       ]
       return h(HNBTableActions, {
         actions,
         onAction: (key: string) => {
           if (key === 'detail') goDetail(row)
-          else onComingSoon()
         },
       })
     },
@@ -96,10 +88,6 @@ function goDetail(node: NodeSummary): void {
   router.push(
     `/resource/clusters/${encodeURIComponent(clusterId)}/nodes/${encodeURIComponent(node.id)}/basic`,
   )
-}
-
-function onComingSoon(): void {
-  pluginCtx.notify(t('resource.clusterMgmt.placeholder.notEnabled'))
 }
 
 async function load(): Promise<void> {
@@ -142,14 +130,6 @@ onMounted(load)
   <ClusterDetailLayout>
     <div class="node-list-page">
       <div class="list-toolbar">
-        <button
-          v-if="canUpdate"
-          type="button"
-          class="primary-button"
-          @click="onComingSoon"
-        >
-          {{ t('resource.clusterMgmt.nodeList.action.addWorker') }}
-        </button>
         <div class="toolbar-right">
           <label class="field-label">
             <span>{{ t('resource.clusterMgmt.nodeList.searchField') }}</span>
@@ -167,9 +147,6 @@ onMounted(load)
           </button>
           <button class="secondary-button" type="button" @click="load">
             {{ t('resource.clusterMgmt.action.refresh') }}
-          </button>
-          <button class="secondary-button" type="button" @click="onComingSoon">
-            {{ t('resource.clusterMgmt.nodeList.action.settings') }}
           </button>
         </div>
       </div>
@@ -203,15 +180,6 @@ onMounted(load)
   background: var(--hnb-color-bg-elevated, #f6f8fb);
   color: var(--hnb-color-text-primary, #12172a);
   min-width: 200px;
-}
-.primary-button {
-  padding: 7px 16px;
-  border: 0;
-  border-radius: var(--hnb-radius-sm, 4px);
-  background: var(--hnb-color-primary, #2f6fed);
-  color: #fff;
-  cursor: pointer;
-  font-size: 13px;
 }
 .secondary-button {
   padding: 7px 14px;

@@ -22,7 +22,10 @@ function client() {
   return getClusterApiClient()
 }
 
-/** 把后端 ClusterSummary 投影映射为概览页 ClusterDetail（缺失字段补占位） */
+/** 把后端 ClusterSummary 投影映射为概览页 ClusterDetail（缺失字段补占位）。
+ * 注意：后端 GetCluster 响应（clusterSummary DTO）不含 osVersion/cpuArchitecture/
+ * managementVip/clusterVip/podCidr/serviceCidr/clusterDomain/kubeOvnJoinCidr 等字段，
+ * labels 也不会下传；这些字段保持 ''（页面显示 `--`，属诚实空态），待后端补充后接入。 */
 export function mapSummaryToDetail(s: Record<string, unknown>): ClusterDetail {
   const status: ClusterDetail['status'] =
     s.status === 'RUNNING' ? 'running' : s.status === 'DEGRADED' || s.status === 'STALE' ? 'abnormal' : 'unknown'
@@ -109,13 +112,13 @@ export async function getClusterNodeSummary(clusterId: string): Promise<NodeSumm
   return (res.items ?? []).map(mapNodeToSummary)
 }
 
-/** 更新集群描述（后端 PATCH 暂缺 → 开发期直接成功，生产抛"未开放"） */
+/** 更新集群描述（后端 PATCH /api/v1/resources/clusters/{id}/description 已实现） */
 export async function updateClusterDescription(clusterId: string, description: string): Promise<void> {
   if (USE_FIXTURES) return
   await client().patch(`${CLUSTERS_PATH}/${encodeURIComponent(clusterId)}/description`, { description })
 }
 
-/** 下载 KubeConfig（敏感操作，必须走鉴权接口；后端暂缺 → 开发期 fixture） */
+/** 下载 KubeConfig（敏感操作，必须走鉴权接口；后端 POST .../kubeconfig:download 已实现） */
 export async function downloadKubeConfig(clusterId: string): Promise<void> {
   if (USE_FIXTURES) return
   const res = await client().post<{ kubeconfig?: string; filename?: string }>(

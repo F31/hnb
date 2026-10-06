@@ -83,4 +83,6 @@ export interface MarketPlugin {
   displayName?: string
   kind?: string
   provider?: string
+  installPhase?: 'pending' | 'installing' | 'ready' | string
+  lastError?: string
 }

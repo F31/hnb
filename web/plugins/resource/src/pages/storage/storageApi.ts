@@ -1,8 +1,8 @@
 import type { ApiClient } from '@hnb/types'
 import type {
+  StorageAlertRule,
   StorageBackendList,
   StorageClassBindingList,
-  StorageDriverInstallationList,
   StorageOverview,
   ProviderBackendSchemaList,
   StorageBackend,
@@ -43,6 +43,12 @@ export function listStorageOfferingBindings(offeringId: string): Promise<Storage
   return client().get<StorageClassBindingList>(`${STORAGE_PATH}/offerings/${encodeURIComponent(offeringId)}/bindings`)
 }
 
-export function listStorageDriverInstallations(): Promise<StorageDriverInstallationList> {
-  return client().get<StorageDriverInstallationList>(`${STORAGE_PATH}/driver-installations`)
+export interface StorageAlertRuleList {
+  schemaVersion: string
+  items: StorageAlertRule[]
+}
+
+/** 存储告警规则列表：后端 GET /api/v1/storage/alert-rules 为真实实现 */
+export function listStorageAlertRules(): Promise<StorageAlertRuleList> {
+  return client().get<StorageAlertRuleList>(`${STORAGE_PATH}/alert-rules`)
 }

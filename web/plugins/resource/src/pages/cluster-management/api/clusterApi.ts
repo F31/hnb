@@ -33,6 +33,7 @@ const CLUSTERS_PATH = '/api/v1/resources/clusters'
 const INTENTS_PATH = '/api/v1/runtime-intents'
 const INTENT_BATCHES_PATH = '/api/v1/runtime-intent-batches'
 const SECRETS_REGISTER_PATH = '/api/v1/secrets:register'
+const CLUSTER_VERSIONS_DICTIONARY_PATH = '/api/v1/dictionaries/cluster.versions'
 
 let apiClient: ApiClient | null = null
 let permissionStore: PermissionStore | null = null
@@ -102,7 +103,10 @@ export function getClusterNavigate(): (path: string) => void {
 /** 生成 RuntimeIntent spec.scopeRef（租户/空间作用域，供服务端鉴权与隔离） */
 export function currentClusterScope(): string {
   const ctx = contextStore?.current
-  if (!ctx?.tenantId) return 'tenant:default'
+  if (!ctx?.tenantId) {
+    // 无租户上下文时不允许回退到硬编码 scope：静默落到 tenant:default 会把意图提交到错误租户。
+    throw new Error('cluster scope requires an active tenant context')
+  }
   return ctx.spaceId
     ? `tenant:${ctx.tenantId}/space:${ctx.spaceId}`
     : `tenant:${ctx.tenantId}`
@@ -141,6 +145,16 @@ export async function getCluster(clusterId: string): Promise<ClusterSummary> {
   return client().get<ClusterSummary>(`${CLUSTERS_PATH}/${encodeURIComponent(clusterId)}`)
 }
 
+interface ClusterVersionDictionaryResponse {
+  dictionaryId: string
+  items: Array<{ code: string }>
+}
+
+export async function listSupportedKubernetesVersions(): Promise<string[]> {
+  const res = await client().get<ClusterVersionDictionaryResponse>(CLUSTER_VERSIONS_DICTIONARY_PATH)
+  return (res.items ?? []).map((item) => item.code).filter(Boolean)
+}
+
 export async function listClusterNodes(
   clusterId: string,
   params: { page?: number; pageSize?: number } = {},
@@ -155,13 +169,17 @@ export async function listClusterNodes(
 // 敏感凭据注册（SecretReference，禁止在意图载荷中出现明文）
 // ---------------------------------------------------------------------------
 
-/** base64 编码（用于把明文 kubeconfig / CloudCore 凭据交给服务端加密落库） */
+/** base64 编码（用于把明文 kubeconfig / CloudCore 凭据交给服务端加密落库）。
+ * 统一走 UTF-8 安全实现：浏览器原生 btoa 只接受 Latin-1，遇到非 ASCII
+ * 字符（kubeconfig 里常见中文注释）会抛 InvalidCharacterError。 */
 export function base64Encode(text: string): string {
-  if (typeof btoa === 'function') return btoa(text)
-  // 浏览器外（SSR/测试）退化处理：逐字符 utf8→base64
   const bytes = new TextEncoder().encode(text)
   let binary = ''
-  bytes.forEach((b) => { binary += String.fromCharCode(b) })
+  // 分块避免大文件展开参数过多
+  const CHUNK = 0x8000
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK))
+  }
   return btoa(binary)
 }
 
