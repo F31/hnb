@@ -57,7 +57,8 @@ localAPIEndpoint:
 nodeRegistration:
   name: %s
   kubeletExtraArgs:
-    node-ip: %s
+    - name: node-ip
+      value: %s
   taints:
   - key: node-role.kubernetes.io/control-plane
     effect: NoSchedule
@@ -75,7 +76,42 @@ nodeRegistration:
 func PrereqScript(spec ProvisionSpec) string {
 	channel := minorVersion(spec.DesiredVersion)
 	return fmt.Sprintf(`set +e
-if [ -x /usr/local/bin/kubeadm ] || command -v kubeadm >/dev/null 2>&1; then
+# 清理宿主机/容器环境可能注入的坏代理，避免 kubelet/containerd/kubeadm
+# 拉取 registry 时被本地 http_proxy 劫持。服务级 drop-in 最稳：即使 docker
+# 注入过 proxy env，containerd/kubelet 重启后也以空代理运行。
+systemctl unsetenv HTTP_PROXY HTTPS_PROXY ALL_PROXY http_proxy https_proxy all_proxy 2>/dev/null
+unset HTTP_PROXY HTTPS_PROXY ALL_PROXY http_proxy https_proxy all_proxy 2>/dev/null
+export no_proxy="*" NO_PROXY="*"
+mkdir -p /etc/systemd/system/containerd.service.d /etc/systemd/system/kubelet.service.d
+cat > /etc/systemd/system/containerd.service.d/10-hnb-noproxy.conf <<'CONF'
+[Service]
+Environment="HTTP_PROXY="
+Environment="HTTPS_PROXY="
+Environment="ALL_PROXY="
+Environment="http_proxy="
+Environment="https_proxy="
+Environment="all_proxy="
+Environment="NO_PROXY=*"
+Environment="no_proxy=*"
+CONF
+cat > /etc/systemd/system/kubelet.service.d/10-hnb-noproxy.conf <<'CONF2'
+[Service]
+Environment="HTTP_PROXY="
+Environment="HTTPS_PROXY="
+Environment="ALL_PROXY="
+Environment="http_proxy="
+Environment="https_proxy="
+Environment="all_proxy="
+Environment="NO_PROXY=*"
+Environment="no_proxy=*"
+# 很多裸机/VM 默认开启 swap；kubelet 默认拒绝在 swap 上运行，装机时显式放行
+# （cgroup v2 swap 是被支持的）。保留该 flag 避免首次 init 失败。
+Environment="KUBELET_EXTRA_ARGS=--fail-swap-on=false"
+CONF2
+systemctl daemon-reload >/dev/null 2>&1
+swapoff -a >/dev/null 2>&1
+if command -v kubeadm >/dev/null 2>&1; then
+  systemctl restart containerd >/dev/null 2>&1
   echo "__PREREQ_PRESENT__"
   exit 0
 fi
@@ -105,18 +141,15 @@ else
   exit 1
 fi
 systemctl enable --now kubelet containerd >/dev/null 2>&1
-cat >/etc/containerd/config.toml <<'CTR'
-[plugins."io.containerd.grpc.v1.cri"].containerd.runtimes.runc.options]
-  SystemdCgroup = true
-CTR
 mkdir -p /etc/containerd
-cat >/etc/containerd/config.toml <<'CTR2'
+cat > /etc/containerd/config.toml <<'CTR2'
 version = 2
 [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc]
   runtime_type = "io.containerd.runc.v2"
 [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options]
   SystemdCgroup = true
 CTR2
+systemctl daemon-reload >/dev/null 2>&1
 systemctl restart containerd >/dev/null 2>&1
 exit 0
 `, channel, channel, channel, channel)
@@ -126,6 +159,8 @@ exit 0
 // machine-parseable join bootstrap token + CA hash.
 func InitScript(spec ProvisionSpec, cp NodeSpec) string {
 	return fmt.Sprintf(`set +e
+unset HTTP_PROXY HTTPS_PROXY ALL_PROXY http_proxy https_proxy all_proxy 2>/dev/null
+export no_proxy="*" NO_PROXY="*"
 if [ -f /etc/kubernetes/admin.conf ]; then
   echo "__KUBEADM_ALREADY_INITIALIZED__"
   exit 0
@@ -162,6 +197,8 @@ func JoinScript(spec ProvisionSpec, node NodeSpec, token, caHash string) string 
 		cmd += " --control-plane"
 	}
 	return fmt.Sprintf(`set +e
+unset HTTP_PROXY HTTPS_PROXY ALL_PROXY http_proxy https_proxy all_proxy 2>/dev/null
+export no_proxy="*" NO_PROXY="*"
 if [ -f /etc/kubernetes/kubelet.conf ] && [ -f /etc/kubernetes/pki/ca.crt ]; then
   echo "__KUBEADM_ALREADY_JOINED__"
   exit 0

@@ -95,7 +95,7 @@ func CAPIManifests(spec ProvisionSpec, clusterName string, bootstrapCloudInit st
 			},
 			"initConfiguration": map[string]any{
 				"nodeRegistration": map[string]any{
-					"kubeletExtraArgs": map[string]any{"node-ip": cpIP(spec)},
+					"kubeletExtraArgs": []any{map[string]any{"name": "node-ip", "value": cpIP(spec)}},
 				},
 			},
 		},
@@ -133,7 +133,7 @@ func CAPIManifests(spec ProvisionSpec, clusterName string, bootstrapCloudInit st
 		kct.Object["spec"] = map[string]any{"template": map[string]any{
 			"spec": map[string]any{
 				"joinConfiguration": map[string]any{
-					"nodeRegistration": map[string]any{"kubeletExtraArgs": map[string]any{}},
+					"nodeRegistration": map[string]any{"kubeletExtraArgs": []any{}},
 				},
 			},
 		}}
