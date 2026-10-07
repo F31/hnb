@@ -39,7 +39,7 @@ const mode = ref<SourceMode>('create')
 const sourceKind = ref<'kubernetes' | 'edge'>('kubernetes')
 const form = ref({
   name: '',
-  targetVersion: '1.36',
+  targetVersion: '',
   replicas: 1,
   architecture: 'X86_64',
   description: '',
@@ -177,8 +177,10 @@ function endSubmission(): void {
   emit('update:modelValue', false)
 }
 
-const fallbackVersionOptions = ['1.36', '1.35', '1.34', '1.33', '1.32', '1.31']
-const versionOptions = ref<string[]>([...fallbackVersionOptions])
+// 版本由后端平台配置数据字典（platform_settings.resource.cluster.kubernetesVersions）
+// 按需提供，前端不再硬编码任何版本。字典不可达时保持空列表并提示，绝不臆造版本。
+const fallbackVersionOptions: api.ClusterVersionCatalogItem[] = []
+const versionOptions = ref<api.ClusterVersionCatalogItem[]>([])
 const replicaOptions = [1, 3, 5]
 const architectureOptions = ['X86_64', 'AARCH64']
 
@@ -309,14 +311,40 @@ async function loadMarketPlugins(): Promise<void> {
 
 async function loadKubernetesVersions(): Promise<void> {
   try {
-    const versions = await api.listSupportedKubernetesVersions()
-    versionOptions.value = versions.length ? versions : [...fallbackVersionOptions]
-    if (!versionOptions.value.includes(form.value.targetVersion)) {
-      form.value.targetVersion = versionOptions.value[0] ?? fallbackVersionOptions[0]
+    const catalog = await api.listSupportedKubernetesVersions()
+    versionOptions.value = catalog
+    const current = versionOptions.value.find((v) => v.code === form.value.targetVersion)
+    if (!current || !isVersionSelectable(current)) {
+      const firstSelectable = versionOptions.value.find((v) => isVersionSelectable(v))
+      form.value.targetVersion = firstSelectable?.code ?? versionOptions.value[0]?.code ?? ''
     }
   } catch {
-    versionOptions.value = [...fallbackVersionOptions]
+    versionOptions.value = []
+    form.value.targetVersion = ''
   }
+}
+
+/** 版本是否可选：仅"平台集成测试通过"的版本允许自建装机；否则仅展示并禁用。 */
+function isVersionSelectable(v: api.ClusterVersionCatalogItem): boolean {
+  return v.integrationTestStatus === 'passed'
+}
+
+/** 当前选中的版本目录项（供确认摘要与校验使用）。 */
+const selectedVersionOption = computed<api.ClusterVersionCatalogItem | undefined>(() =>
+  versionOptions.value.find((v) => v.code === form.value.targetVersion) ?? versionOptions.value[0],
+)
+
+/** 版本展示标签：测试状态 + 离线包情况，供下拉选项/确认摘要使用。 */
+function versionLabel(v: api.ClusterVersionCatalogItem): string {
+  const statusWord = v.integrationTestStatus === 'passed'
+    ? t('resource.clusterMgmt.form.versionTested')
+    : v.integrationTestStatus === 'blocked'
+      ? t('resource.clusterMgmt.form.versionBlocked')
+      : t('resource.clusterMgmt.form.versionPending')
+  const offlineWord = v.offlineBundleAvailable
+    ? t('resource.clusterMgmt.form.versionOfflineReady')
+    : t('resource.clusterMgmt.form.versionNeedsNetwork')
+  return `${v.code} · ${statusWord} · ${offlineWord}`
 }
 
 const pluginOptions = computed(() =>
@@ -357,7 +385,7 @@ function reset(): void {
   sourceKind.value = 'kubernetes'
   form.value = {
     name: '',
-    targetVersion: '1.36',
+    targetVersion: '',
     replicas: 1,
     architecture: 'X86_64',
     description: '',
@@ -455,10 +483,11 @@ const nameInvalid = computed(() => !/^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/.test(form.
 
 const stepOneValid = computed(() => {
   if (!form.value.name.trim() || nameInvalid.value) return false
-  // 自建：SSH 私钥 + 至少一个 control-plane 节点；导入：对应接入凭据。
+  // 自建：SSH 私钥 + 至少一个 control-plane 节点 + 一个已通过集成测试的版本。
   if (mode.value === 'create') {
+    const version = versionOptions.value.find((v) => v.code === form.value.targetVersion)
     return (
-      form.value.targetVersion.trim().length > 0 &&
+      Boolean(version && isVersionSelectable(version)) &&
       form.value.sshPrivateKey.trim().length > 0 &&
       form.value.provisionNodes.length > 0 &&
       provisionHasControlPlane.value
@@ -726,11 +755,16 @@ function sourceLabel(m: SourceMode): string {
               </label>
 
               <template v-if="mode === 'create'">
-                <label>
-                  <span>{{ t('resource.clusterMgmt.form.architecture') }}</span>
-                  <select v-model="form.architecture">
-                    <option v-for="a in architectureOptions" :key="a" :value="a">{{ a }}</option>
+<label>
+                  <span>{{ t('resource.clusterMgmt.form.targetVersion') }}</span>
+                  <select v-model="form.targetVersion">
+                    <option v-for="v in versionOptions" :key="v.code" :value="v.code" :disabled="!isVersionSelectable(v)">
+                      {{ versionLabel(v) }}
+                    </option>
                   </select>
+                  <small v-if="selectedVersionOption && !isVersionSelectable(selectedVersionOption)" class="field-error">
+                    {{ t('resource.clusterMgmt.form.versionUnselectableHint') }}
+                  </small>
                 </label>
                 <label class="switch-field">
                   <input v-model="form.controlPlaneSchedulingEnabled" type="checkbox" />
@@ -796,8 +830,13 @@ function sourceLabel(m: SourceMode): string {
                 <label>
                   <span>{{ t('resource.clusterMgmt.form.targetVersion') }}</span>
                   <select v-model="form.targetVersion">
-                    <option v-for="v in versionOptions" :key="v" :value="v">{{ v }}</option>
+                    <option v-for="v in versionOptions" :key="v.code" :value="v.code" :disabled="!isVersionSelectable(v)">
+                      {{ versionLabel(v) }}
+                    </option>
                   </select>
+                  <small v-if="!versionOptions.some((v) => v.code === form.targetVersion && isVersionSelectable(v))" class="field-error">
+                    {{ t('resource.clusterMgmt.form.versionUnselectableHint') }}
+                  </small>
                 </label>
                 <label>
                   <span>{{ t('resource.clusterMgmt.form.replicas') }}</span>
@@ -1012,7 +1051,7 @@ function sourceLabel(m: SourceMode): string {
                 <dt>{{ t('resource.clusterMgmt.form.architecture') }}</dt>
                 <dd>{{ form.architecture }}</dd>
                 <dt>{{ t('resource.clusterMgmt.form.targetVersion') }}</dt>
-                <dd>{{ form.targetVersion }}</dd>
+                <dd>{{ selectedVersionOption ? versionLabel(selectedVersionOption) : form.targetVersion || '-' }}</dd>
                 <dt>{{ t('resource.clusterMgmt.form.replicas') }}</dt>
                 <dd>{{ form.replicas }}</dd>
                 <dt>{{ t('resource.clusterMgmt.form.plugins') }}</dt>

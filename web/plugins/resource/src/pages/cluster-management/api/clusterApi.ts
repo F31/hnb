@@ -148,12 +148,25 @@ export async function getCluster(clusterId: string): Promise<ClusterSummary> {
 
 interface ClusterVersionDictionaryResponse {
   dictionaryId: string
-  items: Array<{ code: string }>
+  items: Array<ClusterVersionCatalogItem>
 }
 
-export async function listSupportedKubernetesVersions(): Promise<string[]> {
+/** 集群版本目录项：集成测试情况 + 离线包可用情况（按需配置驱动） */
+export interface ClusterVersionCatalogItem {
+  code: string
+  labelKey?: string
+  semantic?: string
+  icon?: string
+  terminal?: boolean
+  integrationTestStatus?: 'passed' | 'pending' | 'blocked'
+  offlineBundleAvailable?: boolean
+}
+
+export async function listSupportedKubernetesVersions(): Promise<ClusterVersionCatalogItem[]> {
   const res = await client().get<ClusterVersionDictionaryResponse>(CLUSTER_VERSIONS_DICTIONARY_PATH)
-  return (res.items ?? []).map((item) => item.code).filter(Boolean)
+  return (res.items ?? [])
+    .map((item) => ({ ...item }))
+    .filter((item) => Boolean(item.code))
 }
 
 export async function listClusterNodes(

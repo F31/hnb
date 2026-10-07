@@ -29,6 +29,14 @@ describe('ClusterRegisterWizard (9.4/9.5/9.6)', () => {
           { name: 'hami', displayName: 'HAMi', version: 'v2.10.0', description: 'HAMi GPU', category: 'GPU', installed: false },
         ] as T
       }
+      if (url.includes('/api/v1/dictionaries/cluster.versions')) {
+        return {
+          dictionaryId: 'resource.cluster.kubernetesVersions',
+          items: [
+            { code: '1.36', labelKey: 'resource.clusterMgmt.version.1_36', integrationTestStatus: 'passed', offlineBundleAvailable: true, semantic: 'default', icon: 'kubernetes', terminal: false },
+          ],
+        } as T
+      }
       return {
         data: {
           operationId: 'op-1',

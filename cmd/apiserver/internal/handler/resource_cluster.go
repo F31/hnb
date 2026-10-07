@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -144,6 +145,9 @@ type dictionaryItem struct {
 	Semantic string `json:"semantic"`
 	Icon     string `json:"icon"`
 	Terminal bool   `json:"terminal"`
+	// 集群版本目录扩展字段（按需配置）：平台集成测试情况与离线包可用情况。
+	IntegrationTestStatus   string `json:"integrationTestStatus,omitempty"`
+	OfflineBundleAvailable  *bool  `json:"offlineBundleAvailable,omitempty"`
 }
 
 type statusDictionaryPayload struct {
@@ -944,20 +948,44 @@ var freshnessDictionary = []dictionaryItem{
 	{Code: "STALE", LabelKey: "resource.clusterMgmt.freshness.STALE", Semantic: "warning", Icon: "alert", Terminal: false},
 }
 
-// Kubernetes 自建装机（kubeadm/CAPI 引导）支持的版本字典。语义版本需与
-// runtime-target-lifecycle-provider 的 kubeadm 引导能力保持一致；bootstrapping
-// 版本作为 "default"，其余为可选稳定线。
-var kubernetesVersionDictionary = []dictionaryItem{
-	{Code: "1.36", LabelKey: "v1.36 (kubeadm)", Semantic: "default", Icon: "kubernetes", Terminal: false},
-	{Code: "1.35", LabelKey: "v1.35 (kubeadm)", Semantic: "default", Icon: "kubernetes", Terminal: false},
-	{Code: "1.34", LabelKey: "v1.34 (kubeadm)", Semantic: "default", Icon: "kubernetes", Terminal: false},
-	{Code: "1.33", LabelKey: "v1.33 (kubeadm)", Semantic: "default", Icon: "kubernetes", Terminal: false},
-	{Code: "1.32", LabelKey: "v1.32 (kubeadm)", Semantic: "default", Icon: "kubernetes", Terminal: false},
-	{Code: "1.31", LabelKey: "v1.31 (kubeadm)", Semantic: "default", Icon: "kubernetes", Terminal: false},
+// kubernetesVersionCatalogSettingKey is the platform_settings key holding the
+// operator-managed Kubernetes version catalog for self-hosted clusters.
+// The value is a JSON object: {"items":[<dictionaryItem with
+// integrationTestStatus / offlineBundleAvailable>]}. Operators add/retire
+// versions here ("按需配置"）; the same catalog drives both the dictionary
+// response and (indirectly) the bootstrap target validation.
+const kubernetesVersionCatalogSettingKey = "resource.cluster.kubernetesVersions"
+
+// defaultKubernetesVersionCatalog 是 DB 未配置/不可用时的内置回落。遵循
+// "只列出当前已通过平台集成测试的版本"策略：目前仅有 1.36 实测通过；
+// 其余版本须经集成测试（且可选离线包就绪）后，由运维写入 platform_settings
+// key=resource.cluster.kubernetesVersions 按需开放。
+var defaultKubernetesVersionCatalog = kubernetesVersionCatalogPayload{
+	Items: []dictionaryItem{
+		{Code: "1.36", LabelKey: "resource.clusterMgmt.version.1_36", Semantic: "default", Icon: "kubernetes", Terminal: false, IntegrationTestStatus: "passed", OfflineBundleAvailable: boolPtr(true)},
+	},
 }
 
+type kubernetesVersionCatalogPayload struct {
+	Items []dictionaryItem `json:"items"`
+}
+
+func boolPtr(v bool) *bool { return &v }
+
 func (h *ResourceClusterHandler) KubernetesVersionDictionary(w http.ResponseWriter, r *http.Request) {
-	writeJSONRaw(w, statusDictionaryPayload{DictionaryID: "resource.cluster.kubernetesVersions", Items: kubernetesVersionDictionary})
+	catalog := defaultKubernetesVersionCatalog
+	if h.db != nil {
+		var loaded kubernetesVersionCatalogPayload
+		err := h.db.QueryRowContext(r.Context(),
+			`SELECT value FROM platform_settings WHERE key = $1`, kubernetesVersionCatalogSettingKey,
+		).Scan(&loaded)
+		if err != nil {
+			_, _ = fmt.Fprintf(os.Stderr, "platform-api: load k8s version catalog: %v; using default\n", err)
+		} else if len(loaded.Items) > 0 {
+			catalog = loaded
+		}
+	}
+	writeJSONRaw(w, statusDictionaryPayload{DictionaryID: "resource.cluster.kubernetesVersions", Items: catalog.Items})
 }
 
 func (h *ResourceClusterHandler) StatusDictionary(w http.ResponseWriter, r *http.Request) {
