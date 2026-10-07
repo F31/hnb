@@ -141,14 +141,21 @@ else
   exit 1
 fi
 systemctl enable --now kubelet containerd >/dev/null 2>&1
-mkdir -p /etc/containerd
-cat > /etc/containerd/config.toml <<'CTR2'
+# 不覆盖已有 containerd 配置：发行版/管理员可能已写好 sandbox_image、
+# 快照器、base_runtime_spec 等关键项，覆盖会丢弃它们导致 CRI 无法启动
+# 静态 Pod（例如 kubelet 需要用 sandbox/pause 镜像启动 infra 容器）。
+if [ ! -f /etc/containerd/config.toml ]; then
+  mkdir -p /etc/containerd
+  cat > /etc/containerd/config.toml <<'CTR2'
 version = 2
 [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc]
   runtime_type = "io.containerd.runc.v2"
 [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options]
   SystemdCgroup = true
+[plugins."io.containerd.grpc.v1.cri"]
+  sandbox_image = "registry.k8s.io/pause:3.10"
 CTR2
+fi
 systemctl daemon-reload >/dev/null 2>&1
 systemctl restart containerd >/dev/null 2>&1
 exit 0
