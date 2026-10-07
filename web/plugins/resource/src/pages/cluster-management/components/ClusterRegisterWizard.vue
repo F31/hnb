@@ -177,7 +177,7 @@ function endSubmission(): void {
   emit('update:modelValue', false)
 }
 
-const fallbackVersionOptions = ['1.36']
+const fallbackVersionOptions = ['1.36', '1.35', '1.34', '1.33', '1.32', '1.31']
 const versionOptions = ref<string[]>([...fallbackVersionOptions])
 const replicaOptions = [1, 3, 5]
 const architectureOptions = ['X86_64', 'AARCH64']

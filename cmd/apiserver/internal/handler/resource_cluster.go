@@ -944,8 +944,16 @@ var freshnessDictionary = []dictionaryItem{
 	{Code: "STALE", LabelKey: "resource.clusterMgmt.freshness.STALE", Semantic: "warning", Icon: "alert", Terminal: false},
 }
 
+// Kubernetes 自建装机（kubeadm/CAPI 引导）支持的版本字典。语义版本需与
+// runtime-target-lifecycle-provider 的 kubeadm 引导能力保持一致；bootstrapping
+// 版本作为 "default"，其余为可选稳定线。
 var kubernetesVersionDictionary = []dictionaryItem{
-	{Code: "1.36", LabelKey: "1.36", Semantic: "default", Icon: "kubernetes", Terminal: false},
+	{Code: "1.36", LabelKey: "v1.36 (kubeadm)", Semantic: "default", Icon: "kubernetes", Terminal: false},
+	{Code: "1.35", LabelKey: "v1.35 (kubeadm)", Semantic: "default", Icon: "kubernetes", Terminal: false},
+	{Code: "1.34", LabelKey: "v1.34 (kubeadm)", Semantic: "default", Icon: "kubernetes", Terminal: false},
+	{Code: "1.33", LabelKey: "v1.33 (kubeadm)", Semantic: "default", Icon: "kubernetes", Terminal: false},
+	{Code: "1.32", LabelKey: "v1.32 (kubeadm)", Semantic: "default", Icon: "kubernetes", Terminal: false},
+	{Code: "1.31", LabelKey: "v1.31 (kubeadm)", Semantic: "default", Icon: "kubernetes", Terminal: false},
 }
 
 func (h *ResourceClusterHandler) KubernetesVersionDictionary(w http.ResponseWriter, r *http.Request) {

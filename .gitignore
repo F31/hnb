@@ -32,3 +32,4 @@ out/
 
 # Local compose environment (dev credentials, identity paths)
 deploy/docker-compose/.env
+deploy/docker-compose/compose.local*
