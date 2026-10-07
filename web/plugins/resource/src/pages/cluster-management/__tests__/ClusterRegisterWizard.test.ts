@@ -114,10 +114,16 @@ describe('ClusterRegisterWizard (9.4/9.5/9.6)', () => {
     input.value = 'cluster-a'
     input.dispatchEvent(new Event('input', { bubbles: true }))
     await flushPromises()
-    // stepOneValid 要求凭据非空（kubeconfig / cloudcore-client），凭据在第一步行填写
-    const kubeInput = query('.kubeconfig-input') as HTMLTextAreaElement
-    kubeInput.value = 'apiVersion: v1\nkind: Config\nclusters: []\nusers: []\n'
-    kubeInput.dispatchEvent(new Event('input', { bubbles: true }))
+    // create 为自建装机：SSH 私钥 + 至少一个 control-plane 节点
+    const sshInput = query('.provision-nodes ~ .field-full textarea, textarea.kubeconfig-input.mono') as HTMLTextAreaElement
+    sshInput.value = '-----BEGIN OPENSSH PRIVATE KEY-----\ndummy\n-----END OPENSSH PRIVATE KEY-----\n'
+    sshInput.dispatchEvent(new Event('input', { bubbles: true }))
+    await flushPromises()
+    const hostInput = query('.provision-node-row input') as HTMLInputElement
+    hostInput.value = '10.0.0.10'
+    hostInput.dispatchEvent(new Event('input', { bubbles: true }))
+    await flushPromises()
+    query('.provision-node-row button').click()
     await flushPromises()
     query('.cluster-register-drawer__footer-right .hnb-button--primary').click()
     await flushPromises()
@@ -129,16 +135,20 @@ describe('ClusterRegisterWizard (9.4/9.5/9.6)', () => {
     query('.cluster-register-drawer__footer-right .hnb-button--primary').click()
     await flushPromises()
 
-    // 首次 POST 为敏感凭据注册，意图只引用 SecretReference，不携带明文
-    const [secretPath] = apiClient.post.mock.calls[0] as [string, unknown]
+    // 首次 POST 为敏感凭据注册（SSH purpose=ssh），意图只引用 SecretReference，不携带明文
+    const [secretPath, secretPayload] = apiClient.post.mock.calls[0] as [string, { purpose?: string; value?: string }]
     expect(String(secretPath)).toContain('/api/v1/secrets:register')
+    expect(secretPayload.purpose).toBe('ssh')
+    expect(secretPayload.value ?? '').not.toContain('dummy')
     const intentCall = apiClient.post.mock.calls.find(([p]) => String(p).includes('/api/v1/runtime-intents'))
     expect(intentCall).toBeTruthy()
-    const [path, payload] = intentCall! as [string, { kind: string; spec?: { credentialSecretRef?: unknown; kubeconfig?: unknown } }]
+    const [path, payload] = intentCall! as [string, { kind: string; spec?: { credentialSecretRef?: unknown; sshSecretRef?: unknown; kubeconfig?: unknown; parameters?: Record<string, unknown> } }]
     expect(String(path)).toContain('/api/v1/runtime-intents')
     expect(payload.kind).toBe('CreateKubernetesTarget')
-    expect(payload.spec?.credentialSecretRef).toBeTruthy()
+    expect(payload.spec?.sshSecretRef).toBeTruthy()
+    expect(payload.spec?.credentialSecretRef).toBeUndefined()
     expect(payload.spec?.kubeconfig).toBeUndefined()
+    expect((payload.spec?.parameters?.nodes as unknown[] | undefined)?.length).toBe(1)
     const submitted = wrapper.emitted('submitted')
     expect(submitted).toBeTruthy()
     expect(submitted![0][0]).toMatchObject({ status: 'accepted', operationId: 'op-1' })
@@ -275,6 +285,11 @@ users:
       global: { plugins: [createTestI18n()] },
     })
     wrappers.push(wrapper)
+    await flushPromises()
+
+    // 预检仅在「纳管已有集群」(import kubernetes) 模式展示，需先切换
+    const importButton = Array.from(queryAll('.source-toggle button')).find(b => b.textContent?.includes('纳管已有集群'))
+    importButton!.click()
     await flushPromises()
 
     const kubeInput = query('.kubeconfig-input') as HTMLTextAreaElement

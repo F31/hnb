@@ -172,17 +172,29 @@ export type RuntimeIntentTargetKind = 'KubernetesTarget' | 'EdgeRuntimeTarget'
  *  - 创建/纳管：targetKind + displayName + credentialSecretRef（纳管 edge 另需 cloudCoreEndpoint）
  *  - 升级/解除纳管：targetKind + targetId(UUID) + expectedVersion(>=1)，升级另需 desiredVersion
  */
+/** 自建集群引导节点（用户自带节点 + SSH，借鉴 Rancher/KubeSphere 装机语义） */
+export interface ProvisionNodeSpec {
+  id: string
+  host: string
+  port?: number
+  user?: string
+  role: 'control-plane' | 'worker'
+  labels?: Record<string, string>
+}
+
 export interface RuntimeIntentSpec {
   targetKind: RuntimeIntentTargetKind
   displayName?: string
   credentialSecretRef?: SecretReference
+  /** 自建引导：SSH 私钥已注册的 SecretReference（purpose=ssh），与 credentialSecretRef 互斥 */
+  sshSecretRef?: SecretReference
   kubernetesVersion?: string
   cloudCoreEndpoint?: string
   nodeGroupMappings?: Record<string, string>
   targetId?: string
   expectedVersion?: number
   desiredVersion?: string
-  parameters?: Record<string, string | number | boolean | null>
+  parameters?: Record<string, string | number | boolean | null | ProvisionNodeSpec[]>
   /** STALE challenge 非预选确认（KERNEL-019）；仅服务端下发 token 后回传 */
   riskConfirmation?: RiskConfirmation
 }
@@ -200,7 +212,7 @@ export interface RuntimeIntentEnvelope {
 
 /** POST /api/v1/secrets:register 请求体（值必须为 base64） */
 export interface RegisterClusterSecretRequest {
-  purpose: 'kubeconfig' | 'cloudcore-client'
+  purpose: 'kubeconfig' | 'cloudcore-client' | 'ssh'
   scope: string
   name: string
   value: string

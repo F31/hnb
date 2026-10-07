@@ -14,7 +14,7 @@ import StaleChallengeDialog from './StaleChallengeDialog.vue'
 import AgentOnboardingGuide from './AgentOnboardingGuide.vue'
 import { useStaleSubmit } from '../composables/useStaleSubmit'
 import type { MarketPlugin } from '../types/p4'
-import type { RuntimeIntentRecord } from '../types/cluster'
+import type { ProvisionNodeSpec, RuntimeIntentRecord } from '../types/cluster'
 
 const props = withDefaults(defineProps<{
   modelValue: boolean
@@ -67,7 +67,31 @@ const form = ref({
   kubeConfig: '',
   kubeConfigSource: 'paste',
   kubeConfigFileName: '',
+  // 自建装机（借鉴 Rancher/KubeSphere 真实装机）：SSH 私钥 + 用户自带节点。
+  sshPrivateKey: '',
+  provisionNodes: [] as ProvisionNodeSpec[],
+  pendingNode: { id: '', host: '', port: 22, user: 'root', role: 'control-plane' as ProvisionNodeSpec['role'] },
 })
+const provisionalNodeId = ref(0)
+
+function addProvisionNode(): void {
+  const n = form.value.pendingNode
+  if (!n.host.trim() || !n.role || !form.value.name.trim()) return
+  const id = n.id.trim() || `node-${++provisionalNodeId.value}`
+  form.value.provisionNodes = [
+    ...form.value.provisionNodes,
+    { id, host: n.host.trim(), port: n.port || 22, user: n.user.trim() || 'root', role: n.role },
+  ]
+  form.value.pendingNode = { id: '', host: '', port: 22, user: 'root', role: 'control-plane' as ProvisionNodeSpec['role'] }
+}
+
+function removeProvisionNode(index: number): void {
+  form.value.provisionNodes = form.value.provisionNodes.filter((_, i) => i !== index)
+}
+
+const provisionHasControlPlane = computed(() =>
+  form.value.provisionNodes.some((n) => n.role === 'control-plane'),
+)
 const submitError = ref('')
 const submitting = ref(false)
 const userOptions = ref<api.WizardUserOption[]>([])
@@ -361,6 +385,9 @@ function reset(): void {
     kubeConfig: '',
     kubeConfigSource: 'paste',
     kubeConfigFileName: '',
+    sshPrivateKey: '',
+    provisionNodes: [],
+    pendingNode: { id: '', host: '', port: 22, user: 'root', role: 'control-plane' },
   }
   submitError.value = ''
   submitting.value = false
@@ -428,11 +455,16 @@ const nameInvalid = computed(() => !/^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/.test(form.
 
 const stepOneValid = computed(() => {
   if (!form.value.name.trim() || nameInvalid.value) return false
-  // 所有模式都需要凭据（k8s → kubeconfig；edge → cloudcore-client）。
-  if (!form.value.kubeConfig.trim()) return false
+  // 自建：SSH 私钥 + 至少一个 control-plane 节点；导入：对应接入凭据。
   if (mode.value === 'create') {
-    return form.value.targetVersion.trim().length > 0
+    return (
+      form.value.targetVersion.trim().length > 0 &&
+      form.value.sshPrivateKey.trim().length > 0 &&
+      form.value.provisionNodes.length > 0 &&
+      provisionHasControlPlane.value
+    )
   }
+  if (!form.value.kubeConfig.trim()) return false
   if (isEdgeImport.value) {
     return form.value.cloudcoreEndpoint.trim().length > 0 && form.value.nodeGroup.trim().length > 0
   }
@@ -446,12 +478,14 @@ async function submit(): Promise<void> {
   try {
     const scope = currentClusterScope()
     const displayName = form.value.name.trim()
+
     // 凭据明文仅一次性上送，服务端加密落库；意图中只引用 SecretReference。
+    // 自建（create）上传 SSH 私钥（purpose=ssh）；导入上传 kubeconfig/cloudcore-client。
     const reg = await api.registerClusterSecret({
-      purpose: isEdgeImport.value ? 'cloudcore-client' : 'kubeconfig',
+      purpose: mode.value === 'create' ? 'ssh' : isEdgeImport.value ? 'cloudcore-client' : 'kubeconfig',
       scope,
-      name: `${displayName}-credential`,
-      value: api.base64Encode(form.value.kubeConfig),
+      name: mode.value === 'create' ? `${displayName}-ssh` : `${displayName}-credential`,
+      value: api.base64Encode(mode.value === 'create' ? form.value.sshPrivateKey : form.value.kubeConfig),
     })
     const credentialSecretRef = api.toSecretReference(reg)
 
@@ -489,8 +523,17 @@ async function submit(): Promise<void> {
 
     let envelope
     if (mode.value === 'create') {
-      envelope = api.buildCreateIntent(displayName, credentialSecretRef, {
+      const nodeParams = form.value.provisionNodes.map((n) => ({
+        id: n.id || `node-${n.host}`,
+        host: n.host,
+        port: n.port || 22,
+        user: n.user || 'root',
+        role: n.role,
+        ...(n.labels && Object.keys(n.labels).length ? { labels: n.labels } : {}),
+      }))
+      envelope = api.buildProvisionIntent(displayName, credentialSecretRef, {
         kubernetesVersion: form.value.targetVersion.trim() || undefined,
+        nodes: nodeParams,
         parameters: createParams,
       })
     } else if (isEdgeImport.value) {
@@ -654,8 +697,8 @@ function sourceLabel(m: SourceMode): string {
               </button>
             </div>
 
-            <!-- 提交前预检：展示将接入的目标（kubeconfig 解析，非敏感；edge 凭据非 kubeconfig 跳过） -->
-            <div v-if="!isEdgeImport" class="preflight-panel" role="note">
+            <!-- 提交前预检：展示将接入的目标（kubeconfig 解析，非敏感；自建/edge 无 kubeconfig 跳过） -->
+            <div v-if="mode === 'import' && !isEdgeImport" class="preflight-panel" role="note">
               <template v-if="kubeSummary.recognizable && kubeSummary.targetCluster">
                 <span class="preflight-label">{{ t('resource.clusterMgmt.wizard.targetTitle') }}</span>
                 <span class="preflight-value">{{ kubeSummary.targetCluster.name }}</span>
@@ -807,16 +850,41 @@ function sourceLabel(m: SourceMode): string {
                   </div>
                 </details>
 
+                <!-- 自建装机（借鉴 Rancher/KubeSphere 真实装机）：用户自带节点 + SSH 私钥 -->
+                <div class="field-full provision-nodes">
+                  <span class="field-title">{{ t('resource.clusterMgmt.wizard.provisionNodesTitle') }}</span>
+                  <div class="provision-node-row">
+                    <input v-model="form.pendingNode.host" :placeholder="t('resource.clusterMgmt.form.nodeHostPlaceholder')" />
+                    <input v-model.number="form.pendingNode.port" type="number" min="1" max="65535" class="node-port" :placeholder="'22'" />
+                    <input v-model="form.pendingNode.user" :placeholder="t('resource.clusterMgmt.form.nodeUserPlaceholder')" />
+                    <select v-model="form.pendingNode.role">
+                      <option value="control-plane">{{ t('resource.clusterMgmt.wizard.roleControlPlane') }}</option>
+                      <option value="worker">{{ t('resource.clusterMgmt.wizard.roleWorker') }}</option>
+                    </select>
+                    <button type="button" class="secondary-button" @click="addProvisionNode">
+                      {{ t('resource.clusterMgmt.wizard.addNode') }}
+                    </button>
+                  </div>
+                  <ul v-if="form.provisionNodes.length" class="provision-node-list">
+                    <li v-for="(node, i) in form.provisionNodes" :key="`${node.id}-${i}`">
+                      <span class="node-role" :class="node.role">{{ t(`resource.clusterMgmt.wizard.role.${node.role}`) }}</span>
+                      <code>{{ node.user }}@{{ node.host }}:{{ node.port }}</code>
+                      <button type="button" class="text-action" @click="removeProvisionNode(i)">{{ t('resource.clusterMgmt.wizard.removeNode') }}</button>
+                    </li>
+                  </ul>
+                  <small v-if="!provisionHasControlPlane" class="field-hint warn">{{ t('resource.clusterMgmt.wizard.needControlPlane') }}</small>
+                </div>
+
                 <label class="field-full">
-                  <span>{{ t('resource.clusterMgmt.form.credentialTitle') }}</span>
+                  <span>{{ t('resource.clusterMgmt.form.sshPrivateKey') }}</span>
                   <textarea
-                    v-model="form.kubeConfig"
+                    v-model="form.sshPrivateKey"
                     rows="8"
-                    class="kubeconfig-input"
-                    :placeholder="t('resource.clusterMgmt.form.createCredentialPlaceholder')"
+                    class="kubeconfig-input mono"
+                    :placeholder="t('resource.clusterMgmt.form.sshPrivateKeyPlaceholder')"
                     spellcheck="false"
                   ></textarea>
-                  <small class="field-hint">{{ t('resource.clusterMgmt.form.credentialHint') }}</small>
+                  <small class="field-hint">{{ t('resource.clusterMgmt.form.sshPrivateKeyHint') }}</small>
                 </label>
               </template>
 

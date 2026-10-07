@@ -17,6 +17,7 @@ import type {
   ClusterListResponse,
   ClusterNodeListResponse,
   ClusterSummary,
+  ProvisionNodeSpec,
   RegisterClusterSecretRequest,
   RiskConfirmation,
   RuntimeIntentEnvelope,
@@ -311,6 +312,32 @@ export function buildCreateIntent(
   }
   if (opts.kubernetesVersion) spec.kubernetesVersion = opts.kubernetesVersion
   if (opts.parameters && Object.keys(opts.parameters).length) spec.parameters = opts.parameters
+  return {
+    apiVersion: 'hnb.io/v1',
+    kind: 'CreateKubernetesTarget',
+    metadata: { idempotencyKey: newIdempotencyKey(), correlationId: newCorrelationId() },
+    spec,
+  }
+}
+
+/** 构建自建 KubernetesTarget 的 RuntimeIntent（SSH 装机引导，借鉴 Rancher/KubeSphere 真实装机语义） */
+export function buildProvisionIntent(
+  displayName: string,
+  sshSecretRef: SecretReference,
+  opts: {
+    kubernetesVersion?: string
+    nodes?: ProvisionNodeSpec[]
+    parameters?: Record<string, string | number | boolean | null>
+  } = {},
+): RuntimeIntentEnvelope {
+  const spec: RuntimeIntentSpec = {
+    targetKind: 'KubernetesTarget',
+    displayName,
+    sshSecretRef,
+  }
+  if (opts.kubernetesVersion) spec.kubernetesVersion = opts.kubernetesVersion
+  if (opts.nodes && opts.nodes.length) spec.parameters = { ...(opts.parameters ?? {}), nodes: opts.nodes }
+  else if (opts.parameters && Object.keys(opts.parameters).length) spec.parameters = opts.parameters
   return {
     apiVersion: 'hnb.io/v1',
     kind: 'CreateKubernetesTarget',
