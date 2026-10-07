@@ -4,7 +4,14 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+// capiWaitTimeout bounds how long Provision waits for the CAPI control plane
+// to report Ready after applying manifests to a management cluster.
+const capiWaitTimeout = 10 * time.Minute
 
 // SecretStore mirrors the provider's secret persistence surface so the
 // orchestrator can store the resulting admin kubeconfig for the new target.
@@ -38,12 +45,23 @@ func WithBootstrapper(b *NodeBootstrapper) Option {
 	return func(p *Provisioner) { p.bootstrap = b }
 }
 
+// WithManagementClient attaches a CAPI management cluster client. When set,
+// Provision applies the rendered CAPI manifests and waits for the control
+// plane before finishing; without it, manifests are only generated/audited.
+func WithManagementClient(client ManagementClient) Option {
+	return func(p *Provisioner) { p.management = client }
+}
+
 // Provisioner drives a self-hosted kubeadm/CAPI-aligned cluster bootstrap from
 // user-supplied SSH nodes.
 type Provisioner struct {
 	bootstrap *NodeBootstrapper
+	// management is the optional CAPI management-cluster client.
+	management ManagementClient
 	// cniManifest overrides the default pod-network manifest (optional).
 	cniManifest string
+	// clusterName is the CAPI object name prefix (default: shortID(target)).
+	clusterName string
 }
 
 // New provisioner with sensible defaults.
@@ -119,10 +137,37 @@ func (p *Provisioner) Provision(ctx context.Context, spec ProvisionSpec) (Result
 		return Result{}, stepErr("cni", err)
 	}
 
+	// 4b. when a CAPI management cluster is configured, apply the rendered
+	// manifests and wait for the control plane to report Ready.
+	if p.management != nil {
+		clusterName := p.clusterName
+		if clusterName == "" {
+			clusterName = "cluster-" + shortID(spec.TargetID)
+		}
+		manifests := CAPIManifests(spec, clusterName, "")
+		if err := p.management.Apply(ctx, manifests); err != nil {
+			return Result{}, stepErr("capi-apply", err)
+		}
+		if err := p.management.WaitControlPlaneReady(ctx, metav1.NamespaceDefault, clusterName+"-control-plane", capiWaitTimeout); err != nil {
+			return Result{}, stepErr("capi-wait", err)
+		}
+	}
+
 	// 5. read the admin kubeconfig from the control-plane node.
 	kubeconfig, err := p.readKubeconfig(ctx, firstCP, key, spec.Endpoint())
 	if err != nil {
 		return Result{}, err
+	}
+
+	// 6. when present, prefer the management cluster's workload kubeconfig.
+	if p.management != nil {
+		clusterName := p.clusterName
+		if clusterName == "" {
+			clusterName = "cluster-" + shortID(spec.TargetID)
+		}
+		if managed, err := p.management.Kubeconfig(ctx, metav1.NamespaceDefault, clusterName); err == nil && len(managed) > 0 {
+			kubeconfig = managed
+		}
 	}
 
 	// 6. store it as the target credential.

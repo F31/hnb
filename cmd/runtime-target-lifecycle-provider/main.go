@@ -28,13 +28,23 @@ func main() {
 			log.Fatalf("HNB_MASTER_KEY: %v", err)
 		}
 		store := provider.NewProvisionStore(db, cipher)
-		provisioner := provision.New(
+		opts := []provision.Option{
 			provision.WithBootstrapper(&provision.NodeBootstrapper{
 				SSH:   &provision.RealSSH{},
 				Key:   store,
 				Store: store,
 			}),
-		)
+		}
+		if mgmtKubeconfig := os.Getenv("MANAGEMENT_KUBECONFIG"); mgmtKubeconfig != "" {
+			ctxName := os.Getenv("MANAGEMENT_KUBECONFIG_CONTEXT")
+			mgmt, err := provision.NewManagementClient(mgmtKubeconfig, ctxName)
+			if err != nil {
+				log.Fatalf("MANAGEMENT_KUBECONFIG: %v", err)
+			}
+			opts = append(opts, provision.WithManagementClient(mgmt))
+			log.Print("using CAPI management cluster for workload reconciliation")
+		}
+		provisioner := provision.New(opts...)
 		manager = provider.NewKubernetesManagerWithProvisioner(profile, provisioner)
 		log.Printf("using real Kubernetes lifecycle manager (self-hosted provisioning enabled)")
 	case "runtime-target.lifecycle.edge":

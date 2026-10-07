@@ -112,7 +112,7 @@ func (f *fakeRunner) Run(_ context.Context, node NodeSpec, key []byte, script st
 	f.scripts[node.Host] = append(f.scripts[node.Host], script)
 	role := node.Role
 	if strings.Contains(script, "kubeadm init") || strings.Contains(script, "kubernetesVersion") {
-		return "__HNB_JOIN_TOKEN__=abcdef.0123456789abcdef\n__HNB_CA_HASH__=sha256:aa"+strings.Repeat("a", 62)+"\n"+adminConf, nil
+		return "__HNB_JOIN_TOKEN__=abcdef.0123456789abcdef\n__HNB_CA_HASH__=sha256:aa" + strings.Repeat("a", 62) + "\n" + adminConf, nil
 	}
 	if strings.Contains(script, "cat /etc/kubernetes/admin.conf") {
 		return adminConf, nil

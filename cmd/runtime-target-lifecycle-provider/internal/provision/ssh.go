@@ -44,10 +44,10 @@ func (r *RealSSH) dial(node NodeSpec, privateKey []byte) (*ssh.Client, error) {
 		return nil, fmt.Errorf("parse ssh private key: %w", err)
 	}
 	config := &ssh.ClientConfig{
-		User:    node.EffectiveUser(),
-		Auth:    []ssh.AuthMethod{ssh.PublicKeys(signer)},
+		User:            node.EffectiveUser(),
+		Auth:            []ssh.AuthMethod{ssh.PublicKeys(signer)},
 		HostKeyCallback: insecureHostKeyCallback,
-		Timeout: 0, // connect deadline handled by ctx on dial impls
+		Timeout:         0, // connect deadline handled by ctx on dial impls
 	}
 	addr := fmt.Sprintf("%s:%d", node.Host, node.EffectivePort())
 	if r.DialFunc != nil {

@@ -84,16 +84,16 @@ func (s SecretReference) String() string {
 
 // ProvisionSpec is the resolved input for a self-hosted cluster creation.
 type ProvisionSpec struct {
-	TenantID       string
-	TargetID       string
-	DisplayName    string
-	DesiredVersion string
+	TenantID             string
+	TargetID             string
+	DisplayName          string
+	DesiredVersion       string
 	ControlPlaneEndpoint string // optional override; defaults to the first CP node
-	PodCIDR        string
-	ServiceCIDR    string
-	ClusterDomain  string
-	IdempotencyKey string
-	Nodes          []NodeSpec
+	PodCIDR              string
+	ServiceCIDR          string
+	ClusterDomain        string
+	IdempotencyKey       string
+	Nodes                []NodeSpec
 	// SSHCredential is the encrypted SSH private key SecretReference.
 	SSHCredential SecretReference
 }

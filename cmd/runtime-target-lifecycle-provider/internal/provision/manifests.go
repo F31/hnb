@@ -7,12 +7,12 @@ import (
 
 // CAPI API group/versions as rendered by this provider.
 const (
-	clusterAPIGroup      = "cluster.x-k8s.io"
-	clusterAPIVersion    = "v1beta1"
+	clusterAPIGroup       = "cluster.x-k8s.io"
+	clusterAPIVersion     = "v1beta1"
 	kubeadmBootstrapGroup = "bootstrap.cluster.x-k8s.io"
-	kubeadmBootstrapVer  = "v1beta1"
-	infraAPIGroup        = "infrastructure.cluster.x-k8s.io"
-	infraAPIVersion      = "v1beta1"
+	kubeadmBootstrapVer   = "v1beta1"
+	infraAPIGroup         = "infrastructure.cluster.x-k8s.io"
+	infraAPIVersion       = "v1beta1"
 )
 
 var (
@@ -73,7 +73,7 @@ func CAPIManifests(spec ProvisionSpec, clusterName string, bootstrapCloudInit st
 			"pods":     map[string]any{"cidrBlocks": []string{defaultString(spec.PodCIDR, "10.244.0.0/16")}},
 			"services": map[string]any{"cidrBlocks": []string{defaultString(spec.ServiceCIDR, "10.96.0.0/12")}},
 		},
-		"controlPlaneRef": objectRef(kubeadmControlPlaneGVK, ns, clusterName+"-control-plane"),
+		"controlPlaneRef":   objectRef(kubeadmControlPlaneGVK, ns, clusterName+"-control-plane"),
 		"infrastructureRef": objectRef(sshClusterGVK, ns, clusterName+"-ssh"),
 	}
 	objects = append(objects, *cluster)
@@ -81,16 +81,16 @@ func CAPIManifests(spec ProvisionSpec, clusterName string, bootstrapCloudInit st
 	// --- KubeadmControlPlane + SSHMachineTemplate ; machine count = control-plane nodes ---
 	kcp := object(kubeadmControlPlaneGVK, ns, clusterName+"-control-plane")
 	kcp.Object["spec"] = map[string]any{
-		"version":            spec.DesiredVersion,
-		"replicas":           int64(len(spec.ControlPlaneNodes())),
-		"machineTemplate":    map[string]any{"infrastructureRef": objectRef(sshMachineTemplateGVK, ns, clusterName+"-cp-template")},
+		"version":         spec.DesiredVersion,
+		"replicas":        int64(len(spec.ControlPlaneNodes())),
+		"machineTemplate": map[string]any{"infrastructureRef": objectRef(sshMachineTemplateGVK, ns, clusterName+"-cp-template")},
 		"kubeadmConfigSpec": map[string]any{
 			"clusterConfiguration": map[string]any{
 				"controlPlaneEndpoint": spec.Endpoint(),
 				"networking": map[string]any{
-					"podSubnet":  defaultString(spec.PodCIDR, "10.244.0.0/16"),
+					"podSubnet":     defaultString(spec.PodCIDR, "10.244.0.0/16"),
 					"serviceSubnet": defaultString(spec.ServiceCIDR, "10.96.0.0/12"),
-					"dnsDomain":  defaultString(spec.ClusterDomain, "cluster.local"),
+					"dnsDomain":     defaultString(spec.ClusterDomain, "cluster.local"),
 				},
 			},
 			"initConfiguration": map[string]any{
@@ -107,7 +107,7 @@ func CAPIManifests(spec ProvisionSpec, clusterName string, bootstrapCloudInit st
 
 	sshCPTemplate := object(sshMachineTemplateGVK, ns, clusterName+"-cp-template")
 	sshCPTemplate.Object["spec"] = map[string]any{
-		"role": "control-plane",
+		"role":  "control-plane",
 		"nodes": nodeList(spec.ControlPlaneNodes()),
 	}
 	objects = append(objects, *sshCPTemplate)
