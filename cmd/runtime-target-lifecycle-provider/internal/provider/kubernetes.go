@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -12,6 +13,8 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+
+	"github.com/F31/hnb/cmd/runtime-target-lifecycle-provider/internal/provision"
 )
 
 const (
@@ -39,6 +42,12 @@ type KubernetesManager struct {
 	client     kubernetes.Interface
 	cachedKube string
 	now        func() time.Time
+	// provisioner is used when create carries user-supplied SSH nodes; it
+	// bootstraps a real control-plane/workers (CAPI-aligned), stores the
+	// resulting kubeconfig, and registers the target. nil disables provisioning.
+	provisioner interface {
+		Provision(ctx context.Context, spec provision.ProvisionSpec) (provision.Result, error)
+	}
 }
 
 // NewKubernetesManager creates a manager that uses the resolved kubeconfig
@@ -50,6 +59,16 @@ func NewKubernetesManager(profile Profile) *KubernetesManager {
 		clientFunc: realKubernetesClient,
 		now:        time.Now,
 	}
+}
+
+// NewKubernetesManagerWithProvisioner builds a manager that can self-provision
+// clusters over user-supplied SSH nodes (create with sshSecretRef + nodes).
+func NewKubernetesManagerWithProvisioner(profile Profile, provisioner interface {
+	Provision(ctx context.Context, spec provision.ProvisionSpec) (provision.Result, error)
+}) *KubernetesManager {
+	m := NewKubernetesManager(profile)
+	m.provisioner = provisioner
+	return m
 }
 
 // NewKubernetesManagerWithClient allows injecting a fake client for testing.
@@ -79,7 +98,10 @@ func (m *KubernetesManager) Apply(ctx context.Context, execution ExecutionContex
 	m.mu.Lock()
 	record, ok := m.targets[input.TargetID]
 	m.mu.Unlock()
-	if !ok && input.Action != "import" {
+	// Self-hosted provisioning has no kubeconfig before it boots the cluster, so
+	// skip namespace-record recovery when bootstrapping over SSH.
+	provisioningCreate := input.Action == "create" && input.SSHSecretRef != nil && m.provisioner != nil
+	if !ok && input.Action != "import" && !provisioningCreate {
 		loaded, found, err := m.loadRecordFromNamespace(ctx, execution, input)
 		if err != nil {
 			return Result{}, err
@@ -111,9 +133,20 @@ func (m *KubernetesManager) Apply(ctx context.Context, execution ExecutionContex
 
 	managed := input.Action != "unmanage"
 
+	var provisionOutputs map[string]string
 	switch input.Action {
 	case "create":
-		if err := m.provisionNamespace(ctx, execution, input); err != nil {
+		// Self-hosted creation over user-supplied SSH nodes: bootstrap a real
+		// control-plane/workers, store the kubeconfig, and register the target.
+		// Without an SSH key the manager falls back to the legacy
+		// "register an existing cluster" semantics.
+		if input.SSHSecretRef != nil && m.provisioner != nil {
+			outputs, err := m.provision(ctx, execution, input)
+			if err != nil {
+				return Result{}, err
+			}
+			provisionOutputs = outputs
+		} else if err := m.provisionNamespace(ctx, execution, input); err != nil {
 			return Result{}, err
 		}
 	case "import":
@@ -138,6 +171,9 @@ func (m *KubernetesManager) Apply(ctx context.Context, execution ExecutionContex
 		"action":          input.Action,
 		"managed":         fmt.Sprintf("%t", managed),
 		"observationKind": m.profile.ObservationKind,
+	}
+	for key, value := range provisionOutputs {
+		outputs[key] = value
 	}
 	if len(input.Parameters) > 0 {
 		if encoded, err := json.Marshal(input.Parameters); err == nil {
@@ -173,6 +209,128 @@ func (m *KubernetesManager) validateFencing(execution ExecutionContext, input Li
 		return fail(400, ErrorInvalidRequest, false, "fencing_generation must be positive")
 	}
 	return nil
+}
+
+func (m *KubernetesManager) provision(ctx context.Context, execution ExecutionContext, input LifecycleInput) (map[string]string, error) {
+	spec, err := m.provisionSpec(execution, input)
+	if err != nil {
+		return nil, err
+	}
+	result, err := m.provisioner.Provision(ctx, spec)
+	if err != nil {
+		return nil, fail(500, ErrorTargetUnavailable, true, "provision cluster: %v", err)
+	}
+	outputs := map[string]string{
+		"provisioned": "true",
+		"nodeCount":   fmt.Sprintf("%d", result.NodeCount),
+		"endpoint":    result.ControlPlaneEndpoint,
+	}
+	if ref := result.KubeconfigRef; ref.Provider != "" {
+		encoded, _ := json.Marshal(map[string]string{
+			"provider": ref.Provider, "scope": ref.Scope, "name": ref.Name, "version": ref.Version,
+		})
+		outputs["kubeconfigRef"] = string(encoded)
+	}
+	return outputs, nil
+}
+
+// provisionSpec translates the lifecycle input into the provisioner spec,
+// parsing the user-supplied SSH node list from parameters.
+func (m *KubernetesManager) provisionSpec(execution ExecutionContext, input LifecycleInput) (provision.ProvisionSpec, error) {
+	if input.SSHSecretRef == nil {
+		return provision.ProvisionSpec{}, fail(400, ErrorInvalidRequest, false, "sshSecretRef is required for provisioning")
+	}
+	nodes, err := parseNodes(input.Parameters)
+	if err != nil {
+		return provision.ProvisionSpec{}, fail(400, ErrorInvalidRequest, false, "parameters.nodes: %v", err)
+	}
+	if len(nodes) == 0 {
+		return provision.ProvisionSpec{}, fail(400, ErrorInvalidRequest, false, "parameters.nodes requires at least one node")
+	}
+	return provision.ProvisionSpec{
+		TenantID:       execution.TenantID,
+		TargetID:       input.TargetID,
+		DisplayName:    input.DisplayName,
+		DesiredVersion: input.DesiredVersion,
+		PodCIDR:        parameterString(input.Parameters, "podCidr"),
+		ServiceCIDR:    parameterString(input.Parameters, "serviceCidr"),
+		ClusterDomain:  parameterString(input.Parameters, "clusterDomain"),
+		IdempotencyKey: input.IdempotencyKey,
+		Nodes:          nodes,
+		SSHCredential: provision.SecretReference{
+			Provider: input.SSHSecretRef.Provider,
+			Scope:    input.SSHSecretRef.Scope,
+			Name:     input.SSHSecretRef.Name,
+			Version:  input.SSHSecretRef.Version,
+		},
+	}, nil
+}
+
+func parseNodes(params map[string]any) ([]provision.NodeSpec, error) {
+	raw, ok := params["nodes"]
+	if !ok || raw == nil {
+		return nil, nil
+	}
+	list, ok := raw.([]any)
+	if !ok {
+		return nil, fmt.Errorf("must be an array of node objects")
+	}
+	nodes := make([]provision.NodeSpec, 0, len(list))
+	for i, item := range list {
+		obj, ok := item.(map[string]any)
+		if !ok {
+			return nil, fmt.Errorf("nodes[%d] must be an object", i)
+		}
+		node := provision.NodeSpec{
+			ID:   stringValue(obj["id"]),
+			Host: stringValue(obj["host"]),
+			User: stringValue(obj["user"]),
+			Role: provision.NodeRole(stringValue(obj["role"])),
+		}
+		if port, err := int64Value(obj["port"]); err == nil {
+			node.Port = int(port)
+		}
+		if node.Host == "" || node.Role == "" {
+			return nil, fmt.Errorf("nodes[%d] requires host and role", i)
+		}
+		if node.Role != provision.RoleControlPlane && node.Role != provision.RoleWorker {
+			return nil, fmt.Errorf("nodes[%d].role must be control-plane or worker", i)
+		}
+		nodes = append(nodes, node)
+	}
+	return nodes, nil
+}
+
+func parameterString(params map[string]any, key string) string {
+	raw, ok := params[key]
+	if !ok || raw == nil {
+		return ""
+	}
+	if text, ok := raw.(string); ok {
+		return text
+	}
+	return fmt.Sprintf("%v", raw)
+}
+
+func stringValue(v any) string {
+	if text, ok := v.(string); ok {
+		return text
+	}
+	return ""
+}
+
+func int64Value(v any) (int64, error) {
+	switch typed := v.(type) {
+	case float64:
+		return int64(typed), nil
+	case int64:
+		return typed, nil
+	case int:
+		return int64(typed), nil
+	case string:
+		return strconv.ParseInt(typed, 10, 64)
+	}
+	return 0, fmt.Errorf("not an integer")
 }
 
 func (m *KubernetesManager) provisionNamespace(ctx context.Context, execution ExecutionContext, input LifecycleInput) error {

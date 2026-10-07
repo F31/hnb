@@ -130,6 +130,7 @@ type RuntimeIntentSchema struct {
 	Spec struct {
 		BindingId                   *openapi_types.UUID                                                   `json:"bindingId,omitempty"`
 		BindingVersion              *int                                                                  `json:"bindingVersion,omitempty"`
+		CredentialSecretRef         *SecretReferenceSchema                                                `json:"credentialSecretRef,omitempty"`
 		CurrentVersion              *string                                                               `json:"currentVersion,omitempty"`
 		ExpectedVersion             *int                                                                  `json:"expectedVersion,omitempty"`
 		InstallationId              *openapi_types.UUID                                                   `json:"installationId,omitempty"`
@@ -145,6 +146,7 @@ type RuntimeIntentSchema struct {
 		ReleaseId                   *string                                                               `json:"releaseId,omitempty"`
 		ScopeRef                    *string                                                               `json:"scopeRef,omitempty"`
 		SecretReferences            *[]SecretReferenceSchema                                              `json:"secretReferences,omitempty"`
+		SshSecretRef                *SecretReferenceSchema                                                `json:"sshSecretRef,omitempty"`
 		StatefulSetDependencies     *[]interface{}                                                        `json:"statefulSetDependencies,omitempty"`
 		StorageClassName            *string                                                               `json:"storageClassName,omitempty"`
 		StorageClassResourceVersion *string                                                               `json:"storageClassResourceVersion,omitempty"`

@@ -78,10 +78,14 @@ type LifecycleInput struct {
 	DesiredVersion      string
 	CloudCoreEndpoint   string
 	CredentialSecretRef *SecretReference
-	Parameters          map[string]any
-	IdempotencyKey      string
-	FencingGeneration   int64
-	ObservationVersion  int64
+	// SSHSecretRef is the encrypted SSH private key SecretReference used when
+	// self-provisioning a Kubernetes control-plane across user-supplied nodes
+	// (purpose=ssh, resolved by runtime-target.lifecycle.kubernetes).
+	SSHSecretRef       *SecretReference
+	Parameters         map[string]any
+	IdempotencyKey     string
+	FencingGeneration  int64
+	ObservationVersion int64
 }
 
 type Result struct {

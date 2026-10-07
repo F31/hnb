@@ -8,8 +8,10 @@ import (
 	_ "github.com/lib/pq"
 )
 
-// secretCipher opens AES-256-GCM sealed payloads (base64 nonce||ciphertext).
+// secretCipher opens and produces AES-256-GCM sealed payloads (base64
+// nonce||ciphertext).
 type secretCipher interface {
+	Encrypt(plaintext []byte) (string, error)
 	Decrypt(sealed string) ([]byte, error)
 }
 

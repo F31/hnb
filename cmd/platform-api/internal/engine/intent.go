@@ -136,6 +136,7 @@ type IntentSpec struct {
 	KubernetesVersion           string                     `json:"kubernetesVersion,omitempty"`
 	CloudCoreEndpoint           string                     `json:"cloudCoreEndpoint,omitempty"`
 	CredentialSecretRef         *SecretReferenceEntry      `json:"credentialSecretRef,omitempty"`
+	SSHSecretRef                *SecretReferenceEntry      `json:"sshSecretRef,omitempty"`
 	NodeGroupMappings           map[string]string          `json:"nodeGroupMappings,omitempty"`
 	RiskConfirmation            *RiskConfirmation          `json:"riskConfirmation,omitempty"`
 	Parameters                  map[string]any             `json:"parameters,omitempty"`
@@ -289,7 +290,7 @@ func ParseRuntimeIntent(body []byte) (*RuntimeIntent, error) {
 			"displayName": true, "kubernetesVersion": true, "cloudCoreEndpoint": true,
 			"credentialSecretRef": true, "nodeGroupMappings": true,
 			"riskConfirmation": true,
-			"parameters":       true, "secretReferences": true,
+			"parameters":       true, "secretReferences": true, "sshSecretRef": true,
 		}
 		for k := range specRaw {
 			if !specFields[k] {

@@ -1155,6 +1155,7 @@ type KubernetesLifecycleStepInputSchema struct {
 	IdempotencyKey      string                                          `json:"idempotencyKey"`
 	ObservationVersion  int                                             `json:"observationVersion"`
 	SchemaVersion       KubernetesLifecycleStepInputSchemaSchemaVersion `json:"schemaVersion"`
+	SshSecretRef        *SecretReferenceSchema                          `json:"sshSecretRef,omitempty"`
 	TargetId            openapi_types.UUID                              `json:"targetId"`
 	TargetKind          KubernetesLifecycleStepInputSchemaTargetKind    `json:"targetKind"`
 }

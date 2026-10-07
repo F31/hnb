@@ -38,5 +38,7 @@ export type runtime_intent_schema = {
         scopeRef?: string;
         parameters?: Record<string, (string | number | boolean | null)>;
         secretReferences?: Array<secret_reference_schema>;
+        credentialSecretRef?: secret_reference_schema;
+        sshSecretRef?: secret_reference_schema;
     };
 };

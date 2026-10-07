@@ -45,6 +45,7 @@ type IntentSemanticDocument struct {
 	StatefulSetDependencies any                     `json:"statefulSetDependencies,omitempty"`
 	CloudCoreEndpoint       string                  `json:"cloudCoreEndpoint,omitempty"`
 	CredentialSecretRef     *IntentSecretReference  `json:"credentialSecretRef,omitempty"`
+	SSHSecretRef            *IntentSecretReference  `json:"sshSecretRef,omitempty"`
 	NodeGroupMappings       map[string]string       `json:"nodeGroupMappings,omitempty"`
 	Parameters              map[string]any          `json:"parameters,omitempty"`
 	SecretReferences        []IntentSecretReference `json:"secretReferences,omitempty"`

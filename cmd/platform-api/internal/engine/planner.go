@@ -357,6 +357,9 @@ func lifecycleSteps(intent *RuntimeIntent, tenantID string, decision Compatibili
 	if intent.Spec.CredentialSecretRef != nil {
 		inputs["credentialSecretRef"] = *intent.Spec.CredentialSecretRef
 	}
+	if intent.Spec.SSHSecretRef != nil {
+		inputs["sshSecretRef"] = *intent.Spec.SSHSecretRef
+	}
 	if intent.Spec.CloudCoreEndpoint != "" {
 		inputs["cloudCoreEndpoint"] = intent.Spec.CloudCoreEndpoint
 	}

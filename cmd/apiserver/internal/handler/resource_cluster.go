@@ -1028,6 +1028,7 @@ type bffIntentSpec struct {
 	KubernetesVersion           string               `json:"kubernetesVersion,omitempty"`
 	CloudCoreEndpoint           string               `json:"cloudCoreEndpoint,omitempty"`
 	CredentialSecretRef         *bffIntentSecretRef  `json:"credentialSecretRef,omitempty"`
+	SSHSecretRef                *bffIntentSecretRef  `json:"sshSecretRef,omitempty"`
 	NodeGroupMappings           map[string]string    `json:"nodeGroupMappings,omitempty"`
 	RiskConfirmation            map[string]any       `json:"riskConfirmation,omitempty"`
 	Parameters                  map[string]any       `json:"parameters,omitempty"`
@@ -1205,6 +1206,10 @@ func bffIntentSemanticDigest(envelope bffIntentEnvelope) string {
 	if envelope.Spec.CredentialSecretRef != nil {
 		ref := bffCanonicalSecretReference(*envelope.Spec.CredentialSecretRef)
 		document.CredentialSecretRef = &ref
+	}
+	if envelope.Spec.SSHSecretRef != nil {
+		ref := bffCanonicalSecretReference(*envelope.Spec.SSHSecretRef)
+		document.SSHSecretRef = &ref
 	}
 	for _, ref := range envelope.Spec.SecretReferences {
 		document.SecretReferences = append(document.SecretReferences, bffCanonicalSecretReference(ref))
@@ -1545,6 +1550,9 @@ func (h *ResourceClusterHandler) persistIntent(w http.ResponseWriter, r *http.Re
 	secrets := append([]bffIntentSecretRef(nil), envelope.Spec.SecretReferences...)
 	if envelope.Spec.CredentialSecretRef != nil {
 		secrets = append(secrets, *envelope.Spec.CredentialSecretRef)
+	}
+	if envelope.Spec.SSHSecretRef != nil {
+		secrets = append(secrets, *envelope.Spec.SSHSecretRef)
 	}
 	secretsJSON, _ := json.Marshal(secrets)
 	targetRef := envelope.Spec.TargetID

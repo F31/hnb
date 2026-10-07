@@ -11,6 +11,7 @@ export type kubernetes_lifecycle_step_input_schema = {
     displayName?: string;
     desiredVersion?: string;
     credentialSecretRef?: secret_reference_schema;
+    sshSecretRef?: secret_reference_schema;
     idempotencyKey: string;
     fencingGeneration: number;
     observationVersion: number;

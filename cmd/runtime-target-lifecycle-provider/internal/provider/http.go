@@ -103,6 +103,17 @@ func (s *Server) handleExecute(w http.ResponseWriter, r *http.Request) {
 		}
 		execution.Inputs["_resolvedSecretContent"] = string(secretBytes)
 	}
+	// Self-provisioning (create via user-supplied SSH nodes) resolves the SSH
+	// private key with purpose=ssh and injects it under a distinct key so the
+	// manager can distinguish "import with kubeconfig" from "provision over SSH".
+	if input.SSHSecretRef != nil {
+		keyBytes, err := s.secrets.Resolve(r.Context(), execution.TenantID, s.profile.ProviderID, "ssh", *input.SSHSecretRef)
+		if err != nil {
+			writeFailureResult(w, err, execution, Result{})
+			return
+		}
+		execution.Inputs["_resolvedSSHKey"] = string(keyBytes)
+	}
 	result, err := s.manager.Apply(r.Context(), execution, input)
 	if err != nil {
 		writeFailureResult(w, err, execution, result)

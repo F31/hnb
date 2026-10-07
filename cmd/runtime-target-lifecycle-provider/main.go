@@ -10,6 +10,7 @@ import (
 	_ "github.com/lib/pq"
 
 	"github.com/F31/hnb/cmd/runtime-target-lifecycle-provider/internal/provider"
+	"github.com/F31/hnb/cmd/runtime-target-lifecycle-provider/internal/provision"
 )
 
 func main() {
@@ -17,19 +18,31 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	db := buildDatabase()
+	defer db.Close()
 	var manager provider.LifecycleManager
 	switch profile.ProviderID {
 	case "runtime-target.lifecycle.kubernetes":
-		manager = provider.NewKubernetesManager(profile)
-		log.Printf("using real Kubernetes lifecycle manager")
+		cipher, err := kms.NewAESGCMFromHex(os.Getenv("HNB_MASTER_KEY"))
+		if err != nil {
+			log.Fatalf("HNB_MASTER_KEY: %v", err)
+		}
+		store := provider.NewProvisionStore(db, cipher)
+		provisioner := provision.New(
+			provision.WithBootstrapper(&provision.NodeBootstrapper{
+				SSH:   &provision.RealSSH{},
+				Key:   store,
+				Store: store,
+			}),
+		)
+		manager = provider.NewKubernetesManagerWithProvisioner(profile, provisioner)
+		log.Printf("using real Kubernetes lifecycle manager (self-hosted provisioning enabled)")
 	case "runtime-target.lifecycle.edge":
 		manager = provider.NewEdgeManager(profile)
 		log.Printf("using real Edge lifecycle manager")
 	default:
 		manager = provider.NewMemoryManager(profile)
 	}
-	db := buildDatabase()
-	defer db.Close()
 	server := provider.NewServer(profile, manager, buildSecretResolver(db), provider.NewPGObserverRegistry(db))
 	addr := getEnv("LISTEN_ADDRESS", ":18082")
 	log.Printf("runtime-target lifecycle provider %s listening on %s", profile.ProviderID, addr)

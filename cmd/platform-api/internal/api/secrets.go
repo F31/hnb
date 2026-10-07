@@ -39,6 +39,9 @@ var secretScopePattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9_.:\-]{0,127}
 var secretPurposes = map[string]string{
 	"kubeconfig":       "runtime-target.lifecycle.kubernetes",
 	"cloudcore-client": "runtime-target.lifecycle.edge",
+	// ssh 仅用于平台侧自建集群装机：由 runtime-target.lifecycle.kubernetes
+	// 在目标节点上执行引导脚本（class="ssh-node"）。
+	"ssh": "runtime-target.lifecycle.kubernetes",
 }
 
 type registerSecretRequest struct {
@@ -171,8 +174,12 @@ func (s *Server) authorizeSecretCommitment(w http.ResponseWriter, r *http.Reques
 func validateRegisterSecretRequest(req *registerSecretRequest) error {
 	switch req.Purpose {
 	case "kubeconfig", "cloudcore-client":
+	case "ssh":
+		if !looksLikeSSHKey(req.Value) {
+			return &badSecretField{Field: "value", Reason: "value does not look like an SSH private key (unexpected PEM format)"}
+		}
 	default:
-		return &badSecretField{Field: "purpose", Reason: "purpose must be kubeconfig or cloudcore-client"}
+		return &badSecretField{Field: "purpose", Reason: "purpose must be kubeconfig, cloudcore-client or ssh"}
 	}
 	if len(req.Scope) == 0 || len(req.Scope) > maxSecretNameLen || !secretScopePattern.MatchString(req.Scope) {
 		return &badSecretField{Field: "scope", Reason: "scope must be a non-empty identifier"}
@@ -212,6 +219,18 @@ func looksLikeKubeConfig(raw []byte) bool {
 		return containsAll(trimmed, []byte("apiVersion"), []byte("clusters"))
 	}
 	return false
+}
+
+// looksLikeSSHKey reports whether the base64-decoded value is (or at least
+// starts like) an OpenSSH/PEM private key, to fail early on mis-typed uploads.
+func looksLikeSSHKey(encoded string) bool {
+	raw, err := base64.StdEncoding.DecodeString(strings.TrimSpace(encoded))
+	if err != nil || len(raw) == 0 {
+		return false
+	}
+	trimmed := trimLeftSpace(raw)
+	return strings.HasPrefix(string(trimmed), "-----BEGIN") &&
+		strings.Contains(string(trimmed), "PRIVATE KEY")
 }
 
 func trimLeftSpace(b []byte) []byte {

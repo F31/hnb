@@ -67,7 +67,9 @@
           "maxItems": 32,
           "uniqueItems": true,
           "items": { "$ref": "../../common/v1/secret-reference.schema.json" }
-        }
+        },
+        "credentialSecretRef": { "$ref": "../../common/v1/secret-reference.schema.json" },
+        "sshSecretRef": { "$ref": "../../common/v1/secret-reference.schema.json" }
       }
     }
   },

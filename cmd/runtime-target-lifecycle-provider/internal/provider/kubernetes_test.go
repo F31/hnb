@@ -8,6 +8,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
+
+	"github.com/F31/hnb/cmd/runtime-target-lifecycle-provider/internal/provision"
 )
 
 func fakeK8sClient(kubeconfig []byte) (kubernetes.Interface, error) {
@@ -59,6 +61,80 @@ func TestKubernetesManagerImportValidateConnectivity(t *testing.T) {
 	}
 	if result.Outputs["action"] != "import" {
 		t.Fatalf("action = %q", result.Outputs["action"])
+	}
+}
+
+func TestKubernetesManagerCreateProvisionOverSSH(t *testing.T) {
+	profile := mustProfile(t, "runtime-target.lifecycle.kubernetes")
+	fakeProvisioner := &fakeProvisionerDelegator{}
+	manager := NewKubernetesManagerWithProvisioner(profile, fakeProvisioner)
+	execution := testContext(profile, "runtime_target.kubernetes.provision-and-register", "create", 1)
+	input := testInput(profile, "create", 1)
+	input.SSHSecretRef = &SecretReference{Provider: "local", Scope: "tenant", Name: "ssh-key", Version: "1"}
+	input.Parameters = map[string]any{
+		"nodes": []any{
+			map[string]any{"id": "cp1", "host": "10.0.0.10", "role": "control-plane"},
+			map[string]any{"id": "w1", "host": "10.0.0.11", "role": "worker"},
+		},
+		"podCidr":     "10.244.0.0/16",
+		"serviceCidr": "10.96.0.0/12",
+	}
+	fakeProvisioner.result = provision.Result{
+		ControlPlaneEndpoint: "10.0.0.10:6443",
+		NodeCount:            2,
+		KubeconfigRef:        provision.SecretReference{Provider: "local", Scope: "tenant", Name: "prov-kubeconfig", Version: "1"},
+	}
+
+	result, err := manager.Apply(context.Background(), execution, input)
+	if err != nil {
+		t.Fatalf("provision create: %v", err)
+	}
+	if result.Outputs["provisioned"] != "true" {
+		t.Fatalf("provisioned output = %q", result.Outputs["provisioned"])
+	}
+	if result.Outputs["nodeCount"] != "2" {
+		t.Fatalf("nodeCount output = %q", result.Outputs["nodeCount"])
+	}
+	if result.Outputs["endpoint"] != "10.0.0.10:6443" {
+		t.Fatalf("endpoint output = %q", result.Outputs["endpoint"])
+	}
+	if fakeProvisioner.spec.TenantID != execution.TenantID || len(fakeProvisioner.spec.Nodes) != 2 {
+		t.Fatalf("provisioner spec not translated: %+v", fakeProvisioner.spec)
+	}
+	if fakeProvisioner.spec.SSHCredential.Provider != "local" || fakeProvisioner.spec.SSHCredential.Name != "ssh-key" {
+		t.Fatalf("ssh credential not carried: %+v", fakeProvisioner.spec.SSHCredential)
+	}
+}
+
+type fakeProvisionerDelegator struct {
+	spec   provision.ProvisionSpec
+	result provision.Result
+}
+
+func (f *fakeProvisionerDelegator) Provision(_ context.Context, spec provision.ProvisionSpec) (provision.Result, error) {
+	f.spec = spec
+	return f.result, nil
+}
+
+func TestParseNodesValidation(t *testing.T) {
+	if _, err := parseNodes(map[string]any{"nodes": "nope"}); err == nil {
+		t.Fatal("expected error for non-array nodes")
+	}
+	if _, err := parseNodes(map[string]any{"nodes": []any{map[string]any{"host": "h", "role": "bogus"}}}); err == nil {
+		t.Fatal("expected error for invalid role")
+	}
+	if _, err := parseNodes(map[string]any{"nodes": []any{map[string]any{"role": "worker"}}}); err == nil {
+		t.Fatal("expected error for missing host")
+	}
+	nodes, err := parseNodes(map[string]any{"nodes": []any{
+		map[string]any{"host": "10.0.0.1", "role": "control-plane", "port": float64(2222)},
+		map[string]any{"host": "10.0.0.2", "role": "worker"},
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(nodes) != 2 || nodes[0].Port != 2222 {
+		t.Fatalf("unexpected nodes: %+v", nodes)
 	}
 }
 

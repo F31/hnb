@@ -62,12 +62,17 @@ func parseLifecycleInput(profile Profile, execution ExecutionContext) (Lifecycle
 		return LifecycleInput{}, err
 	}
 	input.CredentialSecretRef = ref
+	sshRef, err := secretRefInput(execution.Inputs, "sshSecretRef")
+	if err != nil {
+		return LifecycleInput{}, err
+	}
+	input.SSHSecretRef = sshRef
 	if action == "create" || action == "import" {
 		if input.DisplayName == "" || len(input.DisplayName) > 256 {
 			return LifecycleInput{}, invalid("inputs.displayName is required and must be <= 256 characters")
 		}
-		if input.CredentialSecretRef == nil {
-			return LifecycleInput{}, invalid("inputs.credentialSecretRef is required for %s", action)
+		if input.CredentialSecretRef == nil && input.SSHSecretRef == nil {
+			return LifecycleInput{}, invalid("inputs.credentialSecretRef or inputs.sshSecretRef is required for %s", action)
 		}
 	}
 	if action == "upgrade" && (input.DesiredVersion == "" || len(input.DesiredVersion) > 128) {
@@ -82,7 +87,7 @@ func parseLifecycleInput(profile Profile, execution ExecutionContext) (Lifecycle
 }
 
 func allowedKeys(targetKind string) []string {
-	keys := []string{"schemaVersion", "targetId", "targetKind", "action", "displayName", "desiredVersion", "credentialSecretRef", "parameters", "idempotencyKey", "fencingGeneration", "observationVersion"}
+	keys := []string{"schemaVersion", "targetId", "targetKind", "action", "displayName", "desiredVersion", "credentialSecretRef", "sshSecretRef", "parameters", "idempotencyKey", "fencingGeneration", "observationVersion"}
 	if targetKind == "EdgeRuntimeTarget" {
 		keys = append(keys, "cloudCoreEndpoint", "nodeGroupMappings")
 	}
