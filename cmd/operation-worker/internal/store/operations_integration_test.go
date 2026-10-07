@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -441,7 +442,7 @@ func TestRuntimeTargetLifecycleUpdatesForTerminalClusterOperations(t *testing.T)
 		_, _ = db.ExecContext(ctx, `DELETE FROM runtime_targets WHERE id = $1`, targetID)
 	})
 
-	apply := func(status engine.OperationStatus, intentKind string) {
+	applyWithOutputs := func(status engine.OperationStatus, intentKind string, outputs map[string]any) {
 		t.Helper()
 		tx, err := db.BeginTx(ctx, nil)
 		if err != nil {
@@ -458,12 +459,15 @@ func TestRuntimeTargetLifecycleUpdatesForTerminalClusterOperations(t *testing.T)
 				"target_id":   targetID,
 			},
 		}
-		if err := updateRuntimeTargetLifecycleForOperation(ctx, tx, op); err != nil {
+		if err := updateRuntimeTargetLifecycleForOperation(ctx, tx, op, outputs); err != nil {
 			t.Fatal(err)
 		}
 		if err := tx.Commit(); err != nil {
 			t.Fatal(err)
 		}
+	}
+	apply := func(status engine.OperationStatus, intentKind string) {
+		applyWithOutputs(status, intentKind, nil)
 	}
 
 	apply(engine.StatusSucceeded, "CreateKubernetesTarget")
@@ -477,6 +481,24 @@ func TestRuntimeTargetLifecycleUpdatesForTerminalClusterOperations(t *testing.T)
 
 	apply(engine.StatusSucceeded, "DeleteRuntimeTarget")
 	assertRuntimeTargetState(t, db, targetID, "TERMINATED", "decommissioned", false)
+
+	// 自建（self-hosted provisioning）成功：真实集群应置 ACTIVE/online，
+	// 并把产物 admin kubeconfig 回写为 credential_ref。
+	applyWithOutputs(engine.StatusSucceeded, "CreateKubernetesTarget", map[string]any{
+		"provisioned":   "true",
+		"kubeconfigRef": `{"provider":"local","scope":"tenant","name":"provision-test","version":"1"}`,
+		"endpoint":      "10.0.0.10:6443",
+		"nodeCount":     "3",
+	})
+	assertRuntimeTargetState(t, db, targetID, "ACTIVE", "online", true)
+
+	var credentialRef sql.NullString
+	if err := db.QueryRowContext(ctx, `SELECT credential_ref::text FROM runtime_targets WHERE id = $1`, targetID).Scan(&credentialRef); err != nil {
+		t.Fatal(err)
+	}
+	if !credentialRef.Valid || credentialRef.String == "" || !strings.Contains(credentialRef.String, "provision-test") {
+		t.Fatalf("provisioning kubeconfig not backfilled to credential_ref: %q", credentialRef.String)
+	}
 }
 
 func TestRuntimeTargetLifecycleUpdatesWhenOperationCommitsTerminalStep(t *testing.T) {

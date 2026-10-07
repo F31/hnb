@@ -540,7 +540,7 @@ func (s *OperationStore) commitStepResult(
 		return err
 	}
 	if engine.IsTerminal(op.Status) {
-		if err := updateRuntimeTargetLifecycleForOperation(ctx, tx, op); err != nil {
+		if err := updateRuntimeTargetLifecycleForOperation(ctx, tx, op, result.Outputs); err != nil {
 			return err
 		}
 	}
@@ -635,12 +635,26 @@ func upsertReadModel(ctx context.Context, tx *sql.Tx, op *engine.Operation) erro
 	return nil
 }
 
-func updateRuntimeTargetLifecycleForOperation(ctx context.Context, tx *sql.Tx, op *engine.Operation) error {
+func outputString(outputs map[string]any, key string) string {
+	value, ok := outputs[key]
+	if !ok || value == nil {
+		return ""
+	}
+	if text, ok := value.(string); ok {
+		return text
+	}
+	return fmt.Sprintf("%v", value)
+}
+
+func updateRuntimeTargetLifecycleForOperation(ctx context.Context, tx *sql.Tx, op *engine.Operation, stepOutputs map[string]any) error {
 	targetID := op.Tags["target_id"]
 	intentKind := op.Tags["intent_kind"]
 	if targetID == "" || intentKind == "" {
 		return nil
 	}
+	// Self-hosted provisioning marks the target ACTIVE (real cluster ready),
+	// and backfills the provisioned admin kubeconfig as the credential ref.
+	provisioned := outputString(stepOutputs, "provisioned") == "true"
 	var lifecycle, status, health, connectivity, freshness string
 	isActive := true
 	switch {
@@ -650,11 +664,31 @@ func updateRuntimeTargetLifecycleForOperation(ctx context.Context, tx *sql.Tx, o
 		lifecycle, status, health, connectivity, freshness = "TERMINATED", "decommissioned", "UNKNOWN", "DISCONNECTED", "STALE"
 		isActive = false
 	case op.Status == engine.StatusSucceeded && (intentKind == "CreateKubernetesTarget" || intentKind == "ImportRuntimeTarget"):
-		lifecycle, status, health, connectivity, freshness = "REGISTERING", "unknown", "UNKNOWN", "UNKNOWN", "UNKNOWN"
+		if provisioned {
+			// True self-hosted: control plane bootstrapped and kubeconfig stored.
+			lifecycle, status, health, connectivity, freshness = "ACTIVE", "online", "HEALTHY", "CONNECTED", "FRESH"
+		} else {
+			// Registered/imported against an existing cluster; probe-based health
+			// follows from the agent.
+			lifecycle, status, health, connectivity, freshness = "REGISTERING", "unknown", "UNKNOWN", "UNKNOWN", "UNKNOWN"
+		}
 	case op.Status == engine.StatusSucceeded && intentKind == "UpgradeRuntimeTarget":
 		lifecycle, status, health, connectivity, freshness = "ACTIVE", "online", "HEALTHY", "CONNECTED", "FRESH"
 	default:
 		return nil
+	}
+
+	// The provisioner persists the admin kubeconfig via purpose=kubeconfig and
+	// returns its reference; reflect it onto the target so upgrades/health
+	// resolution work without re-upload.
+	var credentialRef any
+	if raw, ok := stepOutputs["kubeconfigRef"]; ok && raw != nil {
+		var ref map[string]string
+		if err := json.Unmarshal([]byte(outputString(stepOutputs, "kubeconfigRef")), &ref); err == nil && ref["name"] != "" {
+			if encoded, err := json.Marshal(ref); err == nil {
+				credentialRef = string(encoded)
+			}
+		}
 	}
 	_, err := tx.ExecContext(ctx, `
 		UPDATE runtime_targets
@@ -666,9 +700,10 @@ func updateRuntimeTargetLifecycleForOperation(ctx context.Context, tx *sql.Tx, o
 			last_known_state_at = now(),
 			projection_version = projection_version + 1,
 			is_active = $8,
+			credential_ref = COALESCE($9::jsonb, credential_ref),
 			updated_at = now()
 		WHERE id = $1::uuid AND tenant_id = $2`,
-		targetID, op.TenantID, lifecycle, status, health, connectivity, freshness, isActive,
+		targetID, op.TenantID, lifecycle, status, health, connectivity, freshness, isActive, credentialRef,
 	)
 	if err != nil {
 		return fmt.Errorf("update runtime target lifecycle: %w", err)
