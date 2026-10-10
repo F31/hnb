@@ -179,7 +179,6 @@ function endSubmission(): void {
 
 // 版本由后端平台配置数据字典（platform_settings.resource.cluster.kubernetesVersions）
 // 按需提供，前端不再硬编码任何版本。字典不可达时保持空列表并提示，绝不臆造版本。
-const fallbackVersionOptions: api.ClusterVersionCatalogItem[] = []
 const versionOptions = ref<api.ClusterVersionCatalogItem[]>([])
 const replicaOptions = [1, 3, 5]
 const architectureOptions = ['X86_64', 'AARCH64']
@@ -755,17 +754,6 @@ function sourceLabel(m: SourceMode): string {
               </label>
 
               <template v-if="mode === 'create'">
-<label>
-                  <span>{{ t('resource.clusterMgmt.form.targetVersion') }}</span>
-                  <select v-model="form.targetVersion">
-                    <option v-for="v in versionOptions" :key="v.code" :value="v.code" :disabled="!isVersionSelectable(v)">
-                      {{ versionLabel(v) }}
-                    </option>
-                  </select>
-                  <small v-if="selectedVersionOption && !isVersionSelectable(selectedVersionOption)" class="field-error">
-                    {{ t('resource.clusterMgmt.form.versionUnselectableHint') }}
-                  </small>
-                </label>
                 <label class="switch-field">
                   <input v-model="form.controlPlaneSchedulingEnabled" type="checkbox" />
                   <span>{{ t('resource.clusterMgmt.form.controlPlaneScheduling') }}</span>
@@ -830,6 +818,7 @@ function sourceLabel(m: SourceMode): string {
                 <label>
                   <span>{{ t('resource.clusterMgmt.form.targetVersion') }}</span>
                   <select v-model="form.targetVersion">
+                    <option v-if="!versionOptions.length" value="" disabled>{{ t('resource.clusterMgmt.form.versionCatalogEmpty') }}</option>
                     <option v-for="v in versionOptions" :key="v.code" :value="v.code" :disabled="!isVersionSelectable(v)">
                       {{ versionLabel(v) }}
                     </option>

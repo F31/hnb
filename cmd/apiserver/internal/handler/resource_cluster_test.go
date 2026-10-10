@@ -57,8 +57,20 @@ func TestResourceClusterHandlerKubernetesVersionDictionary(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
 	}
-	if !strings.Contains(rec.Body.String(), `"dictionaryId":"resource.cluster.kubernetesVersions"`) || !strings.Contains(rec.Body.String(), `"code":"1.36"`) {
+	if !strings.Contains(rec.Body.String(), `"dictionaryId":"resource.cluster.kubernetesVersions"`) || !strings.Contains(rec.Body.String(), `"items":[]`) {
 		t.Fatalf("unexpected dictionary body: %s", rec.Body.String())
+	}
+}
+
+func TestVersionCatalogRequiresEvidence(t *testing.T) {
+	ready := true
+	catalog := kubernetesVersionCatalogPayload{Items: []kubernetesVersionCatalogItem{
+		{dictionaryItem: dictionaryItem{Code: "unverified", IntegrationTestStatus: "passed", OfflineBundleAvailable: &ready}},
+		{dictionaryItem: dictionaryItem{Code: "verified", IntegrationTestStatus: "passed", OfflineBundleAvailable: &ready}, IntegrationReport: "reports/create-online.json"},
+	}}
+	items := evidenceBackedVersions(catalog)
+	if len(items) != 1 || items[0].Code != "verified" || *items[0].OfflineBundleAvailable {
+		t.Fatalf("unsupported release claims escaped evidence gate: %+v", items)
 	}
 }
 

@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
@@ -146,8 +145,8 @@ type dictionaryItem struct {
 	Icon     string `json:"icon"`
 	Terminal bool   `json:"terminal"`
 	// 集群版本目录扩展字段（按需配置）：平台集成测试情况与离线包可用情况。
-	IntegrationTestStatus   string `json:"integrationTestStatus,omitempty"`
-	OfflineBundleAvailable  *bool  `json:"offlineBundleAvailable,omitempty"`
+	IntegrationTestStatus  string `json:"integrationTestStatus,omitempty"`
+	OfflineBundleAvailable *bool  `json:"offlineBundleAvailable,omitempty"`
 }
 
 type statusDictionaryPayload struct {
@@ -956,36 +955,52 @@ var freshnessDictionary = []dictionaryItem{
 // response and (indirectly) the bootstrap target validation.
 const kubernetesVersionCatalogSettingKey = "resource.cluster.kubernetesVersions"
 
-// defaultKubernetesVersionCatalog 是 DB 未配置/不可用时的内置回落。遵循
-// "只列出当前已通过平台集成测试的版本"策略：目前仅有 1.36 实测通过；
-// 其余版本须经集成测试（且可选离线包就绪）后，由运维写入 platform_settings
-// key=resource.cluster.kubernetesVersions 按需开放。
-var defaultKubernetesVersionCatalog = kubernetesVersionCatalogPayload{
-	Items: []dictionaryItem{
-		{Code: "1.36", LabelKey: "resource.clusterMgmt.version.1_36", Semantic: "default", Icon: "kubernetes", Terminal: false, IntegrationTestStatus: "passed", OfflineBundleAvailable: boolPtr(true)},
-	},
-}
-
 type kubernetesVersionCatalogPayload struct {
-	Items []dictionaryItem `json:"items"`
+	Items []kubernetesVersionCatalogItem `json:"items"`
 }
 
-func boolPtr(v bool) *bool { return &v }
+type kubernetesVersionCatalogItem struct {
+	dictionaryItem
+	IntegrationReport string `json:"integrationReport"`
+	BundleDigest      string `json:"bundleDigest"`
+	OfflineReport     string `json:"offlineReport"`
+}
 
 func (h *ResourceClusterHandler) KubernetesVersionDictionary(w http.ResponseWriter, r *http.Request) {
-	catalog := defaultKubernetesVersionCatalog
+	items := []dictionaryItem{}
 	if h.db != nil {
-		var loaded kubernetesVersionCatalogPayload
+		var raw []byte
 		err := h.db.QueryRowContext(r.Context(),
 			`SELECT value FROM platform_settings WHERE key = $1`, kubernetesVersionCatalogSettingKey,
-		).Scan(&loaded)
-		if err != nil {
-			_, _ = fmt.Fprintf(os.Stderr, "platform-api: load k8s version catalog: %v; using default\n", err)
-		} else if len(loaded.Items) > 0 {
-			catalog = loaded
+		).Scan(&raw)
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			response.InternalError(w, "version catalog unavailable")
+			return
+		}
+		if len(raw) > 0 {
+			var loaded kubernetesVersionCatalogPayload
+			if err := json.Unmarshal(raw, &loaded); err != nil {
+				response.InternalError(w, "invalid version catalog configuration")
+				return
+			}
+			items = evidenceBackedVersions(loaded)
 		}
 	}
-	writeJSONRaw(w, statusDictionaryPayload{DictionaryID: "resource.cluster.kubernetesVersions", Items: catalog.Items})
+	writeJSONRaw(w, statusDictionaryPayload{DictionaryID: "resource.cluster.kubernetesVersions", Items: items})
+}
+
+func evidenceBackedVersions(catalog kubernetesVersionCatalogPayload) []dictionaryItem {
+	items := []dictionaryItem{}
+	for _, entry := range catalog.Items {
+		if entry.IntegrationTestStatus != "passed" || strings.TrimSpace(entry.IntegrationReport) == "" {
+			continue
+		}
+		offline := entry.OfflineBundleAvailable != nil && *entry.OfflineBundleAvailable &&
+			strings.HasPrefix(entry.BundleDigest, "sha256:") && len(entry.BundleDigest) == 71 && strings.TrimSpace(entry.OfflineReport) != ""
+		entry.OfflineBundleAvailable = &offline
+		items = append(items, entry.dictionaryItem)
+	}
+	return items
 }
 
 func (h *ResourceClusterHandler) StatusDictionary(w http.ResponseWriter, r *http.Request) {

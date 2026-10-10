@@ -15,11 +15,10 @@ INSERT INTO platform_settings (key, value, updated_at) VALUES (
     'resource.cluster.kubernetesVersions',
     '{
       "items": [
-        {"code":"1.36","labelKey":"resource.clusterMgmt.version.1_36","integrationTestStatus":"passed","offlineBundleAvailable":true,"semantic":"default","icon":"kubernetes","terminal":false}
       ]
     }'::jsonb,
     now()
 )
-ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now();
+ON CONFLICT (key) DO NOTHING;
 
 COMMIT;

@@ -682,6 +682,7 @@ export default definePluginMessages({
         versionOfflineReady: '离线包就绪',
         versionNeedsNetwork: '需联网拉取',
         versionUnselectableHint: '当前仅开放平台集成测试通过的版本；其余版本按需配置后可启用',
+        versionCatalogEmpty: '暂无通过验收的版本，请配置并关联验收报告',
         replicas: '控制面副本数',
         architecture: '集群架构',
         description: '集群描述',
