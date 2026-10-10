@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -15,6 +16,30 @@ import (
 type provisionStore struct {
 	db     *sql.DB
 	cipher secretCipher
+}
+
+// Execution-time gate; UI selection alone is not authorization to bootstrap.
+func (s *provisionStore) ValidateVersion(ctx context.Context, version string) error {
+	var raw []byte
+	if err := s.db.QueryRowContext(ctx, `SELECT value FROM platform_settings WHERE key='resource.cluster.kubernetesVersions'`).Scan(&raw); err != nil {
+		return fmt.Errorf("version evidence unavailable: %w", err)
+	}
+	var catalog struct {
+		Items []struct {
+			Code   string `json:"code"`
+			Status string `json:"integrationTestStatus"`
+			Report string `json:"integrationReport"`
+		} `json:"items"`
+	}
+	if err := json.Unmarshal(raw, &catalog); err != nil {
+		return err
+	}
+	for _, item := range catalog.Items {
+		if item.Code == version && item.Status == "passed" && item.Report != "" {
+			return nil
+		}
+	}
+	return fmt.Errorf("exact version %q has no accepted integration report", version)
 }
 
 // NewProvisionStore builds the bridge used by the self-hosted provisioner.
@@ -67,13 +92,15 @@ func (s *provisionStore) StoreKubeconfig(ctx context.Context, tenantID, scope, n
 	var version string
 	err = s.db.QueryRowContext(ctx, `
 		INSERT INTO secret_references (
-			tenant_id, name, scope, purpose, encrypted_value, kms_provider_id,
-			allowed_lifecycle_provider_id, is_active
-		) VALUES ($1, $2, $3, 'kubeconfig', $4, $5::uuid,
+			tenant_id, name, secret_ref, scope, purpose, encrypted_value,
+			algorithm, kms_provider_id, allowed_lifecycle_provider_id, is_active
+		) VALUES ($1, $2, $2, $3, 'kubeconfig', $4, 'AES-256-GCM', $5::uuid,
 			'runtime-target.lifecycle.kubernetes', true)
 		ON CONFLICT (tenant_id, name, scope, purpose, allowed_lifecycle_provider_id)
-		DO UPDATE SET encrypted_value = EXCLUDED.encrypted_value,
+		DO UPDATE SET secret_ref = EXCLUDED.secret_ref,
+			encrypted_value = EXCLUDED.encrypted_value,
 			kms_provider_id = EXCLUDED.kms_provider_id,
+			version = secret_references.version + 1,
 			updated_at = now(),
 			is_active = true
 		RETURNING version::text`,
