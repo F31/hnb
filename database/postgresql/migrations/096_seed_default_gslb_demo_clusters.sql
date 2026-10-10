@@ -7,6 +7,18 @@
 
 BEGIN;
 
+-- Self-contained demo tenant: migrations must be replayable, so the demo
+-- cluster bindings cannot depend on application-created tenants. Creating the
+-- tenant + its default workspace here (idempotently) lets migration 021's
+-- backfill give the demo rows a workspace_id when that migration is replayed.
+INSERT INTO tenants (id, name, display_name)
+VALUES ('default', 'default', 'Default')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO workspaces (tenant_id, name, display_name)
+SELECT id, 'default', 'Default' FROM tenants WHERE id = 'default'
+ON CONFLICT (tenant_id, name) DO NOTHING;
+
 INSERT INTO runtime_targets (
     id, tenant_id, name, display_name, target_type, connection_type,
     connection_endpoint, status, lifecycle_state, health_state,

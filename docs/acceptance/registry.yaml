@@ -1,0 +1,51 @@
+schema_version: 1
+policy:
+  levels: [unit, db_integration, real_e2e, production_ha]
+  allowed_statuses: [not_run, partial, blocked, passed, failed]
+  promotion: "A higher level is never inferred from a lower level. Passed requires a retained report and artifact identity."
+  report_fields: [run_id, commit, command, environment, started_at, finished_at, exit_code, assertions, artifact_digests]
+  legacy_results: "Prior chat/log summaries are historical traces only; do not promote without retained reports."
+features:
+  kubernetes_import:
+    unit: {status: not_run, command: "go test ./internal/provider -count=1", module: cmd/runtime-target-lifecycle-provider}
+    db_integration: {status: not_run}
+    real_e2e: {status: partial, note: "Historical import smoke succeeded, but full API/admission/Agent and retained report are missing."}
+    production_ha: {status: not_run}
+  kubernetes_ssh_create:
+    unit: {status: passed, command: "go test ./internal/provision ./internal/provider -count=1", module: cmd/runtime-target-lifecycle-provider}
+    db_integration:
+      status: passed
+      run_id: "2026-10-10-mig-101"
+      command: "MIGRATION_FROM=001 MIGRATION_TO=101 migrate.sh on postgres:16; StoreKubeconfig INSERT verified (secret_ref NOT NULL satisfied, ON CONFLICT version 1->2)"
+      environment: "temp postgres:16 container"
+      assertions: [migrations_001_101_apply, uq_secret_references_admission_backs_on_conflict, version_bump_on_conflict]
+    real_e2e:
+      status: blocked
+      reason: "Control plane readiness not achieved. Observed containerd overlay mount invalid argument; alternative snapshotter not proven successful."
+      required_assertions: [api_readyz, all_nodes_ready, cni_ready, coredns_ready, credential_resolution, interrupted_retry]
+    production_ha: {status: blocked, reason: "Multi-control-plane SSH bootstrap is explicitly unsupported."}
+  kubernetes_capi_create:
+    unit: {status: not_run, note: "Old manifest/stub tests do not certify CAPI contract compatibility."}
+    db_integration: {status: not_run}
+    real_e2e: {status: blocked, reason: "Dedicated infrastructure CRDs/controllers and validated CAPI BOM not delivered; mixed SSH+CAPI execution disabled."}
+    production_ha: {status: not_run}
+  kubernetes_offline_install:
+    unit: {status: not_run}
+    db_integration: {status: not_run}
+    real_e2e: {status: blocked, reason: "No digest-pinned offline bundle and disconnected-install report."}
+    production_ha: {status: not_run}
+  operation_terminal_projection:
+    unit: {status: not_run}
+    db_integration: {status: not_run, command: "go test ./internal/store -run TestRuntimeTargetLifecycle -count=1 -v", module: cmd/operation-worker}
+    real_e2e: {status: not_run}
+    production_ha: {status: not_run}
+  helm_plugin_lifecycle:
+    unit: {status: not_run}
+    db_integration: {status: not_run}
+    real_e2e: {status: partial, note: "Historical minimal ConfigMap chart smoke; real plugin upgrade/rollback matrix not accepted."}
+    production_ha: {status: not_run}
+  gslb_business_failover:
+    unit: {status: not_run}
+    db_integration: {status: not_run}
+    real_e2e: {status: blocked, reason: "DNS propagation and business traffic failover evidence missing."}
+    production_ha: {status: not_run}
