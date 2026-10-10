@@ -36,13 +36,7 @@ func main() {
 			}),
 		}
 		if mgmtKubeconfig := os.Getenv("MANAGEMENT_KUBECONFIG"); mgmtKubeconfig != "" {
-			ctxName := os.Getenv("MANAGEMENT_KUBECONFIG_CONTEXT")
-			mgmt, err := provision.NewManagementClient(mgmtKubeconfig, ctxName)
-			if err != nil {
-				log.Fatalf("MANAGEMENT_KUBECONFIG: %v", err)
-			}
-			opts = append(opts, provision.WithManagementClient(mgmt))
-			log.Print("using CAPI management cluster for workload reconciliation")
+			log.Fatal("MANAGEMENT_KUBECONFIG cannot be used by the SSH provisioner: CAPI lifecycle provider is not yet implemented")
 		}
 		provisioner := provision.New(opts...)
 		manager = provider.NewKubernetesManagerWithProvisioner(profile, provisioner)

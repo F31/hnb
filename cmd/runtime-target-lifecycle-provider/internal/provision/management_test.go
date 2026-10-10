@@ -94,19 +94,11 @@ func TestManagementClusterIntegration(t *testing.T) {
 		WithManagementClient(mgmt),
 	)
 	p.clusterName = "cluster-1"
-	res, err := p.Provision(context.Background(), spec)
-	if err != nil {
-		t.Fatal(err)
+	_, err := p.Provision(context.Background(), spec)
+	if err == nil {
+		t.Fatal("mixed lifecycle ownership must fail before SSH execution")
 	}
-	if res.NodeCount != 2 {
-		t.Fatalf("nodeCount = %d", res.NodeCount)
-	}
-	if len(runner.scripts["10.0.0.10"]) == 0 {
-		t.Fatalf("control-plane node not bootstrapped: %+v", runner.scripts)
-	}
-	// CAPI manifests were applied with a cluster name derived from the target
-	// unless overridden via p.clusterName.
-	if len(mgmt.applied) == 0 {
-		t.Fatal("CAPI manifests were not applied to the management cluster")
+	if len(runner.scripts) != 0 || len(mgmt.applied) != 0 {
+		t.Fatal("unsupported CAPI strategy performed side effects")
 	}
 }

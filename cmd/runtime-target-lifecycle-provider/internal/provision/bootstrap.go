@@ -71,47 +71,18 @@ nodeRegistration:
 }
 
 // PrereqScript installs kubeadm/kubelet/kubectl + containerd on a node from
-// the pkgs.k8s.io channel pinned to the cluster minor version. Best-effort and
-// idempotent; failures log but do not abort so a later stage reports clearly.
+// the pkgs.k8s.io minor channel. Existing proxy/runtime policy is preserved.
 func PrereqScript(spec ProvisionSpec) string {
-	channel := minorVersion(spec.DesiredVersion)
-	return fmt.Sprintf(`set +e
-# 清理宿主机/容器环境可能注入的坏代理，避免 kubelet/containerd/kubeadm
-# 拉取 registry 时被本地 http_proxy 劫持。服务级 drop-in 最稳：即使 docker
-# 注入过 proxy env，containerd/kubelet 重启后也以空代理运行。
-systemctl unsetenv HTTP_PROXY HTTPS_PROXY ALL_PROXY http_proxy https_proxy all_proxy 2>/dev/null
-unset HTTP_PROXY HTTPS_PROXY ALL_PROXY http_proxy https_proxy all_proxy 2>/dev/null
-export no_proxy="*" NO_PROXY="*"
-mkdir -p /etc/systemd/system/containerd.service.d /etc/systemd/system/kubelet.service.d
-cat > /etc/systemd/system/containerd.service.d/10-hnb-noproxy.conf <<'CONF'
-[Service]
-Environment="HTTP_PROXY="
-Environment="HTTPS_PROXY="
-Environment="ALL_PROXY="
-Environment="http_proxy="
-Environment="https_proxy="
-Environment="all_proxy="
-Environment="NO_PROXY=*"
-Environment="no_proxy=*"
-CONF
-cat > /etc/systemd/system/kubelet.service.d/10-hnb-noproxy.conf <<'CONF2'
-[Service]
-Environment="HTTP_PROXY="
-Environment="HTTPS_PROXY="
-Environment="ALL_PROXY="
-Environment="http_proxy="
-Environment="https_proxy="
-Environment="all_proxy="
-Environment="NO_PROXY=*"
-Environment="no_proxy=*"
-# 很多裸机/VM 默认开启 swap；kubelet 默认拒绝在 swap 上运行，装机时显式放行
-# （cgroup v2 swap 是被支持的）。保留该 flag 避免首次 init 失败。
-Environment="KUBELET_EXTRA_ARGS=--fail-swap-on=false"
-CONF2
-systemctl daemon-reload >/dev/null 2>&1
-swapoff -a >/dev/null 2>&1
+	channel := "v" + minorVersion(spec.DesiredVersion)
+	return fmt.Sprintf(`set -eu
+expected_version='%s'
+if [ "$(wc -l < /proc/swaps)" -gt 1 ]; then
+  echo 'swap must be disabled by the node administrator before bootstrap' >&2
+  exit 1
+fi
 if command -v kubeadm >/dev/null 2>&1; then
-  systemctl restart containerd >/dev/null 2>&1
+  test "$(kubeadm version -o short)" = "$expected_version"
+  systemctl is-active --quiet containerd
   echo "__PREREQ_PRESENT__"
   exit 0
 fi
@@ -158,18 +129,19 @@ CTR2
 fi
 systemctl daemon-reload >/dev/null 2>&1
 systemctl restart containerd >/dev/null 2>&1
+test "$(kubeadm version -o short)" = "$expected_version"
 exit 0
-`, channel, channel, channel, channel)
+`, "v"+strings.TrimPrefix(spec.DesiredVersion, "v"), channel, channel, channel, channel)
 }
 
 // InitScript drives kubeadm init on the first control-plane node and prints a
 // machine-parseable join bootstrap token + CA hash.
 func InitScript(spec ProvisionSpec, cp NodeSpec) string {
-	return fmt.Sprintf(`set +e
-unset HTTP_PROXY HTTPS_PROXY ALL_PROXY http_proxy https_proxy all_proxy 2>/dev/null
-export no_proxy="*" NO_PROXY="*"
+	return fmt.Sprintf(`set -eu
 if [ -f /etc/kubernetes/admin.conf ]; then
-  echo "__KUBEADM_ALREADY_INITIALIZED__"
+  export KUBECONFIG=/etc/kubernetes/admin.conf
+  kubectl get --raw=/readyz >/dev/null
+  kubeadm token create --print-join-command
   exit 0
 fi
 mkdir -p /etc/kubernetes
@@ -180,32 +152,32 @@ if ! command -v kubeadm >/dev/null 2>&1; then
   echo "kubeadm not installed; run prereq first" >&2
   exit 1
 fi
-kubeadm init --config=/etc/kubernetes/kubeadm-config.yaml --ignore-preflight-errors=SystemVerification,BootstrapTokenAlreadyExisted > /var/log/kubeadm-init.log 2>&1
+if ! kubeadm init --config=/etc/kubernetes/kubeadm-config.yaml > /var/log/kubeadm-init.log 2>&1; then
+  tail -n 40 /var/log/kubeadm-init.log >&2
+  exit 1
+fi
 export KUBECONFIG=/etc/kubernetes/admin.conf
 kubectl get nodes -o wide
 # emit an easily-parsed join bootstrap
-kubectl -n kube-system create token %s 2>/dev/null || kubeadm token create %s 2>/dev/null || kubeadm token create
 openssl x509 -pubkey -in /etc/kubernetes/pki/ca.crt | openssl rsa -pubin -outform der 2>/dev/null | openssl dgst -sha256 -hex | sed 's/^.* //' > /var/log/ca-sha
 echo "__HNB_JOIN_TOKEN__=$(kubeadm token create 2>/dev/null)"
 echo "__HNB_CA_HASH__=sha256:$(cat /var/log/ca-sha)"
 # bootstrap CLI kubeconfig so workers can reach the apiserver
 sed -i "s#server: https://[0-9.:]*#server: https://%s#g" /etc/kubernetes/admin.conf
 exit 0
-`, ControlPlaneConfig(spec, cp), "hnb-"+shortID(spec.TargetID), "hnb-"+shortID(spec.TargetID), spec.Endpoint())
+`, ControlPlaneConfig(spec, cp), spec.Endpoint())
 }
 
 // JoinScript idempotently joins a worker (or additional control-plane) node.
 func JoinScript(spec ProvisionSpec, node NodeSpec, token, caHash string) string {
 	cmd := fmt.Sprintf(
-		"kubeadm join %s --token %s --discovery-token-ca-cert-hash %s --ignore-preflight-errors=SystemVerification",
+		"kubeadm join %s --token %s --discovery-token-ca-cert-hash %s",
 		spec.Endpoint(), token, caHash,
 	)
 	if node.Role == RoleControlPlane {
 		cmd += " --control-plane"
 	}
-	return fmt.Sprintf(`set +e
-unset HTTP_PROXY HTTPS_PROXY ALL_PROXY http_proxy https_proxy all_proxy 2>/dev/null
-export no_proxy="*" NO_PROXY="*"
+	return fmt.Sprintf(`set -eu
 if [ -f /etc/kubernetes/kubelet.conf ] && [ -f /etc/kubernetes/pki/ca.crt ]; then
   echo "__KUBEADM_ALREADY_JOINED__"
   exit 0
@@ -229,13 +201,26 @@ func CNIScript(manifest string) string {
 	if strings.TrimSpace(manifest) == "" {
 		manifest = defaultFlannelManifest
 	}
-	return fmt.Sprintf(`set +e
+	return fmt.Sprintf(`set -eu
 export KUBECONFIG=/etc/kubernetes/admin.conf
 kubectl get ds -n kube-flannel kube-flannel-ds >/dev/null 2>&1 && { echo "__CNI_PRESENT__"; exit 0; }
-kubectl apply -f %s
+kubectl apply -f '%s'
 sleep 5
 exit 0
 `, manifest)
+}
+
+// AcceptanceScript gates success on observed API, node and CNI readiness.
+func AcceptanceScript(spec ProvisionSpec) string {
+	return fmt.Sprintf(`set -eu
+export KUBECONFIG=/etc/kubernetes/admin.conf
+kubectl get --raw=/readyz >/dev/null
+test "$(kubectl get nodes -o name | wc -l)" -eq %d
+kubectl wait --for=condition=Ready nodes --all --timeout=300s
+kubectl -n kube-flannel rollout status daemonset/kube-flannel-ds --timeout=300s
+kubectl -n kube-system rollout status deployment/coredns --timeout=300s
+echo '__HNB_CLUSTER_ACCEPTED__'
+`, len(spec.Nodes))
 }
 
 // AdminKubeconfigScript prints the admin kubeconfig path so the provider can

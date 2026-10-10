@@ -3,15 +3,13 @@ package provision
 import (
 	"context"
 	"fmt"
+	"net"
+	"regexp"
 	"strings"
-	"time"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // capiWaitTimeout bounds how long Provision waits for the CAPI control plane
 // to report Ready after applying manifests to a management cluster.
-const capiWaitTimeout = 10 * time.Minute
 
 // SecretStore mirrors the provider's secret persistence surface so the
 // orchestrator can store the resulting admin kubeconfig for the new target.
@@ -26,6 +24,7 @@ type SecretStore interface {
 // tenant into plaintext PEM bytes.
 type KeyResolver interface {
 	ResolveSSHKey(ctx context.Context, tenantID string, ref SecretReference) ([]byte, error)
+	ValidateVersion(ctx context.Context, version string) error
 }
 
 // NodeBootstrapper owns the SSH-side bootstrap sequence plus the secret
@@ -94,9 +93,22 @@ func (p *Provisioner) Plan(spec ProvisionSpec) []string {
 // Provision runs the whole self-hosted bootstrap and returns the resulting
 // control-plane endpoint, node count, and stored kubeconfig reference.
 func (p *Provisioner) Provision(ctx context.Context, spec ProvisionSpec) (Result, error) {
+	// Direct SSH bootstrap must never be followed by a second lifecycle owner.
+	if p.management != nil {
+		return Result{}, stepErr("strategy", fmt.Errorf("CAPI provisioning is not implemented; cannot combine CAPI reconciliation with SSH bootstrap"))
+	}
+	if p.bootstrap == nil || p.bootstrap.SSH == nil || p.bootstrap.Store == nil {
+		return Result{}, stepErr("configuration", fmt.Errorf("SSH runner and secret store are required"))
+	}
 	cpNodes := spec.ControlPlaneNodes()
 	if len(cpNodes) == 0 {
 		return Result{}, stepErr("plan", fmt.Errorf("provision requires at least one control-plane node"))
+	}
+	if len(cpNodes) != 1 {
+		return Result{}, stepErr("plan", fmt.Errorf("SSH bootstrap currently supports exactly one control-plane node; HA is not accepted"))
+	}
+	if err := validateSSHSpec(spec); err != nil {
+		return Result{}, stepErr("plan", err)
 	}
 	key, err := p.sshKey(ctx, spec)
 	if err != nil {
@@ -127,6 +139,9 @@ func (p *Provisioner) Provision(ctx context.Context, spec ProvisionSpec) (Result
 
 	// 3. worker nodes join.
 	for _, n := range spec.WorkerNodes() {
+		if _, err := p.run(ctx, n, key, PrereqScript(spec)); err != nil {
+			return Result{}, stepErr("prereq-worker:"+n.Host, err)
+		}
 		if _, err := p.run(ctx, n, key, JoinScript(spec, n, token, caHash)); err != nil {
 			return Result{}, stepErr("join-worker:"+n.Host, err)
 		}
@@ -137,37 +152,19 @@ func (p *Provisioner) Provision(ctx context.Context, spec ProvisionSpec) (Result
 		return Result{}, stepErr("cni", err)
 	}
 
-	// 4b. when a CAPI management cluster is configured, apply the rendered
-	// manifests and wait for the control plane to report Ready.
-	if p.management != nil {
-		clusterName := p.clusterName
-		if clusterName == "" {
-			clusterName = "cluster-" + shortID(spec.TargetID)
-		}
-		manifests := CAPIManifests(spec, clusterName, "")
-		if err := p.management.Apply(ctx, manifests); err != nil {
-			return Result{}, stepErr("capi-apply", err)
-		}
-		if err := p.management.WaitControlPlaneReady(ctx, metav1.NamespaceDefault, clusterName+"-control-plane", capiWaitTimeout); err != nil {
-			return Result{}, stepErr("capi-wait", err)
-		}
+	// Observe the real workload cluster before publishing credentials/success.
+	accepted, err := p.run(ctx, firstCP, key, AcceptanceScript(spec))
+	if err != nil {
+		return Result{}, stepErr("cluster-acceptance", err)
+	}
+	if !strings.Contains(accepted, "__HNB_CLUSTER_ACCEPTED__") {
+		return Result{}, stepErr("cluster-acceptance", fmt.Errorf("readiness evidence missing"))
 	}
 
 	// 5. read the admin kubeconfig from the control-plane node.
 	kubeconfig, err := p.readKubeconfig(ctx, firstCP, key, spec.Endpoint())
 	if err != nil {
 		return Result{}, err
-	}
-
-	// 6. when present, prefer the management cluster's workload kubeconfig.
-	if p.management != nil {
-		clusterName := p.clusterName
-		if clusterName == "" {
-			clusterName = "cluster-" + shortID(spec.TargetID)
-		}
-		if managed, err := p.management.Kubeconfig(ctx, metav1.NamespaceDefault, clusterName); err == nil && len(managed) > 0 {
-			kubeconfig = managed
-		}
 	}
 
 	// 6. store it as the target credential.
@@ -185,9 +182,48 @@ func (p *Provisioner) Provision(ctx context.Context, spec ProvisionSpec) (Result
 	}, nil
 }
 
+func validateSSHSpec(spec ProvisionSpec) error {
+	if !regexp.MustCompile(`^v?1\.[0-9]+\.[0-9]+$`).MatchString(spec.DesiredVersion) {
+		return fmt.Errorf("an exact Kubernetes patch version is required")
+	}
+	seen := map[string]bool{}
+	for _, node := range spec.Nodes {
+		if node.EffectiveUser() != "root" {
+			return fmt.Errorf("SSH bootstrap currently requires root; sudo execution is not implemented")
+		}
+		if net.ParseIP(node.Host) == nil || seen[node.Host] {
+			return fmt.Errorf("node host must be a unique IP address")
+		}
+		seen[node.Host] = true
+		if node.Role != RoleControlPlane && node.Role != RoleWorker {
+			return fmt.Errorf("unknown node role")
+		}
+		if !regexp.MustCompile(`^[a-z_][a-z0-9_-]*$`).MatchString(node.EffectiveUser()) || node.EffectivePort() < 1 || node.EffectivePort() > 65535 {
+			return fmt.Errorf("invalid SSH user or port")
+		}
+		if node.ID != "" && !regexp.MustCompile(`^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$`).MatchString(node.ID) {
+			return fmt.Errorf("invalid node ID")
+		}
+	}
+	for _, cidr := range []string{spec.PodCIDR, spec.ServiceCIDR} {
+		if cidr != "" {
+			if _, _, err := net.ParseCIDR(cidr); err != nil {
+				return fmt.Errorf("invalid network CIDR")
+			}
+		}
+	}
+	if spec.ClusterDomain != "" && !regexp.MustCompile(`^[a-z0-9.-]+$`).MatchString(spec.ClusterDomain) {
+		return fmt.Errorf("invalid cluster domain")
+	}
+	return nil
+}
+
 func (p *Provisioner) sshKey(ctx context.Context, spec ProvisionSpec) ([]byte, error) {
 	if p.bootstrap.Key == nil {
 		return nil, stepErr("ssh-key", fmt.Errorf("ssh key resolver not configured"))
+	}
+	if err := p.bootstrap.Key.ValidateVersion(ctx, spec.DesiredVersion); err != nil {
+		return nil, stepErr("version-evidence", err)
 	}
 	key, err := p.bootstrap.Key.ResolveSSHKey(ctx, spec.TenantID, spec.SSHCredential)
 	if err != nil {

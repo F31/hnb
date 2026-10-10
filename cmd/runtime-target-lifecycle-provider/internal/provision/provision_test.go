@@ -110,6 +110,9 @@ func (f *fakeRunner) Run(_ context.Context, node NodeSpec, key []byte, script st
 		f.scripts = map[string][]string{}
 	}
 	f.scripts[node.Host] = append(f.scripts[node.Host], script)
+	if strings.Contains(script, "__HNB_CLUSTER_ACCEPTED__") {
+		return "__HNB_CLUSTER_ACCEPTED__", nil
+	}
 	role := node.Role
 	if strings.Contains(script, "kubeadm init") || strings.Contains(script, "kubernetesVersion") {
 		return "__HNB_JOIN_TOKEN__=abcdef.0123456789abcdef\n__HNB_CA_HASH__=sha256:aa" + strings.Repeat("a", 62) + "\n" + adminConf, nil
@@ -135,6 +138,8 @@ contexts:
 current-context: dev`
 
 type fakeKeyResolver struct{}
+
+func (fakeKeyResolver) ValidateVersion(context.Context, string) error { return nil }
 
 func (fakeKeyResolver) ResolveSSHKey(_ context.Context, _ string, _ SecretReference) ([]byte, error) {
 	return []byte("-----BEGIN OPENSSH PRIVATE KEY-----\nfake\n-----END OPENSSH PRIVATE KEY-----\n"), nil
@@ -186,11 +191,13 @@ func TestProvisionRequiresControlPlane(t *testing.T) {
 
 func TestProvisionSSHKeyError(t *testing.T) {
 	p := New(WithBootstrapper(&NodeBootstrapper{
-		SSH: &fakeRunner{},
-		Key: failingKeyResolver{},
+		SSH:   &fakeRunner{},
+		Key:   failingKeyResolver{},
+		Store: &fakeStore{},
 	}))
 	_, err := p.Provision(context.Background(), ProvisionSpec{
-		Nodes: []NodeSpec{{ID: "cp", Host: "10.0.0.10", Role: RoleControlPlane}},
+		DesiredVersion: "v1.31.4",
+		Nodes:          []NodeSpec{{ID: "cp", Host: "10.0.0.10", Role: RoleControlPlane}},
 	})
 	if err == nil || !strings.Contains(err.Error(), "ssh-key") {
 		t.Fatalf("expected ssh-key step error, got %v", err)
@@ -198,6 +205,8 @@ func TestProvisionSSHKeyError(t *testing.T) {
 }
 
 type failingKeyResolver struct{}
+
+func (failingKeyResolver) ValidateVersion(context.Context, string) error { return nil }
 
 func (failingKeyResolver) ResolveSSHKey(context.Context, string, SecretReference) ([]byte, error) {
 	return nil, errors.New("no such secret")
