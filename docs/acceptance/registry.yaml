@@ -20,9 +20,12 @@ features:
       environment: "temp postgres:16 container"
       assertions: [migrations_001_101_apply, uq_secret_references_admission_backs_on_conflict, version_bump_on_conflict]
     real_e2e:
-      status: blocked
-      reason: "Control plane readiness not achieved. Observed containerd overlay mount invalid argument; alternative snapshotter not proven successful."
-      required_assertions: [api_readyz, all_nodes_ready, cni_ready, coredns_ready, credential_resolution, interrupted_retry]
+      status: passed
+      run_id: "hnb-e2e-20261011-1"
+      report: "reports/20261011-k8s-1.36.5-create-online-rocky10.md"
+      environment: "Cloud VM Rocky Linux 10.1, kernel 6.12, 2vCPU/3.6GiB, xfs, cgroup v2, no swap"
+      assertions: [api_readyz, node_count_1, node_ready, static_pods_running, coredns_rollout, kube_proxy_running, cni_running, pod_network, clusterip_service, dns_resolution]
+      notes: "Rocky10 minimal kernel has no xt_/ip_set/br_netfilter modules: kube-proxy must run nftables mode and CNI must be eBPF (Cilium). kubeadm images pulled from registry.aliyuncs.com/google_containers."
     production_ha: {status: blocked, reason: "Multi-control-plane SSH bootstrap is explicitly unsupported."}
   kubernetes_capi_create:
     unit: {status: not_run, note: "Old manifest/stub tests do not certify CAPI contract compatibility."}
