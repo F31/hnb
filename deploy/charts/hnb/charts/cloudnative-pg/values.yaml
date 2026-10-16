@@ -1,0 +1,29 @@
+# Thin CloudNativePG operator wrapper for in-cluster HA backings.
+#
+# This chart installs only the operator workload (ServiceAccount, RBAC,
+# controller Deployment and webhook wiring). It deliberately does NOT vendor the
+# CloudNativePG CRDs: apply them from the pinned operator release before the
+# operator starts, using the same version/digest as `image` below.
+#
+# Set cloudnative-pg.enabled=false to use a pre-installed operator: both the
+# CRDs and the controller are then managed outside this chart, and only the
+# `Cluster` custom resource is rendered.
+enabled: true
+replicaCount: 1
+image:
+  repository: cloudnative-pg/cloudnative-pg
+  # A real sha256 digest must be supplied by the release lock/bindings; tags are
+  # not an artifact identity and are refused by the shared image helper.
+  digest: ""
+  pullPolicy: ""
+# namespace defaults to the release namespace.
+namespace: ""
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+webhook:
+  port: 9443

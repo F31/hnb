@@ -1,0 +1,49 @@
+{{/*
+Admission webhook wiring for the CloudNativePG operator. The operator's cert
+controller injects the caBundle at runtime, so it is intentionally omitted here.
+Rendered only for the in-cluster-ha backing.
+*/}}
+{{- if eq (default "bundled" .Values.global.backings) "in-cluster-ha" }}
+{{- $ns := .Values.namespace | default .Release.Namespace }}
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: cnpg-mutating-webhook-configuration
+webhooks:
+  - name: mcluster.cnpg.io
+    admissionReviewVersions: ["v1"]
+    sideEffects: None
+    failurePolicy: Fail
+    clientConfig:
+      service:
+        name: cnpg-webhook-service
+        namespace: {{ $ns }}
+        path: /mutate-postgresql-cnpg-io-v1-cluster
+        port: 443
+    rules:
+      - apiGroups: ["postgresql.cnpg.io"]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["clusters", "backups", "scheduledbackups"]
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: cnpg-validating-webhook-configuration
+webhooks:
+  - name: vcluster.cnpg.io
+    admissionReviewVersions: ["v1"]
+    sideEffects: None
+    failurePolicy: Fail
+    clientConfig:
+      service:
+        name: cnpg-webhook-service
+        namespace: {{ $ns }}
+        path: /validate-postgresql-cnpg-io-v1-cluster
+        port: 443
+    rules:
+      - apiGroups: ["postgresql.cnpg.io"]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["clusters", "backups", "scheduledbackups"]
+{{- end }}

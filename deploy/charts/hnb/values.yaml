@@ -43,6 +43,15 @@ postgresql:
 nats:
   enabled: true
 
+# cloudnative-pg installs the thin operator wrapper for in-cluster-ha backings
+# (operator workload + RBAC + webhook; the CRDs are applied from the pinned
+# operator release). Set enabled=false for a pre-installed operator.
+cloudnative-pg:
+  enabled: true
+  image:
+    repository: cloudnative-pg/cloudnative-pg
+    digest: ""
+
 # Candidate components: opt in with verified images and required Secret refs.
 plugin-worker:
   enabled: false

@@ -81,3 +81,6 @@ dependencies:
   - name: nats
     version: 0.1.0
     condition: nats.enabled
+  - name: cloudnative-pg
+    version: 0.1.0
+    condition: cloudnative-pg.enabled

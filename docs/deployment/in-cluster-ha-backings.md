@@ -70,6 +70,19 @@ nats: {enabled: false}
   CloudNativePG 通过 `managed.roles` 与 `bootstrap.initdb` 收敛角色与库。
 - JetStream：`tls.existingSecret` + 每平面 `existingSecret`（`user`/`password`）。
 
+## Operator 安装与预装路径
+
+`cloudnative-pg` 子 chart 是**薄封装**：仅安装 operator 工作负载（ServiceAccount、
+ClusterRole/Binding、controller Deployment、webhook Service/配置），**不内置 CRD**。
+CRD 是前置，须先用与 `image` 相同版本/digest 的 operator release 应用。
+
+- `cloudnative-pg.enabled=true`（默认）：安装薄封装 operator；仅当
+  `global.backings=in-cluster-ha` 时才渲染。
+- `cloudnative-pg.enabled=false`（预装路径）：CRD 与 controller 均由外部管理，
+  chart 只渲染 `Cluster` CR。
+- operator 镜像须由 release lock/bindings 固定 digest（空 digest 会被渲染助手拒绝）；
+  未就绪时升级/扩容计划返回 `OPERATOR_NOT_INSTALLED`。
+
 ## 备份恢复 Runbook
 
 背靠为 `in-cluster-ha` 时，平台自担 PG 与 JetStream 的备份与恢复，并出具 RPO/RTO 实测

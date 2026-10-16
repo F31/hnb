@@ -251,6 +251,30 @@ class ProfileTests(unittest.TestCase):
             self.assertNotEqual(local.returncode, 0)
             self.assertIn("DECLARED_CAPACITY_INSUFFICIENT", json.loads(local.stdout)["reasons"])
 
+    def test_in_cluster_ha_installs_operator_wrapper(self):
+        def operator(docs):
+            return any(d and d.get("kind") == "Deployment"
+                       and d["metadata"]["name"] == "cnpg-controller-manager" for d in docs)
+        ha = self.render(["minimal", "lite-ha"])
+        docs = list(yaml.safe_load_all(ha.stdout))
+        self.assertTrue(operator(docs), "HA must install the operator wrapper")
+        self.assertTrue(any(d and d.get("kind") == "ServiceAccount"
+                            and d["metadata"]["name"] == "cnpg-manager" for d in docs))
+        self.assertTrue(any(d and d.get("kind") == "Cluster" for d in docs))
+        bundled = self.render(["minimal"])
+        self.assertFalse(operator(list(yaml.safe_load_all(bundled.stdout))),
+                         "bundled must not ship an operator")
+
+    def test_preinstalled_operator_path_skips_wrapper(self):
+        result = self.render(["minimal", "lite-ha"], ["--set", "cloudnative-pg.enabled=false"])
+        self.assertEqual(result.returncode, 0, result.stderr)
+        docs = list(yaml.safe_load_all(result.stdout))
+        self.assertFalse(any(d and d.get("kind") == "ServiceAccount"
+                             and d["metadata"]["name"] == "cnpg-manager" for d in docs),
+                         "pre-installed operator path must not render the wrapper")
+        self.assertTrue(any(d and d.get("kind") == "Cluster" for d in docs),
+                        "the Cluster CR is still rendered with a pre-installed operator")
+
 
 if __name__ == "__main__":
     unittest.main()
