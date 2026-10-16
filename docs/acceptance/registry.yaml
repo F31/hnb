@@ -78,6 +78,20 @@ features:
       scope: "gated profile upgrade executor (run kind=upgrade) via Minimal->Minimal train-lock transition, and live horizontal scale (apiserver 1->3->1), against the live cluster with a fixture resource; not a higher-profile upgrade (targets uncertified), not PVC expansion drill, not DB data-plane failover"
       assertions: [upgrade_plan_authorized_and_side_effect_free, upgrade_run_kind_upgrade_succeeded, configmap_applied_to_cluster, scale_replicas_plan_authorized, scale_storage_shrink_refused, scale_execute_run_succeeded, scale_reverted_to_baseline, pvc_nats_expanded_one_way, vertical_scale_portal_memory_one_way_and_reverted, platform_19_workloads_intact]
     production_ha: {status: not_run}
+  existing_minimal_backup_restore:
+    unit: {status: not_run}
+    db_integration: {status: not_run}
+    real_e2e:
+      status: passed
+      run_id: backup-restore-drill-20261016
+      commit: f56dfc5
+      report: reports/20261016-backup-restore-drill.md
+      artifacts: reports/20261016-backup-restore-drill.sh
+      command: "sudo bash hnb-backup-drill.sh (pg_dump/pg_restore round-trip + identity tar integrity)"
+      environment: "43.142.101.136; Ubuntu 26.04 LTS, kernel 7.0.0-30-generic, amd64; existing single-node K3s v1.36.5+k3s1; PostgreSQL hnb_platform (130 tables)"
+      scope: "logical PG backup/restore round-trip and identity-material integrity; not JetStream message-plane backup, not measured RTO/RPO, not cross-cluster DR"
+      assertions: [pg_platform_dump_restore_130_tables, identity_materials_byte_identical, non_destructive_scratch_restore]
+    production_ha: {status: not_run}
   release_material_catalog:
     unit:
       status: passed

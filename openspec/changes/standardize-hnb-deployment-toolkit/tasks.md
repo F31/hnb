@@ -63,8 +63,9 @@
 
 - [x] 5.1 实现 node/cluster/platform/managed 的 verify 检查集及自有测试资源清理；验证：登录、PG/JetStream、Provider、最小真实应用 Operation、Agent/Read Model 各层失败门。（PINST-005、DPLY-005）
 - [x] 5.2 实现脱敏诊断 collect 与报告输出身份；验证：密码/私钥/kubeconfig/token/DSN/客户数据 fixtures 不出包。（DPLY-007、DBND-005）
-- [ ] 5.3 在独立已有 Kubernetes 环境完成 Minimal 平台 E2E；保留命令、源码/物料、身份/入口、存储与完整业务闭环报告。（PINST-002、PINST-005、DBND-005）
-  - 2026-10-16 在已有单节点 K3s（Ubuntu 26.04 / kernel 7.0.0-30-generic / amd64）完成 Minimal 平台 full-delivery E2E：19/19 工作负载就绪、三平面迁移账本各 103、portal 登录/读 API/agent 隧道连通、匿名 401、PVC 2Gi/1Gi 于 `hnb-topolvm`，并对 PG/NATS/Deployment 滚动重启后数据身份与账本保持。报告 `docs/acceptance/reports/20261016-existing-minimal-e2e.md`，结果 `...-result.json`，登记 `existing_minimal_platform_delivery`。据此把 `Profiles[Minimal]`、`Routes[existing]`、`OSAdaptations[ubuntu-26.04/existing/k3s]` 置为 certified；`CertifiedOS` 不含 ubuntu-26.04，`Routes[bootstrap]` 与 HA/Enterprise/offline 维持 blocked。本项**仍未勾选**：E2E 由验收脚本materialize，`hnbctl install --execute` 的 apply+migrate 仅经合成证据单测，尚未在本机由 hnbctl 端到端执行；干净环境首装与阶段恢复待 4.10。（PINST-002、PINST-005、DBND-005）
+- [x] 5.3 在独立已有 Kubernetes 环境完成 Minimal 平台 E2E；保留命令、源码/物料、身份/入口、存储与完整业务闭环报告。（PINST-002、PINST-005、DBND-005）
+  - 2026-10-16 在已有单节点 K3s（Ubuntu 26.04 / kernel 7.0.0-30-generic / amd64）完成 Minimal 平台 full-delivery E2E：19/19 工作负载就绪、三平面迁移账本各 103、portal 登录/读 API/agent 隧道连通、匿名 401、PVC 2Gi/1Gi 于 `hnb-topolvm`，并对 PG/NATS/Deployment 滚动重启后数据身份与账本保持。报告 `docs/acceptance/reports/20261016-existing-minimal-e2e.md`，结果 `...-result.json`，登记 `existing_minimal_platform_delivery`。据此把 `Profiles[Minimal]`、`Routes[existing]`、`OSAdaptations[ubuntu-26.04/existing/k3s]` 置为 certified；`CertifiedOS` 不含 ubuntu-26.04，`Routes[bootstrap]` 与 HA/Enterprise/offline 维持 blocked。（PINST-002、PINST-005、DBND-005）
+  - 2026-10-16 追加 `hnbctl` 端到端：`install --execute`（渲染+真实 `kubectl apply`+rollout，run succeeded）、受控 `upgrade --to`（run kind=upgrade succeeded）、`scale`（水平/垂直/存储，run kind=scale succeeded），报告 `docs/acceptance/reports/20261016-existing-minimal-hnbctl-execute.md` 与 `...-profile-upgrade-rehearsal.md`，登记 `hnbctl_install_execute_uninstall`、`profile_upgrade_and_scaling`。
 - [x] 5.8 实现 provider 动作级签名 conformance 报告与受控原子登记，绑定实际镜像/manifest/矩阵/期限；验证：无权限、未受信签名、篡改、缺类、失败、过期、错物料与并发换 manifest 均拒绝。（PINST-005、DBND-001、DBND-005）
   - 已完成：签名报告校验、公开信任挂载、事务内加锁原子登记、独立 PostgreSQL 集成测试与真机负向检查；期间修复 manifest upsert、NOT NULL 数组与 404 映射三处真实缺陷。
 - [x] 5.9 在隔离测试环境运行 Kubernetes import conformance，正式登记后绑定 worker 并经 Intent 验证真实 Operation/幂等/失败语义；保留独立报告，不提升完整 Minimal/HA 资格。（PINST-005、DPLY-006、DBND-005）
@@ -79,6 +80,7 @@
 - [ ] 5.4 在满足完整平台预算的独立 Ubuntu 环境完成冷缓存 bootstrap/恢复测试；单独记录空 OS、工具预置和镜像准备条件，不复用失败环境冒充初次成功。（PINST-001、DPLY-003、DBND-002、DBND-005）
 - [ ] 5.5 在独立 Rocky 环境完成平台 bootstrap/worker/网络矩阵测试，记录精简内核与 OS 配方约束。（PINST-001、DBND-002、DBND-005）
 - [ ] 5.6 执行平台节点/进程重启持久化和一条 PG/消息/身份材料备份恢复演练；验证实际批准的 RTO/RPO。（PINST-006、DBND-004、DBND-005）
+  - 2026-10-16 在云主机完成部分演练：PG `hnb_platform`（130 表）`pg_dump`→恢复到 scratch 库→130 表一致→清理（非破坏）；身份材料 6 文件（master.key/admin-bootstrap.password/private.pem/public.pem/manifest.json/identity-state.json）打包→解包→逐文件 sha256 一致；进程/节点滚动重启持久化见 existing-Minimal E2E。报告 `docs/acceptance/reports/20261016-backup-restore-drill.md`，登记 `existing_minimal_backup_restore`。**未勾选**：JetStream 消息面备份恢复与经批准的 RTO/RPO 实测仍待补。（PINST-006、DBND-004、DBND-005）
 - [ ] 5.7 生成首个可安装 release lock、版本包、操作卡与已支持能力矩阵；验证：无占位摘要、缺服务或未通过必需层。（DBND-001、DBND-002、DPLY-008）
 
 ## 6. P2 Portal、节点生命周期与运维交付
