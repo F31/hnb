@@ -1,0 +1,117 @@
+{
+  "verified_at": "2026-10-13T09:22:23.434524+00:00",
+  "boot_id": "a40da539-4d66-465f-a544-1c9dfb1ddb3a",
+  "source": "current Chart rendered locally; namespace supplied for namespaced resources",
+  "checks": {
+    "login_via_portal": {
+      "status": 200,
+      "token_issued": true
+    },
+    "apiserver_health": {
+      "status": 200
+    },
+    "app_market_health": {
+      "status": 200
+    },
+    "platform_api_health_requires_auth": {
+      "status": 401
+    },
+    "portal_index": {
+      "status": 200,
+      "spa_served": true
+    },
+    "anonymous_me": {
+      "status": 401
+    },
+    "workspaces": {
+      "status": 200,
+      "data_sha256": "9e3816a605da3f7bbc761934f875bd6361a485108099c4300ce80c1f65ca9172"
+    },
+    "tenants": {
+      "status": 200,
+      "data_sha256": "69bd6a7a4a69e6a0eb5a03a0ad5d3456431c34110cd5ec38641ec6acbde6a94f"
+    },
+    "unauthorized_products": {
+      "status": 403
+    }
+  },
+  "pods": [
+    {
+      "name": "apiserver-87c9dc867-qbfgh",
+      "phase": "Running",
+      "ready": true,
+      "restarts": 1,
+      "image": "hnb-fix/apiserver@sha256:10a09852922eea8170f11be86b23ad9058f4d7454eba72f74e08da70c3edafc8"
+    },
+    {
+      "name": "app-market-64ccd7d87b-6bjbn",
+      "phase": "Running",
+      "ready": true,
+      "restarts": 1,
+      "image": "hnb-fix/app-market@sha256:6d4e18c2c9c66efa0c7c3f65c5e5ae513b4dfaa8e431269a2fd0d20ce239de9c"
+    },
+    {
+      "name": "cluster-router-54c4d4c6ff-5knrm",
+      "phase": "Running",
+      "ready": true,
+      "restarts": 2,
+      "image": "hnb-fix/cluster-router@sha256:a946da295619ccd312c65c5ac5ac5497f1b181a248108805d72986fdd1360f8a"
+    },
+    {
+      "name": "extension-controller-56f57fc67-8g49r",
+      "phase": "Running",
+      "ready": true,
+      "restarts": 1,
+      "image": "hnb-fix/extension-controller@sha256:6abb7cb5849867d308588ac73e8ccc59b796a1b984e9301f4c9aea3f675c31c2"
+    },
+    {
+      "name": "nats-0",
+      "phase": "Running",
+      "ready": true,
+      "restarts": 1,
+      "image": "nats@sha256:4bb7463f82c83da51fd098d9ddbc0dccfdc7415e110b02de375f60066b392878"
+    },
+    {
+      "name": "operation-worker-785fdf5789-j5cft",
+      "phase": "Running",
+      "ready": true,
+      "restarts": 1,
+      "image": "hnb-fix/operation-worker@sha256:caa54ac1a5420dbb06a23ab8ff3df5e540e9b38060d2542529d82cda267c42c1"
+    },
+    {
+      "name": "platform-api-7b64d8db7f-cp8tr",
+      "phase": "Running",
+      "ready": true,
+      "restarts": 1,
+      "image": "hnb-fix/platform-api@sha256:5bbe718e5a1a09eaa811e0bb3677b4b3b2942dfe3bd3098af95fbe3056b4b3ea"
+    },
+    {
+      "name": "portal-57c9b8987d-kkqqp",
+      "phase": "Running",
+      "ready": true,
+      "restarts": 2,
+      "image": "hnb-eval/portal@sha256:7133b0980e1f0c8bdfd569ce84fe706a5ed86ccdc34a310b569defce21343de0"
+    },
+    {
+      "name": "postgresql-0",
+      "phase": "Running",
+      "ready": true,
+      "restarts": 1,
+      "image": "postgres@sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d"
+    },
+    {
+      "name": "tunnel-server-664995456-s6rcf",
+      "phase": "Running",
+      "ready": true,
+      "restarts": 1,
+      "image": "hnb-fix/tunnel-server@sha256:3605bbc47c7c4080279e153ad13268c70644e047f5fe210b0bae0a006291c2c3"
+    }
+  ],
+  "node": {
+    "memory_total_bytes": 4103933952,
+    "memory_available_bytes": 3090685952,
+    "disk_total_bytes": 19682557952,
+    "disk_used_bytes": 5902680064,
+    "disk_available_bytes": 13763100672
+  }
+}

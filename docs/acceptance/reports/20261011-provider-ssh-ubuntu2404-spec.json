@@ -1,0 +1,16 @@
+{
+  "TenantID": "default",
+  "TargetID": "ubuntu2404-20261011",
+  "DesiredVersion": "1.36.5",
+  "NetworkPlugin": "cilium",
+  "NetworkVersion": "1.20.1",
+  "AdvertiseAddress": "10.9.127.43",
+  "ControlPlaneEndpoint": "10.9.127.43:6443",
+  "ImageRepository": "registry.aliyuncs.com/google_containers",
+  "SandboxImage": "registry.aliyuncs.com/google_containers/pause:3.10",
+  "PodCIDR": "10.244.0.0/16",
+  "ServiceCIDR": "10.96.0.0/12",
+  "Nodes": [
+    {"id": "hnb-ubuntu-cp", "host": "106.75.26.57", "user": "ubuntu", "role": "control-plane"}
+  ]
+}

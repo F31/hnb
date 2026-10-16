@@ -1,0 +1,44 @@
+apiVersion: deployment.hnb.io/v1alpha1
+kind: DeploymentConfig
+metadata:
+  name: existing-minimal
+spec:
+  mode: existing
+  profile: Minimal
+  releaseLock: ./release.lock.yaml
+  cluster:
+    strategy: existing
+    kubeconfigFile: ./kubeconfig
+  platform:
+    namespace: hnb-system
+    publicBaseURL: https://hnb.example.internal
+    tls:
+      existingSecret: fixture-tls
+    storage:
+      className: fixture-storage
+    infrastructure:
+      postgresql:
+        mode: bundled
+      nats:
+        mode: bundled
+      planes:
+        - name: platform
+          database: hnb_platform
+          role: hnb_platform
+          postgresqlSecretRef: platform-postgresql
+          natsSecretRef: platform-nats
+        - name: market
+          database: hnb_market
+          role: hnb_market
+          postgresqlSecretRef: market-postgresql
+          natsSecretRef: market-nats
+        - name: artifact
+          database: hnb_artifact
+          role: hnb_artifact
+          postgresqlSecretRef: artifact-postgresql
+          natsSecretRef: artifact-nats
+  artifacts:
+    mode: online
+  timeouts:
+    download: 15m
+    readiness: 10m

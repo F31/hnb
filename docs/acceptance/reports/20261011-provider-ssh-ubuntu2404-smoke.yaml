@@ -1,0 +1,61 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: hnb-ubuntu-e2e
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: server
+  namespace: hnb-ubuntu-e2e
+  labels:
+    app: hnb-ubuntu-server
+spec:
+  nodeName: hnb-ubuntu-cp
+  tolerations:
+    - key: node-role.kubernetes.io/control-plane
+      operator: Exists
+      effect: NoSchedule
+  containers:
+    - name: server
+      image: quay.io/cilium/alpine-curl:v1.10.0
+      command: ["/bin/sh", "-c"]
+      args:
+        - |
+          while true; do
+            printf 'HTTP/1.1 200 OK\r\nContent-Length: 17\r\nConnection: close\r\n\r\nhnb-provider-e2e\n' | nc -l -p 8080 -w 5
+          done
+      ports:
+        - containerPort: 8080
+      readinessProbe:
+        tcpSocket:
+          port: 8080
+        periodSeconds: 2
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: server
+  namespace: hnb-ubuntu-e2e
+spec:
+  selector:
+    app: hnb-ubuntu-server
+  ports:
+    - port: 8080
+      targetPort: 8080
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: client
+  namespace: hnb-ubuntu-e2e
+spec:
+  nodeName: hnb-ubuntu-cp
+  tolerations:
+    - key: node-role.kubernetes.io/control-plane
+      operator: Exists
+      effect: NoSchedule
+  containers:
+    - name: client
+      image: quay.io/cilium/alpine-curl:v1.10.0
+      command: ["/bin/sh", "-c", "sleep 3600"]

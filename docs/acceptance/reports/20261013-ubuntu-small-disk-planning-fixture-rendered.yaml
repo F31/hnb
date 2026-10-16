@@ -1,0 +1,944 @@
+---
+# Source: hnb/templates/namespace.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: default
+---
+# Source: hnb/templates/rbac.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: hnb
+  namespace: default
+
+---
+# Source: hnb/charts/nats/templates/statefulset.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nats-config
+data:
+  nats.conf: |
+    port: 4222
+    http: 8222
+    jetstream { store_dir: "/data/jetstream" }
+    tls {
+      cert_file: /var/run/nats-tls/tls.crt
+      key_file: /var/run/nats-tls/tls.key
+      ca_file: /var/run/nats-tls/ca.crt
+      verify: true
+    }
+    accounts {
+      platform {
+        jetstream: enabled
+        users: [{ user: "platform", password: $HNB_PLATFORM_PASSWORD }]
+      }
+      market {
+        jetstream: enabled
+        users: [{ user: "market", password: $HNB_MARKET_PASSWORD }]
+      }
+      artifact {
+        jetstream: enabled
+        users: [{ user: "artifact", password: $HNB_ARTIFACT_PASSWORD }]
+      }
+    }
+
+---
+# Source: hnb/charts/portal/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: portal-nginx
+data:
+  default.conf: |
+    server {
+      listen 80;
+      server_name _;
+      root /usr/share/nginx/html/shell;
+      location / { try_files $uri $uri/ /index.html; }
+      location /config/ {
+        root /usr/share/nginx/html;
+        add_header Cache-Control "no-cache";
+      }
+      location /modules/ {
+        root /usr/share/nginx/html;
+        add_header Cache-Control "no-cache";
+      }
+      location /api/ {
+        proxy_pass http://apiserver:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+      }
+      location /tunnel {
+        proxy_pass http://apiserver:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+      }
+    }
+
+---
+# Source: hnb/charts/postgresql/templates/statefulset.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgresql-init
+data:
+  10-hnb-planes.sh: |
+    #!/bin/sh
+    set -eu
+    # The official entrypoint invokes this after its temporary PG server starts,
+    # only on a fresh PGDATA volume. Credentials are stable existing Secrets.
+    psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname postgres \
+      --set=role='hnb_platform' --set=database='hnb_platform' \
+      --set=password="$(cat '/var/run/hnb-pg/platform/password')" <<'SQL'
+    SELECT format('CREATE ROLE %I LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT PASSWORD %L', :'role', :'password') \gexec
+    SELECT format('CREATE DATABASE %I OWNER %I', :'database', :'role') \gexec
+    SELECT format('REVOKE ALL ON DATABASE %I FROM PUBLIC', :'database') \gexec
+    SELECT format('GRANT CONNECT, TEMPORARY ON DATABASE %I TO %I', :'database', :'role') \gexec
+    SQL
+    psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname postgres \
+      --set=role='hnb_market' --set=database='hnb_market' \
+      --set=password="$(cat '/var/run/hnb-pg/market/password')" <<'SQL'
+    SELECT format('CREATE ROLE %I LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT PASSWORD %L', :'role', :'password') \gexec
+    SELECT format('CREATE DATABASE %I OWNER %I', :'database', :'role') \gexec
+    SELECT format('REVOKE ALL ON DATABASE %I FROM PUBLIC', :'database') \gexec
+    SELECT format('GRANT CONNECT, TEMPORARY ON DATABASE %I TO %I', :'database', :'role') \gexec
+    SQL
+    psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname postgres \
+      --set=role='hnb_artifact' --set=database='hnb_artifact' \
+      --set=password="$(cat '/var/run/hnb-pg/artifact/password')" <<'SQL'
+    SELECT format('CREATE ROLE %I LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT PASSWORD %L', :'role', :'password') \gexec
+    SELECT format('CREATE DATABASE %I OWNER %I', :'database', :'role') \gexec
+    SELECT format('REVOKE ALL ON DATABASE %I FROM PUBLIC', :'database') \gexec
+    SELECT format('GRANT CONNECT, TEMPORARY ON DATABASE %I TO %I', :'database', :'role') \gexec
+    SQL
+
+---
+# Source: hnb/charts/nats/templates/statefulset.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nats-data
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: "fixture-sc"
+
+---
+# Source: hnb/charts/postgresql/templates/statefulset.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgresql-data
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 2Gi
+  storageClassName: "fixture-sc"
+
+---
+# Source: hnb/templates/rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: hnb
+rules:
+  - apiGroups: ["*"]
+    resources: ["*"]
+    verbs: ["*"]
+
+---
+# Source: hnb/templates/rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: hnb
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: hnb
+subjects:
+  - kind: ServiceAccount
+    name: hnb
+    namespace: default
+---
+# Source: hnb/charts/apiserver/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: apiserver
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: apiserver
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+
+---
+# Source: hnb/charts/app-market/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: app-market
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: app-market
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+
+---
+# Source: hnb/charts/nats/templates/statefulset.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: nats
+spec:
+  selector:
+    app.kubernetes.io/name: nats
+    app.kubernetes.io/instance: fixture
+  ports:
+    - name: client
+      port: 4222
+      targetPort: client
+    - name: monitor
+      port: 8222
+      targetPort: monitor
+
+---
+# Source: hnb/charts/platform-api/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: platform-api
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: platform-api
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+
+---
+# Source: hnb/charts/portal/templates/deployment.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: portal
+  labels:
+    app.kubernetes.io/name: portal
+    app.kubernetes.io/instance: fixture
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: portal
+  ports:
+    - port: 80
+      targetPort: http
+      name: http
+
+---
+# Source: hnb/charts/postgresql/templates/statefulset.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgresql
+spec:
+  selector:
+    app.kubernetes.io/name: postgresql
+    app.kubernetes.io/instance: fixture
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: postgres
+
+---
+# Source: hnb/charts/apiserver/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: apiserver
+  labels:
+    app.kubernetes.io/name: apiserver
+    app.kubernetes.io/instance: fixture
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: apiserver
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: apiserver
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8081"
+    spec:
+      containers:
+        - name: apiserver
+          image: hnb/{{ .Chart.Name }}@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: PLATFORM_API_URL
+              value: "http://platform-api:8080"
+            - name: APP_MARKET_URL
+              value: "http://app-market:8080"
+            - name: REQUIRE_PLATFORM_API
+              value: "true"
+            - name: NATS_URL
+              value: tls://nats:4222
+            - name: NATS_TLS_CERT_FILE
+              value: /var/run/hnb-nats/tls.crt
+            - name: NATS_TLS_KEY_FILE
+              value: /var/run/hnb-nats/tls.key
+            - name: NATS_TLS_CA_FILE
+              value: /var/run/hnb-nats/ca.crt
+            - name: DB_DSN
+              value: postgres://fixture/fixture
+            - name: CLUSTER_READ_PROJECTION_MODE
+              value: "shadow"
+            - name: API_TOKEN_ISSUER
+              value: "https://issuer.hnb.test"
+            - name: API_TOKEN_AUDIENCES
+              value: "hnb-apiserver,hnb-platform-api,hnb-app-market"
+            - name: API_TOKEN_PRIVATE_KEY_FILE
+              value: /var/run/hnb-signing/active-private.pem
+            - name: API_TOKEN_KEY_MANIFEST_FILE
+              value: /var/run/hnb-identity/manifest.json
+            - name: API_TOKEN_KEY_RELOAD_INTERVAL
+              value: "5s"
+            - name: AGENT_IMAGE
+              value: "hnb/cluster-agent:latest"
+          ports:
+            - containerPort: 8080
+              name: http
+            - containerPort: 8081
+              name: metrics
+          resources:
+            limits:
+              cpu: 400m
+              memory: 512Mi
+            requests:
+              cpu: 125m
+              memory: 256Mi
+          volumeMounts:
+            - name: identity-keys
+              mountPath: /var/run/hnb-identity
+              readOnly: true
+            - name: active-signing-key
+              mountPath: /var/run/hnb-signing
+              readOnly: true
+            - name: nats-client-tls
+              mountPath: /var/run/hnb-nats
+              readOnly: true
+      volumes:
+        - name: identity-keys
+          secret:
+            secretName: fixture-manifest
+            defaultMode: 0400
+        - name: active-signing-key
+          secret:
+            secretName: fixture-key
+            defaultMode: 0400
+            items:
+              - key: tls.key
+                path: active-private.pem
+        - name: nats-client-tls
+          secret:
+            secretName: fixture-tls
+            defaultMode: 0400
+
+---
+# Source: hnb/charts/app-market/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-market
+  labels:
+    app.kubernetes.io/name: app-market
+    app.kubernetes.io/instance: fixture
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: app-market
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: app-market
+    spec:
+      containers:
+        - name: app-market
+          image: hnb/{{ .Chart.Name }}@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: NATS_URL
+              value: tls://nats:4222
+            - name: NATS_TLS_CERT_FILE
+              value: /var/run/hnb-nats/tls.crt
+            - name: NATS_TLS_KEY_FILE
+              value: /var/run/hnb-nats/tls.key
+            - name: NATS_TLS_CA_FILE
+              value: /var/run/hnb-nats/ca.crt
+            - name: DB_DSN
+              value: "postgres://fixture/fixture"
+            - name: API_TOKEN_ISSUER
+              value: "https://issuer.hnb.test"
+            - name: API_TOKEN_AUDIENCE
+              value: "hnb-app-market"
+            - name: API_TOKEN_KEY_MANIFEST_FILE
+              value: /var/run/hnb-identity/manifest.json
+            - name: API_TOKEN_KEY_RELOAD_INTERVAL
+              value: "5s"
+          ports:
+            - containerPort: 8080
+              name: http
+          resources:
+            limits:
+              cpu: 250m
+              memory: 256Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+          volumeMounts:
+            - name: identity-public-key
+              mountPath: /var/run/hnb-identity
+              readOnly: true
+            - name: nats-client-tls
+              mountPath: /var/run/hnb-nats
+              readOnly: true
+      volumes:
+        - name: identity-public-key
+          secret:
+            secretName: fixture-manifest
+            defaultMode: 0400
+        - name: nats-client-tls
+          secret:
+            secretName: fixture-tls
+            defaultMode: 0400
+
+---
+# Source: hnb/charts/cluster-router/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cluster-router
+  labels:
+    app.kubernetes.io/name: cluster-router
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: cluster-router
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: cluster-router
+    spec:
+      containers:
+        - name: cluster-router
+          image: hnb/cluster-router@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: TUNNEL_API_URL
+              value: "http://tunnel-server:9443"
+            - name: BALANCER_TYPE
+              value: "round_robin"
+          ports:
+            - containerPort: 8080
+              name: http
+          resources:
+            limits:
+              cpu: 250m
+              memory: 256Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+
+---
+# Source: hnb/charts/extension-controller/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: extension-controller
+  labels:
+    app.kubernetes.io/name: extension-controller
+    app.kubernetes.io/instance: fixture
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: extension-controller
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: extension-controller
+    spec:
+      containers:
+        - name: extension-controller
+          image: hnb/{{ .Chart.Name }}@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: NATS_URL
+              value: tls://nats:4222
+            - name: NATS_TLS_CERT_FILE
+              value: /var/run/hnb-nats/tls.crt
+            - name: NATS_TLS_KEY_FILE
+              value: /var/run/hnb-nats/tls.key
+            - name: NATS_TLS_CA_FILE
+              value: /var/run/hnb-nats/ca.crt
+            - name: DB_DSN
+              value: postgres://fixture/fixture
+          ports:
+            - containerPort: 8080
+              name: http
+          resources:
+            limits:
+              cpu: 250m
+              memory: 256Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+          volumeMounts:
+            - name: nats-client-tls
+              mountPath: /var/run/hnb-nats
+              readOnly: true
+      volumes:
+        - name: nats-client-tls
+          secret:
+            secretName: fixture-tls
+            defaultMode: 0400
+
+---
+# Source: hnb/charts/operation-worker/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: operation-worker
+  labels:
+    app.kubernetes.io/name: operation-worker
+    app.kubernetes.io/instance: fixture
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: operation-worker
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: operation-worker
+    spec:
+      containers:
+        - name: operation-worker
+          image: hnb/{{ .Chart.Name }}@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: NATS_URL
+              value: tls://nats:4222
+            - name: NATS_TLS_CERT_FILE
+              value: /var/run/hnb-nats/tls.crt
+            - name: NATS_TLS_KEY_FILE
+              value: /var/run/hnb-nats/tls.key
+            - name: NATS_TLS_CA_FILE
+              value: /var/run/hnb-nats/ca.crt
+            - name: DB_DSN
+              value: postgres://fixture/fixture
+            - name: RUNTIME_PROVIDERS
+              value: "http://provider:18082"
+          ports:
+            - containerPort: 8080
+              name: http
+          resources:
+            limits:
+              cpu: 400m
+              memory: 512Mi
+            requests:
+              cpu: 125m
+              memory: 256Mi
+          volumeMounts:
+            - name: nats-client-tls
+              mountPath: /var/run/hnb-nats
+              readOnly: true
+            - name: provider-service-tokens
+              mountPath: /var/run/hnb-service-tokens
+              readOnly: true
+      volumes:
+        - name: nats-client-tls
+          secret:
+            secretName: fixture-tls
+            defaultMode: 0400
+        - name: provider-service-tokens
+          secret:
+            secretName: fixture-token
+            defaultMode: 0400
+
+---
+# Source: hnb/charts/platform-api/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: platform-api
+  labels:
+    app.kubernetes.io/name: platform-api
+    app.kubernetes.io/instance: fixture
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: platform-api
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: platform-api
+    spec:
+      containers:
+        - name: platform-api
+          image: hnb/{{ .Chart.Name }}@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: NATS_URL
+              value: tls://nats:4222
+            - name: DB_DSN
+              value: postgres://fixture/fixture
+            - name: API_TOKEN_ISSUER
+              value: "https://issuer.hnb.test"
+            - name: API_TOKEN_AUDIENCE
+              value: "hnb-platform-api"
+            - name: API_TOKEN_KEY_MANIFEST_FILE
+              value: /var/run/hnb-identity/manifest.json
+            - name: API_TOKEN_KEY_RELOAD_INTERVAL
+              value: "5s"
+            - name: STALE_CHALLENGE_KEY_FILE
+              value: /var/run/hnb-stale-challenge/challenge.key
+            - name: STALE_CHALLENGE_TTL
+              value: "5m"
+            - name: STALE_UPGRADE_POLICY
+              value: "require_approval"
+            - name: STALE_UNMANAGE_POLICY
+              value: "require_approval"
+          ports:
+            - containerPort: 8080
+              name: http
+          resources:
+            limits:
+              cpu: 400m
+              memory: 512Mi
+            requests:
+              cpu: 125m
+              memory: 256Mi
+          volumeMounts:
+            - name: identity-public-key
+              mountPath: /var/run/hnb-identity
+              readOnly: true
+            - name: stale-challenge-key
+              mountPath: /var/run/hnb-stale-challenge
+              readOnly: true
+      volumes:
+        - name: identity-public-key
+          secret:
+            secretName: fixture-manifest
+            defaultMode: 0400
+        - name: stale-challenge-key
+          secret:
+            secretName: fixture-challenge
+            defaultMode: 0400
+
+---
+# Source: hnb/charts/portal/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: portal
+  labels:
+    app.kubernetes.io/name: portal
+    app.kubernetes.io/instance: fixture
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: portal
+  template:
+    metadata:
+      annotations:
+        checksum/nginx-config: 192f89ef8f00970c07a021631ee75acb34aa219c5fec871597b7ad3526c1e6cf
+      labels:
+        app.kubernetes.io/name: portal
+    spec:
+      containers:
+        - name: portal
+          image: hnb/portal@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+              name: http
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d/default.conf
+              subPath: default.conf
+              readOnly: true
+          resources:
+            limits:
+              cpu: 250m
+              memory: 256Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: portal-nginx
+
+---
+# Source: hnb/charts/tunnel-server/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tunnel-server
+  labels:
+    app.kubernetes.io/name: tunnel-server
+    app.kubernetes.io/instance: fixture
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: tunnel-server
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: tunnel-server
+    spec:
+      containers:
+        - name: tunnel-server
+          image: hnb/{{ .Chart.Name }}@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: NATS_URL
+              value: tls://nats:4222
+            - name: DB_DSN
+              value: postgres://fixture/fixture
+            - name: API_TOKEN_ISSUER
+              value: "https://issuer.hnb.test"
+            - name: API_TOKEN_AUDIENCE
+              value: hnb-apiserver-tunnel
+            - name: API_TOKEN_KEY_MANIFEST_FILE
+              value: /var/run/hnb-identity/manifest.json
+            - name: API_TOKEN_KEY_RELOAD_INTERVAL
+              value: "5s"
+          ports:
+            - containerPort: 8080
+              name: http
+          resources:
+            limits:
+              cpu: 250m
+              memory: 256Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+          volumeMounts:
+            - name: identity-public-keys
+              mountPath: /var/run/hnb-identity
+              readOnly: true
+      volumes:
+        - name: identity-public-keys
+          secret:
+            secretName: fixture-manifest
+            defaultMode: 0400
+
+---
+# Source: hnb/charts/nats/templates/statefulset.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: nats
+spec:
+  serviceName: nats
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: nats
+      app.kubernetes.io/instance: fixture
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: nats
+        app.kubernetes.io/instance: fixture
+    spec:
+      containers:
+        - name: nats
+          image: nats@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+          imagePullPolicy: IfNotPresent
+          args: [--config, /etc/nats/nats.conf]
+          ports:
+            - containerPort: 4222
+              name: client
+            - containerPort: 8222
+              name: monitor
+          env:
+            - name: HNB_PLATFORM_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: fixture-platform-nats
+                  key: password
+            - name: HNB_MARKET_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: fixture-market-nats
+                  key: password
+            - name: HNB_ARTIFACT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: fixture-artifact-nats
+                  key: password
+          readinessProbe:
+            httpGet: {path: /healthz, port: monitor}
+            initialDelaySeconds: 5
+          livenessProbe:
+            httpGet: {path: /healthz, port: monitor}
+            initialDelaySeconds: 15
+          resources:
+            limits:
+              cpu: 250m
+              memory: 256Mi
+            requests:
+              cpu: 50m
+              memory: 128Mi
+          volumeMounts:
+            - name: config
+              mountPath: /etc/nats
+              readOnly: true
+            - name: data
+              mountPath: /data/jetstream
+            - name: tls
+              mountPath: /var/run/nats-tls
+              readOnly: true
+      volumes:
+        - name: config
+          configMap: {name: nats-config, defaultMode: 0444}
+        - name: data
+          persistentVolumeClaim:
+            claimName: nats-data
+        - name: tls
+          secret:
+            secretName: fixture-nats-tls
+            defaultMode: 0400
+
+---
+# Source: hnb/charts/postgresql/templates/statefulset.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgresql
+spec:
+  serviceName: postgresql
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: postgresql
+      app.kubernetes.io/instance: fixture
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: postgresql
+        app.kubernetes.io/instance: fixture
+    spec:
+      securityContext:
+        fsGroup: 999
+      containers:
+        - name: postgres
+          image: postgres@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5432
+              name: postgres
+          env:
+            - name: POSTGRES_DB
+              value: postgres
+            - name: POSTGRES_USER
+              value: "hnb_admin"
+            - name: POSTGRES_PASSWORD_FILE
+              value: /var/run/hnb-pg-admin/password
+            - name: POSTGRES_INITDB_ARGS
+              value: --auth-host=scram-sha-256
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "hnb_admin", "-d", "postgres"]
+            initialDelaySeconds: 5
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "hnb_admin", "-d", "postgres"]
+            initialDelaySeconds: 30
+          resources:
+            limits:
+              cpu: "1"
+              memory: 1Gi
+            requests:
+              cpu: 150m
+              memory: 256Mi
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+            - name: init-script
+              mountPath: /docker-entrypoint-initdb.d
+              readOnly: true
+            - name: admin-credential
+              mountPath: /var/run/hnb-pg-admin
+              readOnly: true
+            - name: platform-credential
+              mountPath: /var/run/hnb-pg/platform
+              readOnly: true
+            - name: market-credential
+              mountPath: /var/run/hnb-pg/market
+              readOnly: true
+            - name: artifact-credential
+              mountPath: /var/run/hnb-pg/artifact
+              readOnly: true
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: postgresql-data
+        - name: init-script
+          configMap:
+            name: postgresql-init
+            defaultMode: 0555
+        - name: admin-credential
+          secret:
+            secretName: fixture-admin
+            defaultMode: 0440
+            items:
+              - key: password
+                path: password
+        - name: platform-credential
+          secret:
+            secretName: fixture-platform-pg
+            defaultMode: 0440
+            items:
+              - key: password
+                path: password
+        - name: market-credential
+          secret:
+            secretName: fixture-market-pg
+            defaultMode: 0440
+            items:
+              - key: password
+                path: password
+        - name: artifact-credential
+          secret:
+            secretName: fixture-artifact-pg
+            defaultMode: 0440
+            items:
+              - key: password
+                path: password

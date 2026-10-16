@@ -1,0 +1,71 @@
+{
+  "run_id": "isolated-import-conformance-b0e1cee0-ebd0-4751-a391-5dae5452d2ba",
+  "started_at": "2026-10-13T14:55:54.207169+00:00",
+  "image": "hnb-fix/runtime-target-lifecycle-provider@sha256:91b0baccd1778fff01f9fb5a07e4ff2cc77378b643254f04e8f8adc1ee741949",
+  "scope": "live provider image against isolated SQL fixtures; not Operation or platform certification",
+  "assertions": [
+    {
+      "name": "anonymous execution denied",
+      "category": "security",
+      "passed": true,
+      "observed": {
+        "status": 401
+      }
+    },
+    {
+      "name": "unsupported protocol denied",
+      "category": "contract",
+      "passed": false,
+      "observed": {
+        "status": 401
+      }
+    },
+    {
+      "name": "missing credential fails closed",
+      "category": "fault",
+      "passed": false,
+      "observed": {
+        "status": 401
+      }
+    },
+    {
+      "name": "real TLS discovery and observer registration",
+      "category": "functional",
+      "passed": false,
+      "observed": {
+        "status": 401,
+        "result": null
+      }
+    },
+    {
+      "name": "exact replay preserves observer generation",
+      "category": "idempotency",
+      "passed": false,
+      "observed": {
+        "status": 401,
+        "generation_before": 0,
+        "generation_after": 0
+      }
+    },
+    {
+      "name": "older generation fenced",
+      "category": "fencing",
+      "passed": false,
+      "observed": {
+        "status": 401,
+        "errorCode": null
+      }
+    },
+    {
+      "name": "cross tenant credential denied",
+      "category": "security",
+      "passed": false,
+      "observed": {
+        "status": 401
+      }
+    }
+  ],
+  "finished_at": "2026-10-13T14:56:08.728389+00:00",
+  "passed": false,
+  "qualification_registered": false
+}

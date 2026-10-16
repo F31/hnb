@@ -1,0 +1,1097 @@
+{
+  "schemaVersion": "ubuntu-os-deployment-evidence/v1",
+  "runId": "ubuntu2604-adaptation-20261015",
+  "startedAt": "2026-10-15T07:51:02Z",
+  "scope": "existing K3s / amd64 / full Minimal evaluation; not kubeadm bootstrap, offline, HA or 2C4G/15G qualification",
+  "assertions": {
+    "actualOSKernelRecognizedWithScopedEvidence": true,
+    "draftCreatedOwnerOnlyWithoutInstalling": true,
+    "nineteenWorkloadsReadyBeforeAndAfter": true,
+    "claimsUnchangedAcrossRecovery": true,
+    "threePlaneMigrationLedgersPreserved": true,
+    "postgresql2GiNats1GiOnTopoLVM": true,
+    "allWorkloadPodsRecreated": true,
+    "loginReadAPIsAgentAndAnonymousRejection": true
+  },
+  "exitCode": 0,
+  "artifactDigests": {
+    "hnbctl": "sha256:ad1ac30ae67f8ab84b304391974b147685bb7f28c50e3f0d6d79e70918a66eb2",
+    "verifier": "sha256:12a386586e3d9ae3bd29f65726233c5a6aba56d039d2022c4f7ef27e65768e4c"
+  },
+  "host": {
+    "schemaVersion": "host-os/v1",
+    "os": "ubuntu-26.04",
+    "arch": "amd64",
+    "kernel": "7.0.0-30-generic",
+    "cgroup": "cgroup2fs",
+    "packageManager": "apt",
+    "adapted": true,
+    "osKernelVerified": true,
+    "bootstrapCertified": false,
+    "owner": "k3s",
+    "activeSwapEntries": 1,
+    "cpus": 4,
+    "memoryMi": 7680,
+    "availableDiskGi": 99,
+    "evidence": [
+      {
+        "os": "ubuntu-26.04",
+        "arch": "amd64",
+        "kernel": "7.0.0-30-generic",
+        "route": "existing",
+        "distribution": "k3s",
+        "status": "verified",
+        "report": "docs/acceptance/reports/20261015-ubuntu2604-adaptation.md"
+      }
+    ]
+  },
+  "catalog": {
+    "schemaVersion": "os-catalog/v1",
+    "items": [
+      {
+        "os": "ubuntu-24.04",
+        "packageManager": "apt",
+        "defaultSSHUser": "ubuntu",
+        "bootstrapPackages": [
+          "apt-transport-https",
+          "ca-certificates",
+          "curl",
+          "gpg"
+        ],
+        "bootstrapCertified": true,
+        "evidence": [
+          {
+            "os": "ubuntu-24.04",
+            "arch": "amd64",
+            "kernel": "6.8.0-31-generic",
+            "route": "bootstrap",
+            "distribution": "kubeadm",
+            "status": "certified",
+            "report": "docs/acceptance/reports/20261011-provider-ssh-ubuntu2404.md"
+          }
+        ]
+      },
+      {
+        "os": "ubuntu-26.04",
+        "packageManager": "apt",
+        "defaultSSHUser": "ubuntu",
+        "bootstrapPackages": [
+          "ca-certificates",
+          "curl",
+          "gpg"
+        ],
+        "bootstrapCertified": false,
+        "evidence": [
+          {
+            "os": "ubuntu-26.04",
+            "arch": "amd64",
+            "kernel": "7.0.0-30-generic",
+            "route": "existing",
+            "distribution": "k3s",
+            "status": "verified",
+            "report": "docs/acceptance/reports/20261015-ubuntu2604-adaptation.md"
+          }
+        ]
+      },
+      {
+        "os": "rocky-10.1",
+        "packageManager": "yum",
+        "defaultSSHUser": "root",
+        "bootstrapPackages": null,
+        "bootstrapCertified": true,
+        "evidence": [
+          {
+            "os": "rocky-10.1",
+            "arch": "amd64",
+            "kernel": "6.12.0-124.8.1.el10_1.x86_64",
+            "route": "bootstrap",
+            "distribution": "kubeadm",
+            "status": "certified",
+            "report": "docs/acceptance/reports/20261011-provider-ssh-rocky10.md"
+          }
+        ]
+      }
+    ]
+  },
+  "matrix": "evidence version: 2026-10-15\nevidence scope: provider/node/cluster method-level only; not full platform certification\ncertified OS: ubuntu-24.04, rocky-10.1\ncertified arch: amd64\nOS adaptation ubuntu-24.04/amd64 kernel=6.8.0-31-generic: certified (route=bootstrap distribution=kubeadm; docs/acceptance/reports/20261011-provider-ssh-ubuntu2404.md)\nOS adaptation rocky-10.1/amd64 kernel=6.12.0-124.8.1.el10_1.x86_64: certified (route=bootstrap distribution=kubeadm; docs/acceptance/reports/20261011-provider-ssh-rocky10.md)\nOS adaptation ubuntu-26.04/amd64 kernel=7.0.0-30-generic: verified (route=existing distribution=k3s; docs/acceptance/reports/20261015-ubuntu2604-adaptation.md)\nkubernetes 1.36.5: certified (docs/acceptance/reports/20261011-provider-ssh-ubuntu2404.md)\ncni 1.20.1: certified (docs/acceptance/reports/20261011-provider-ssh-ubuntu2404.md (cilium))\nprofile Minimal: blocked (full platform Minimal E2E not yet performed)\nprofile LiteHA: blocked (no failure-domain or PG/JetStream HA drills)\nprofile StandardHA: blocked (no certified HA topology evidence)\nprofile Enterprise: blocked (no capacity or recovery evidence)\nroute: existing is the priority implementation route; full platform delivery remains blocked pending E2E\n",
+  "help": true,
+  "environment": {
+    "k3s": "k3s version v1.36.5+k3s1 (3dd98cc5)",
+    "apparmor": "active",
+    "packages": "apt 3.2.0\nca-certificates 20260223\ncurl 8.18.0-1ubuntu2.4\ngpg 2.4.8-4ubuntu3\nlvm2 2.03.31-2ubuntu3\nsystemd 259.5-0ubuntu3\n",
+    "bootId": "ce66cc18-6426-404e-bb74-5d4fdf0222de"
+  },
+  "before": {
+    "observedAt": "2026-10-15T07:51:02Z",
+    "workloads": [
+      {
+        "kind": "Deployment",
+        "name": "alert-manager",
+        "desired": 1,
+        "ready": 1,
+        "generation": 3,
+        "observedGeneration": 3
+      },
+      {
+        "kind": "Deployment",
+        "name": "apiserver",
+        "desired": 1,
+        "ready": 1,
+        "generation": 3,
+        "observedGeneration": 3
+      },
+      {
+        "kind": "Deployment",
+        "name": "app-market",
+        "desired": 1,
+        "ready": 1,
+        "generation": 3,
+        "observedGeneration": 3
+      },
+      {
+        "kind": "Deployment",
+        "name": "cilium-provider",
+        "desired": 1,
+        "ready": 1,
+        "generation": 3,
+        "observedGeneration": 3
+      },
+      {
+        "kind": "Deployment",
+        "name": "cluster-agent",
+        "desired": 1,
+        "ready": 1,
+        "generation": 3,
+        "observedGeneration": 3
+      },
+      {
+        "kind": "Deployment",
+        "name": "cluster-router",
+        "desired": 1,
+        "ready": 1,
+        "generation": 3,
+        "observedGeneration": 3
+      },
+      {
+        "kind": "Deployment",
+        "name": "extension-controller",
+        "desired": 1,
+        "ready": 1,
+        "generation": 3,
+        "observedGeneration": 3
+      },
+      {
+        "kind": "Deployment",
+        "name": "gateway-provider",
+        "desired": 1,
+        "ready": 1,
+        "generation": 3,
+        "observedGeneration": 3
+      },
+      {
+        "kind": "Deployment",
+        "name": "kubernetes-provider",
+        "desired": 1,
+        "ready": 1,
+        "generation": 3,
+        "observedGeneration": 3
+      },
+      {
+        "kind": "Deployment",
+        "name": "network-registry",
+        "desired": 1,
+        "ready": 1,
+        "generation": 3,
+        "observedGeneration": 3
+      },
+      {
+        "kind": "Deployment",
+        "name": "operation-worker",
+        "desired": 1,
+        "ready": 1,
+        "generation": 9,
+        "observedGeneration": 9
+      },
+      {
+        "kind": "Deployment",
+        "name": "platform-api",
+        "desired": 1,
+        "ready": 1,
+        "generation": 3,
+        "observedGeneration": 3
+      },
+      {
+        "kind": "Deployment",
+        "name": "plugin-worker",
+        "desired": 1,
+        "ready": 1,
+        "generation": 3,
+        "observedGeneration": 3
+      },
+      {
+        "kind": "Deployment",
+        "name": "portal",
+        "desired": 1,
+        "ready": 1,
+        "generation": 3,
+        "observedGeneration": 3
+      },
+      {
+        "kind": "Deployment",
+        "name": "rbac-syncer",
+        "desired": 1,
+        "ready": 1,
+        "generation": 3,
+        "observedGeneration": 3
+      },
+      {
+        "kind": "Deployment",
+        "name": "runtime-target-lifecycle-provider",
+        "desired": 1,
+        "ready": 1,
+        "generation": 3,
+        "observedGeneration": 3
+      },
+      {
+        "kind": "Deployment",
+        "name": "tunnel-server",
+        "desired": 1,
+        "ready": 1,
+        "generation": 3,
+        "observedGeneration": 3
+      },
+      {
+        "kind": "StatefulSet",
+        "name": "nats",
+        "desired": 1,
+        "ready": 1,
+        "generation": 10,
+        "observedGeneration": 10
+      },
+      {
+        "kind": "StatefulSet",
+        "name": "postgresql",
+        "desired": 1,
+        "ready": 1,
+        "generation": 3,
+        "observedGeneration": 3
+      }
+    ],
+    "pods": [
+      {
+        "name": "alert-manager-67dc66f877-kpxr6",
+        "uid": "2a85f9b7-7048-4998-a8db-9235eb0ea4ec",
+        "phase": "Running",
+        "deleting": false,
+        "containers": [
+          {
+            "name": "alert-manager",
+            "ready": true,
+            "restarts": 0,
+            "image": "docker.io/hnb-minimal/alert-manager:20261015",
+            "imageID": "docker.io/hnb-minimal/alert-manager@sha256:0b17f56390fdd9706f3d492a67b200e157331884a817069d05b75b2fd28859a9"
+          }
+        ]
+      },
+      {
+        "name": "apiserver-5474896598-rx927",
+        "uid": "a6c6870c-8e8b-4e77-8182-8e2b8673f963",
+        "phase": "Running",
+        "deleting": false,
+        "containers": [
+          {
+            "name": "apiserver",
+            "ready": true,
+            "restarts": 0,
+            "image": "docker.io/hnb-minimal/apiserver:20261015",
+            "imageID": "docker.io/hnb-minimal/apiserver@sha256:a307fedead0f23c96a3771a9328d33b97cd87995bbc68e3397ac82760809e56d"
+          }
+        ]
+      },
+      {
+        "name": "app-market-5f65dcfcdd-99q9l",
+        "uid": "c93da2c9-3909-45c5-b118-ab0accef9506",
+        "phase": "Running",
+        "deleting": false,
+        "containers": [
+          {
+            "name": "app-market",
+            "ready": true,
+            "restarts": 0,
+            "image": "docker.io/hnb-minimal/app-market:20261015",
+            "imageID": "docker.io/hnb-minimal/app-market@sha256:ab6104e2ec8db545b7f73879e01def4f2e423f05b1a25df3f5e21d1f491c4166"
+          }
+        ]
+      },
+      {
+        "name": "cilium-provider-7c9ffc6db6-wmphd",
+        "uid": "0bd30f65-b730-4662-a7dd-734a8db579a9",
+        "phase": "Running",
+        "deleting": false,
+        "containers": [
+          {
+            "name": "cilium-provider",
+            "ready": true,
+            "restarts": 0,
+            "image": "docker.io/hnb-minimal/cilium-provider:20261015",
+            "imageID": "docker.io/hnb-minimal/cilium-provider@sha256:33a084e694f64496761d867b98fdac82ae185da5e42cebebe1bfa415585164f1"
+          }
+        ]
+      },
+      {
+        "name": "cluster-agent-7cbbc89478-gmgb5",
+        "uid": "6a4a51bf-37db-4e72-a116-af4aad5725f2",
+        "phase": "Running",
+        "deleting": false,
+        "containers": [
+          {
+            "name": "cluster-agent",
+            "ready": true,
+            "restarts": 0,
+            "image": "docker.io/hnb-minimal/cluster-agent:20261015",
+            "imageID": "docker.io/hnb-minimal/cluster-agent@sha256:d6941155a2b4ef97807b31adccc406935db73bd83bba6bf9c5130c8f8743817d"
+          }
+        ]
+      },
+      {
+        "name": "cluster-router-8bbcfddbd-mwq2f",
+        "uid": "9b68f749-a04d-441d-ba91-828eaadf92ed",
+        "phase": "Running",
+        "deleting": false,
+        "containers": [
+          {
+            "name": "cluster-router",
+            "ready": true,
+            "restarts": 0,
+            "image": "docker.io/hnb-minimal/cluster-router:20261015",
+            "imageID": "docker.io/hnb-minimal/cluster-router@sha256:cb8028e85f8432549da2bc8b2d9aefb6376fedd4e18e5f08cc8aefbba3465540"
+          }
+        ]
+      },
+      {
+        "name": "extension-controller-8679488d76-nk8zq",
+        "uid": "9d641ee7-a74f-42b2-af55-d94ea4135672",
+        "phase": "Running",
+        "deleting": false,
+        "containers": [
+          {
+            "name": "extension-controller",
+            "ready": true,
+            "restarts": 0,
+            "image": "docker.io/hnb-minimal/extension-controller:20261015",
+            "imageID": "docker.io/hnb-minimal/extension-controller@sha256:992f283f96d8f4d9289ec9830d12b8c14f9a767486ecd4e5501c8d904ad71ff3"
+          }
+        ]
+      },
+      {
+        "name": "gateway-provider-54b576bb86-fhsdl",
+        "uid": "6c20b7e6-41a0-4a4d-8a1d-bd2dd20805f7",
+        "phase": "Running",
+        "deleting": false,
+        "containers": [
+          {
+            "name": "gateway-provider",
+            "ready": true,
+            "restarts": 0,
+            "image": "docker.io/hnb-minimal/gateway-provider:20261015",
+            "imageID": "docker.io/hnb-minimal/gateway-provider@sha256:fea2abc1cbcd6029ff517e33a171db2701e6854125056067e9e94f85d4ba865d"
+          }
+        ]
+      },
+      {
+        "name": "kubernetes-provider-7946746584-75fqs",
+        "uid": "032a8fb3-4f48-4dbc-9ff3-0040605e2aa9",
+        "phase": "Running",
+        "deleting": false,
+        "containers": [
+          {
+            "name": "kubernetes-provider",
+            "ready": true,
+            "restarts": 0,
+            "image": "docker.io/hnb-minimal/kubernetes-provider:20261015",
+            "imageID": "docker.io/hnb-minimal/kubernetes-provider@sha256:e0d05e34c87e0299c356aab40a6a338c4a6b3929bd9e847e9675e6f5a04094a0"
+          }
+        ]
+      },
+      {
+        "name": "nats-0",
+        "uid": "87079217-990c-47cc-8f41-d1e9fbf99ac7",
+        "phase": "Running",
+        "deleting": false,
+        "containers": [
+          {
+            "name": "nats",
+            "ready": true,
+            "restarts": 0,
+            "image": "docker.io/library/nats:2.11.1-scratch",
+            "imageID": "docker.io/library/nats@sha256:4bb7463f82c83da51fd098d9ddbc0dccfdc7415e110b02de375f60066b392878"
+          }
+        ]
+      },
+      {
+        "name": "network-registry-74f9bc8d8b-vjqbv",
+        "uid": "a764372b-a1e9-4f31-9720-61e745996f8d",
+        "phase": "Running",
+        "deleting": false,
+        "containers": [
+          {
+            "name": "network-registry",
+            "ready": true,
+            "restarts": 0,
+            "image": "docker.io/hnb-minimal/network-registry:20261015",
+            "imageID": "docker.io/hnb-minimal/network-registry@sha256:6e3796a4e49c7914c4767393f2ecd0eb6bd65d2cd63f19196904efaf6d21b2cd"
+          }
+        ]
+      },
+      {
+        "name": "operation-worker-f5c48fcfb-p2j42",
+        "uid": "ab56ed58-5b5e-4412-9355-46f42ef5e895",
+        "phase": "Running",
+        "deleting": false,
+        "containers": [
+          {
+            "name": "operation-worker",
+            "ready": true,
+            "restarts": 0,
+            "image": "docker.io/hnb-minimal/operation-worker:20261015-v3",
+            "imageID": "docker.io/hnb-minimal/operation-worker@sha256:8cf31b789cc243d212c42517ae18d837567baf2809204e63843cfd8e38d23654"
+          }
+        ]
+      },
+      {
+        "name": "platform-api-d5468dfcf-r7ns5",
+        "uid": "a032416f-270d-4dd7-a320-4c5328fd4fe6",
+        "phase": "Running",
+        "deleting": false,
+        "containers": [
+          {
+            "name": "platform-api",
+            "ready": true,
+            "restarts": 0,
+            "image": "docker.io/hnb-minimal/platform-api:20261015",
+            "imageID": "docker.io/hnb-minimal/platform-api@sha256:c48da99c1949c1f39f1441399a15ab9eda0e5e022265671d7d6feae8ec0cec37"
+          }
+        ]
+      },
+      {
+        "name": "plugin-worker-6874d85cc6-q8p7t",
+        "uid": "1d5e6688-9691-4c40-b9bf-2e1b0af5b0d6",
+        "phase": "Running",
+        "deleting": false,
+        "containers": [
+          {
+            "name": "plugin-worker",
+            "ready": true,
+            "restarts": 0,
+            "image": "docker.io/hnb-minimal/plugin-worker:20261015",
+            "imageID": "docker.io/hnb-minimal/plugin-worker@sha256:8e1aa123e870431e59d0cfc772ba69c1e07b5aecd26aa9e7dd97f9b66e3739aa"
+          }
+        ]
+      },
+      {
+        "name": "portal-678fc99699-dl5ml",
+        "uid": "326af7cc-ea51-413a-906b-93217c134406",
+        "phase": "Running",
+        "deleting": false,
+        "containers": [
+          {
+            "name": "portal",
+            "ready": true,
+            "restarts": 0,
+            "image": "docker.io/hnb-eval/portal:20261013",
+            "imageID": "docker.io/hnb-eval/portal@sha256:bdb1d2624e06e450b729f6e40110dc6ba86bc110d50e7a44252c9c61083a42b6"
+          }
+        ]
+      },
+      {
+        "name": "postgresql-0",
+        "uid": "4c90bc4d-11bc-4793-8f8e-35f78e65c8dc",
+        "phase": "Running",
+        "deleting": false,
+        "containers": [
+          {
+            "name": "postgres",
+            "ready": true,
+            "restarts": 0,
+            "image": "docker.io/library/postgres:16",
+            "imageID": "docker.io/library/postgres@sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d"
+          }
+        ]
+      },
+      {
+        "name": "rbac-syncer-7494fb9f75-5xn4w",
+        "uid": "a21031a9-c48e-4adc-af0b-2d5864de5d85",
+        "phase": "Running",
+        "deleting": false,
+        "containers": [
+          {
+            "name": "rbac-syncer",
+            "ready": true,
+            "restarts": 0,
+            "image": "docker.io/hnb-minimal/rbac-syncer:20261015-fixed",
+            "imageID": "docker.io/hnb-minimal/rbac-syncer@sha256:0d8887635ba5af57e08e97192ae07bb3f29067153fd5961c1cb7f1b1dc3b20ca"
+          }
+        ]
+      },
+      {
+        "name": "runtime-target-lifecycle-provider-fd48c84f4-mt6js",
+        "uid": "47e6a6ba-6742-4f62-bf45-49000e285d73",
+        "phase": "Running",
+        "deleting": false,
+        "containers": [
+          {
+            "name": "runtime-target-lifecycle-provider",
+            "ready": true,
+            "restarts": 0,
+            "image": "docker.io/hnb-minimal/runtime-target-lifecycle-provider:20261015",
+            "imageID": "docker.io/hnb-minimal/runtime-target-lifecycle-provider@sha256:0a3c8d3bd4eae5f831767f093436534403f20cfdf590ccf7f069a7a102544489"
+          }
+        ]
+      },
+      {
+        "name": "tunnel-server-967b7df5d-zwq7c",
+        "uid": "feee5abf-342d-4653-8b75-4bbc1fd2af8b",
+        "phase": "Running",
+        "deleting": false,
+        "containers": [
+          {
+            "name": "tunnel-server",
+            "ready": true,
+            "restarts": 0,
+            "image": "docker.io/hnb-minimal/tunnel-server:20261015",
+            "imageID": "docker.io/hnb-minimal/tunnel-server@sha256:60613257b8128f16ce5256dfbfc668674a8fa6d1a08b5ae99c5f7eb6a16533bd"
+          }
+        ]
+      }
+    ],
+    "claims": [
+      {
+        "name": "nats-data",
+        "uid": "9dd05d2c-2c15-4320-a3b6-8422925c22a2",
+        "phase": "Bound",
+        "storageClass": "hnb-topolvm",
+        "requested": "1Gi",
+        "capacity": "1Gi",
+        "volumeName": "pvc-9dd05d2c-2c15-4320-a3b6-8422925c22a2"
+      },
+      {
+        "name": "postgresql-data",
+        "uid": "66069cdc-ba74-497a-bde2-9699093bb96b",
+        "phase": "Bound",
+        "storageClass": "hnb-topolvm",
+        "requested": "2Gi",
+        "capacity": "2Gi",
+        "volumeName": "pvc-66069cdc-ba74-497a-bde2-9699093bb96b"
+      }
+    ]
+  },
+  "ledgersBefore": {
+    "platform": 103,
+    "market": 103,
+    "artifact": 103
+  },
+  "functionsBefore": {
+    "login": 200,
+    "/api/v1/workspaces": 200,
+    "/api/v1/tenants": 200,
+    "/api/v1/agents": 200,
+    "agents": [
+      {
+        "cluster_id": "00000000-0000-4000-8000-0000000000cb",
+        "status": "connected",
+        "last_heartbeat": "2026-10-15T07:50:48.283273068Z",
+        "node_count": 0
+      }
+    ],
+    "anonymousWorkspaces": 401
+  },
+  "after": {
+    "observedAt": "2026-10-15T07:51:39Z",
+    "workloads": [
+      {
+        "kind": "Deployment",
+        "name": "alert-manager",
+        "desired": 1,
+        "ready": 1,
+        "generation": 4,
+        "observedGeneration": 4
+      },
+      {
+        "kind": "Deployment",
+        "name": "apiserver",
+        "desired": 1,
+        "ready": 1,
+        "generation": 4,
+        "observedGeneration": 4
+      },
+      {
+        "kind": "Deployment",
+        "name": "app-market",
+        "desired": 1,
+        "ready": 1,
+        "generation": 4,
+        "observedGeneration": 4
+      },
+      {
+        "kind": "Deployment",
+        "name": "cilium-provider",
+        "desired": 1,
+        "ready": 1,
+        "generation": 4,
+        "observedGeneration": 4
+      },
+      {
+        "kind": "Deployment",
+        "name": "cluster-agent",
+        "desired": 1,
+        "ready": 1,
+        "generation": 4,
+        "observedGeneration": 4
+      },
+      {
+        "kind": "Deployment",
+        "name": "cluster-router",
+        "desired": 1,
+        "ready": 1,
+        "generation": 4,
+        "observedGeneration": 4
+      },
+      {
+        "kind": "Deployment",
+        "name": "extension-controller",
+        "desired": 1,
+        "ready": 1,
+        "generation": 4,
+        "observedGeneration": 4
+      },
+      {
+        "kind": "Deployment",
+        "name": "gateway-provider",
+        "desired": 1,
+        "ready": 1,
+        "generation": 4,
+        "observedGeneration": 4
+      },
+      {
+        "kind": "Deployment",
+        "name": "kubernetes-provider",
+        "desired": 1,
+        "ready": 1,
+        "generation": 4,
+        "observedGeneration": 4
+      },
+      {
+        "kind": "Deployment",
+        "name": "network-registry",
+        "desired": 1,
+        "ready": 1,
+        "generation": 4,
+        "observedGeneration": 4
+      },
+      {
+        "kind": "Deployment",
+        "name": "operation-worker",
+        "desired": 1,
+        "ready": 1,
+        "generation": 10,
+        "observedGeneration": 10
+      },
+      {
+        "kind": "Deployment",
+        "name": "platform-api",
+        "desired": 1,
+        "ready": 1,
+        "generation": 4,
+        "observedGeneration": 4
+      },
+      {
+        "kind": "Deployment",
+        "name": "plugin-worker",
+        "desired": 1,
+        "ready": 1,
+        "generation": 4,
+        "observedGeneration": 4
+      },
+      {
+        "kind": "Deployment",
+        "name": "portal",
+        "desired": 1,
+        "ready": 1,
+        "generation": 4,
+        "observedGeneration": 4
+      },
+      {
+        "kind": "Deployment",
+        "name": "rbac-syncer",
+        "desired": 1,
+        "ready": 1,
+        "generation": 4,
+        "observedGeneration": 4
+      },
+      {
+        "kind": "Deployment",
+        "name": "runtime-target-lifecycle-provider",
+        "desired": 1,
+        "ready": 1,
+        "generation": 4,
+        "observedGeneration": 4
+      },
+      {
+        "kind": "Deployment",
+        "name": "tunnel-server",
+        "desired": 1,
+        "ready": 1,
+        "generation": 4,
+        "observedGeneration": 4
+      },
+      {
+        "kind": "StatefulSet",
+        "name": "nats",
+        "desired": 1,
+        "ready": 1,
+        "generation": 11,
+        "observedGeneration": 11
+      },
+      {
+        "kind": "StatefulSet",
+        "name": "postgresql",
+        "desired": 1,
+        "ready": 1,
+        "generation": 4,
+        "observedGeneration": 4
+      }
+    ],
+    "pods": [
+      {
+        "name": "alert-manager-58f495796c-5fv4t",
+        "uid": "4584fb56-3398-4b57-b354-36cf766c492a",
+        "phase": "Running",
+        "deleting": false,
+        "containers": [
+          {
+            "name": "alert-manager",
+            "ready": true,
+            "restarts": 0,
+            "image": "docker.io/hnb-minimal/alert-manager:20261015",
+            "imageID": "docker.io/hnb-minimal/alert-manager@sha256:0b17f56390fdd9706f3d492a67b200e157331884a817069d05b75b2fd28859a9"
+          }
+        ]
+      },
+      {
+        "name": "apiserver-65f457fbf6-57zll",
+        "uid": "4749fbc2-729b-47db-9ce6-6672fc5420c1",
+        "phase": "Running",
+        "deleting": false,
+        "containers": [
+          {
+            "name": "apiserver",
+            "ready": true,
+            "restarts": 0,
+            "image": "docker.io/hnb-minimal/apiserver:20261015",
+            "imageID": "docker.io/hnb-minimal/apiserver@sha256:a307fedead0f23c96a3771a9328d33b97cd87995bbc68e3397ac82760809e56d"
+          }
+        ]
+      },
+      {
+        "name": "app-market-7cd4978f6b-z4x2d",
+        "uid": "52114c6f-97eb-4f1c-93b0-afb9e58a5ef7",
+        "phase": "Running",
+        "deleting": false,
+        "containers": [
+          {
+            "name": "app-market",
+            "ready": true,
+            "restarts": 0,
+            "image": "docker.io/hnb-minimal/app-market:20261015",
+            "imageID": "docker.io/hnb-minimal/app-market@sha256:ab6104e2ec8db545b7f73879e01def4f2e423f05b1a25df3f5e21d1f491c4166"
+          }
+        ]
+      },
+      {
+        "name": "cilium-provider-7b8bc9c6-595tj",
+        "uid": "d2530860-7f71-4da5-b1e4-25674ca9f966",
+        "phase": "Running",
+        "deleting": false,
+        "containers": [
+          {
+            "name": "cilium-provider",
+            "ready": true,
+            "restarts": 0,
+            "image": "docker.io/hnb-minimal/cilium-provider:20261015",
+            "imageID": "docker.io/hnb-minimal/cilium-provider@sha256:33a084e694f64496761d867b98fdac82ae185da5e42cebebe1bfa415585164f1"
+          }
+        ]
+      },
+      {
+        "name": "cluster-agent-794bb4986d-cgb2n",
+        "uid": "4614a010-1b31-4350-8262-be0f95b3ba94",
+        "phase": "Running",
+        "deleting": false,
+        "containers": [
+          {
+            "name": "cluster-agent",
+            "ready": true,
+            "restarts": 0,
+            "image": "docker.io/hnb-minimal/cluster-agent:20261015",
+            "imageID": "docker.io/hnb-minimal/cluster-agent@sha256:d6941155a2b4ef97807b31adccc406935db73bd83bba6bf9c5130c8f8743817d"
+          }
+        ]
+      },
+      {
+        "name": "cluster-router-7dbffc96b-9wccx",
+        "uid": "1e7b4853-68ad-46e2-9708-ac28dd6606a7",
+        "phase": "Running",
+        "deleting": false,
+        "containers": [
+          {
+            "name": "cluster-router",
+            "ready": true,
+            "restarts": 0,
+            "image": "docker.io/hnb-minimal/cluster-router:20261015",
+            "imageID": "docker.io/hnb-minimal/cluster-router@sha256:cb8028e85f8432549da2bc8b2d9aefb6376fedd4e18e5f08cc8aefbba3465540"
+          }
+        ]
+      },
+      {
+        "name": "extension-controller-7b9b5ccf4-ql69x",
+        "uid": "8df148e0-bc1a-4f19-853c-1fcfef22a479",
+        "phase": "Running",
+        "deleting": false,
+        "containers": [
+          {
+            "name": "extension-controller",
+            "ready": true,
+            "restarts": 0,
+            "image": "docker.io/hnb-minimal/extension-controller:20261015",
+            "imageID": "docker.io/hnb-minimal/extension-controller@sha256:992f283f96d8f4d9289ec9830d12b8c14f9a767486ecd4e5501c8d904ad71ff3"
+          }
+        ]
+      },
+      {
+        "name": "gateway-provider-6b67db497b-dvlqf",
+        "uid": "216ee931-e59c-4910-bb5a-c5b96f9db351",
+        "phase": "Running",
+        "deleting": false,
+        "containers": [
+          {
+            "name": "gateway-provider",
+            "ready": true,
+            "restarts": 0,
+            "image": "docker.io/hnb-minimal/gateway-provider:20261015",
+            "imageID": "docker.io/hnb-minimal/gateway-provider@sha256:fea2abc1cbcd6029ff517e33a171db2701e6854125056067e9e94f85d4ba865d"
+          }
+        ]
+      },
+      {
+        "name": "kubernetes-provider-fb6bdc96b-p7kjt",
+        "uid": "f3e1a924-1cdb-41df-9b18-6505edc4cd99",
+        "phase": "Running",
+        "deleting": false,
+        "containers": [
+          {
+            "name": "kubernetes-provider",
+            "ready": true,
+            "restarts": 0,
+            "image": "docker.io/hnb-minimal/kubernetes-provider:20261015",
+            "imageID": "docker.io/hnb-minimal/kubernetes-provider@sha256:e0d05e34c87e0299c356aab40a6a338c4a6b3929bd9e847e9675e6f5a04094a0"
+          }
+        ]
+      },
+      {
+        "name": "nats-0",
+        "uid": "bc11776e-7aff-41d4-95d9-8fa234f80cf1",
+        "phase": "Running",
+        "deleting": false,
+        "containers": [
+          {
+            "name": "nats",
+            "ready": true,
+            "restarts": 0,
+            "image": "docker.io/library/nats:2.11.1-scratch",
+            "imageID": "docker.io/library/nats@sha256:4bb7463f82c83da51fd098d9ddbc0dccfdc7415e110b02de375f60066b392878"
+          }
+        ]
+      },
+      {
+        "name": "network-registry-54d74b7d96-4dlrx",
+        "uid": "46eaddcc-b346-4e5d-9702-82129b448e40",
+        "phase": "Running",
+        "deleting": false,
+        "containers": [
+          {
+            "name": "network-registry",
+            "ready": true,
+            "restarts": 0,
+            "image": "docker.io/hnb-minimal/network-registry:20261015",
+            "imageID": "docker.io/hnb-minimal/network-registry@sha256:6e3796a4e49c7914c4767393f2ecd0eb6bd65d2cd63f19196904efaf6d21b2cd"
+          }
+        ]
+      },
+      {
+        "name": "operation-worker-f7c84d95d-cn5vs",
+        "uid": "190074fa-a3fc-49ff-8811-cf8e24517c2c",
+        "phase": "Running",
+        "deleting": false,
+        "containers": [
+          {
+            "name": "operation-worker",
+            "ready": true,
+            "restarts": 0,
+            "image": "docker.io/hnb-minimal/operation-worker:20261015-v3",
+            "imageID": "docker.io/hnb-minimal/operation-worker@sha256:8cf31b789cc243d212c42517ae18d837567baf2809204e63843cfd8e38d23654"
+          }
+        ]
+      },
+      {
+        "name": "platform-api-bb45fb6d5-7rp2v",
+        "uid": "43bd63ed-e6b8-47b7-89c4-5d45de330480",
+        "phase": "Running",
+        "deleting": false,
+        "containers": [
+          {
+            "name": "platform-api",
+            "ready": true,
+            "restarts": 0,
+            "image": "docker.io/hnb-minimal/platform-api:20261015",
+            "imageID": "docker.io/hnb-minimal/platform-api@sha256:c48da99c1949c1f39f1441399a15ab9eda0e5e022265671d7d6feae8ec0cec37"
+          }
+        ]
+      },
+      {
+        "name": "plugin-worker-76c48976f8-psblc",
+        "uid": "02b06f9f-b9a3-4301-b4e5-95788effcc33",
+        "phase": "Running",
+        "deleting": false,
+        "containers": [
+          {
+            "name": "plugin-worker",
+            "ready": true,
+            "restarts": 0,
+            "image": "docker.io/hnb-minimal/plugin-worker:20261015",
+            "imageID": "docker.io/hnb-minimal/plugin-worker@sha256:8e1aa123e870431e59d0cfc772ba69c1e07b5aecd26aa9e7dd97f9b66e3739aa"
+          }
+        ]
+      },
+      {
+        "name": "portal-55b5f644cc-6jhx4",
+        "uid": "b7b2b840-6c52-4e10-a821-ce5bf3005fc4",
+        "phase": "Running",
+        "deleting": false,
+        "containers": [
+          {
+            "name": "portal",
+            "ready": true,
+            "restarts": 0,
+            "image": "docker.io/hnb-eval/portal:20261013",
+            "imageID": "docker.io/hnb-eval/portal@sha256:bdb1d2624e06e450b729f6e40110dc6ba86bc110d50e7a44252c9c61083a42b6"
+          }
+        ]
+      },
+      {
+        "name": "postgresql-0",
+        "uid": "4fd76e07-f272-4923-932a-f500efb18992",
+        "phase": "Running",
+        "deleting": false,
+        "containers": [
+          {
+            "name": "postgres",
+            "ready": true,
+            "restarts": 0,
+            "image": "docker.io/library/postgres:16",
+            "imageID": "docker.io/library/postgres@sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d"
+          }
+        ]
+      },
+      {
+        "name": "rbac-syncer-54f557ffc7-f2mtb",
+        "uid": "71bf9c48-ab69-46fb-b1c0-0485343c8f92",
+        "phase": "Running",
+        "deleting": false,
+        "containers": [
+          {
+            "name": "rbac-syncer",
+            "ready": true,
+            "restarts": 0,
+            "image": "docker.io/hnb-minimal/rbac-syncer:20261015-fixed",
+            "imageID": "docker.io/hnb-minimal/rbac-syncer@sha256:0d8887635ba5af57e08e97192ae07bb3f29067153fd5961c1cb7f1b1dc3b20ca"
+          }
+        ]
+      },
+      {
+        "name": "runtime-target-lifecycle-provider-8897bdd6d-d798s",
+        "uid": "7a301341-9303-43f8-ac5d-74ef6f9e583b",
+        "phase": "Running",
+        "deleting": false,
+        "containers": [
+          {
+            "name": "runtime-target-lifecycle-provider",
+            "ready": true,
+            "restarts": 0,
+            "image": "docker.io/hnb-minimal/runtime-target-lifecycle-provider:20261015",
+            "imageID": "docker.io/hnb-minimal/runtime-target-lifecycle-provider@sha256:0a3c8d3bd4eae5f831767f093436534403f20cfdf590ccf7f069a7a102544489"
+          }
+        ]
+      },
+      {
+        "name": "tunnel-server-794d54c896-77kwn",
+        "uid": "3fc3ca70-035c-4539-a296-f9b61cf0a2a0",
+        "phase": "Running",
+        "deleting": false,
+        "containers": [
+          {
+            "name": "tunnel-server",
+            "ready": true,
+            "restarts": 0,
+            "image": "docker.io/hnb-minimal/tunnel-server:20261015",
+            "imageID": "docker.io/hnb-minimal/tunnel-server@sha256:60613257b8128f16ce5256dfbfc668674a8fa6d1a08b5ae99c5f7eb6a16533bd"
+          }
+        ]
+      }
+    ],
+    "claims": [
+      {
+        "name": "nats-data",
+        "uid": "9dd05d2c-2c15-4320-a3b6-8422925c22a2",
+        "phase": "Bound",
+        "storageClass": "hnb-topolvm",
+        "requested": "1Gi",
+        "capacity": "1Gi",
+        "volumeName": "pvc-9dd05d2c-2c15-4320-a3b6-8422925c22a2"
+      },
+      {
+        "name": "postgresql-data",
+        "uid": "66069cdc-ba74-497a-bde2-9699093bb96b",
+        "phase": "Bound",
+        "storageClass": "hnb-topolvm",
+        "requested": "2Gi",
+        "capacity": "2Gi",
+        "volumeName": "pvc-66069cdc-ba74-497a-bde2-9699093bb96b"
+      }
+    ]
+  },
+  "ledgersAfter": {
+    "platform": 103,
+    "market": 103,
+    "artifact": 103
+  },
+  "functionsAfter": {
+    "login": 200,
+    "/api/v1/workspaces": 200,
+    "/api/v1/tenants": 200,
+    "/api/v1/agents": 200,
+    "agents": [
+      {
+        "cluster_id": "00000000-0000-4000-8000-0000000000cb",
+        "status": "connected",
+        "last_heartbeat": "2026-10-15T07:51:40.130622941Z",
+        "node_count": 0
+      }
+    ],
+    "anonymousWorkspaces": 401
+  },
+  "metrics": {
+    "node": "NAME               CPU(cores)   CPU(%)   MEMORY(bytes)   MEMORY(%)   \nhnb-minimal-test   948m         23%      1549Mi          20%         \n",
+    "storage": "NAME                                  CPU(cores)   MEMORY(bytes)   \ntopolvm-controller-6d685788d9-4g6p7   7m           48Mi            \ntopolvm-node-sdlhl                    3m           23Mi            \n"
+  },
+  "finishedAt": "2026-10-15T07:51:40Z"
+}

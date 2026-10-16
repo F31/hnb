@@ -1,0 +1,111 @@
+{
+  "started_at": "2026-10-13T09:17:56.438153+00:00",
+  "assertions": {
+    "database_credentials_are_secret_refs": true,
+    "five_core_health_endpoints_ready": true,
+    "nats_outage_drops_readiness_without_restart": true,
+    "nats_recovery_is_automatic": true,
+    "postgresql_outage_drops_readiness_without_restart": true,
+    "postgresql_recovery_is_automatic": true
+  },
+  "outages": {
+    "nats": {
+      "apiserver": {
+        "live": 204,
+        "ready": 503
+      },
+      "app-market": {
+        "live": 204,
+        "ready": 503
+      },
+      "extension-controller": {
+        "live": 204,
+        "ready": 503
+      },
+      "operation-worker": {
+        "live": 204,
+        "ready": 503
+      },
+      "platform-api": {
+        "live": 204,
+        "ready": 204
+      }
+    },
+    "postgresql": {
+      "apiserver": {
+        "live": 204,
+        "ready": 503
+      },
+      "app-market": {
+        "live": 204,
+        "ready": 503
+      },
+      "extension-controller": {
+        "live": 204,
+        "ready": 503
+      },
+      "operation-worker": {
+        "live": 204,
+        "ready": 503
+      },
+      "platform-api": {
+        "live": 204,
+        "ready": 503
+      }
+    }
+  },
+  "pods": [
+    {
+      "name": "apiserver-87c9dc867-qbfgh",
+      "ready": true,
+      "restarts": 0
+    },
+    {
+      "name": "app-market-64ccd7d87b-6bjbn",
+      "ready": true,
+      "restarts": 0
+    },
+    {
+      "name": "cluster-router-54c4d4c6ff-5knrm",
+      "ready": true,
+      "restarts": 1
+    },
+    {
+      "name": "extension-controller-56f57fc67-8g49r",
+      "ready": true,
+      "restarts": 0
+    },
+    {
+      "name": "nats-0",
+      "ready": true,
+      "restarts": 0
+    },
+    {
+      "name": "operation-worker-785fdf5789-j5cft",
+      "ready": true,
+      "restarts": 0
+    },
+    {
+      "name": "platform-api-7b64d8db7f-cp8tr",
+      "ready": true,
+      "restarts": 0
+    },
+    {
+      "name": "portal-57c9b8987d-kkqqp",
+      "ready": true,
+      "restarts": 1
+    },
+    {
+      "name": "postgresql-0",
+      "ready": true,
+      "restarts": 0
+    },
+    {
+      "name": "tunnel-server-664995456-s6rcf",
+      "ready": true,
+      "restarts": 0
+    }
+  ],
+  "finished_at": "2026-10-13T09:19:02.701638+00:00",
+  "exit_code": 0
+}

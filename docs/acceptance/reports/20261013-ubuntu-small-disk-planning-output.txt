@@ -1,0 +1,21 @@
+
+## actual filesystem observation
+{"cpu": 2, "memoryMi": 3913, "diskBytes": 19682557952, "freeDiskBytes": 17072611328}
+
+exit_code=0
+
+## uploaded CLI digest
+9faa79b11f5527ff50493246804a81d8cee60bd8a9e6e71ada57774688a1e497  /home/ubuntu/hnb-startup-host-test-20261013/hnbctl-cloud-test-small-disk
+
+exit_code=0
+
+## small-disk planning on observed 18Gi root filesystem
+{"schemaVersion":"capacity-report/v1","profile":"Minimal","manifestDigest":"sha256:a768fc6eefccf714a5633855d7d99d04e580cd52cd402c2b7edbb8d59c83818b","inputSource":"rendered manifests and operator-declared nodes; planning only","workloads":[{"name":"Deployment//apiserver","replicas":1,"perPod":{"cpuMilli":125,"memoryMi":256,"diskGi":0}},{"name":"Deployment//app-market","replicas":1,"perPod":{"cpuMilli":100,"memoryMi":128,"diskGi":0}},{"name":"Deployment//cluster-router","replicas":1,"perPod":{"cpuMilli":100,"memoryMi":128,"diskGi":0}},{"name":"Deployment//extension-controller","replicas":1,"perPod":{"cpuMilli":100,"memoryMi":128,"diskGi":0}},{"name":"Deployment//operation-worker","replicas":1,"perPod":{"cpuMilli":125,"memoryMi":256,"diskGi":0}},{"name":"Deployment//platform-api","replicas":1,"perPod":{"cpuMilli":125,"memoryMi":256,"diskGi":0}},{"name":"Deployment//portal","replicas":1,"perPod":{"cpuMilli":100,"memoryMi":128,"diskGi":0}},{"name":"Deployment//tunnel-server","replicas":1,"perPod":{"cpuMilli":100,"memoryMi":128,"diskGi":0}},{"name":"StatefulSet//nats","replicas":1,"perPod":{"cpuMilli":50,"memoryMi":128,"diskGi":0}},{"name":"StatefulSet//postgresql","replicas":1,"perPod":{"cpuMilli":150,"memoryMi":256,"diskGi":0}}],"requests":{"cpuMilli":1075,"memoryMi":1792,"diskGi":3},"systemReserve":{"cpuMilli":500,"memoryMi":1024,"diskGi":6},"downloadCacheGi":20,"backupGi":3,"headroomPercent":10,"scope":"startup","cacheSource":"external","backupSource":"external","required":{"cpuMilli":1683,"memoryMi":2996,"diskGi":10},"declared":{"cpuMilli":2000,"memoryMi":3913,"diskGi":18},"controlPlaneFailureDomains":0,"reasons":[],"fitsDeclaredCapacity":true,"installAuthorized":false}
+
+exit_code=0
+
+## same actual node rejects local cache and backup
+{"schemaVersion":"capacity-report/v1","profile":"Minimal","manifestDigest":"sha256:a768fc6eefccf714a5633855d7d99d04e580cd52cd402c2b7edbb8d59c83818b","inputSource":"rendered manifests and operator-declared nodes; planning only","workloads":[{"name":"Deployment//apiserver","replicas":1,"perPod":{"cpuMilli":125,"memoryMi":256,"diskGi":0}},{"name":"Deployment//app-market","replicas":1,"perPod":{"cpuMilli":100,"memoryMi":128,"diskGi":0}},{"name":"Deployment//cluster-router","replicas":1,"perPod":{"cpuMilli":100,"memoryMi":128,"diskGi":0}},{"name":"Deployment//extension-controller","replicas":1,"perPod":{"cpuMilli":100,"memoryMi":128,"diskGi":0}},{"name":"Deployment//operation-worker","replicas":1,"perPod":{"cpuMilli":125,"memoryMi":256,"diskGi":0}},{"name":"Deployment//platform-api","replicas":1,"perPod":{"cpuMilli":125,"memoryMi":256,"diskGi":0}},{"name":"Deployment//portal","replicas":1,"perPod":{"cpuMilli":100,"memoryMi":128,"diskGi":0}},{"name":"Deployment//tunnel-server","replicas":1,"perPod":{"cpuMilli":100,"memoryMi":128,"diskGi":0}},{"name":"StatefulSet//nats","replicas":1,"perPod":{"cpuMilli":50,"memoryMi":128,"diskGi":0}},{"name":"StatefulSet//postgresql","replicas":1,"perPod":{"cpuMilli":150,"memoryMi":256,"diskGi":0}}],"requests":{"cpuMilli":1075,"memoryMi":1792,"diskGi":3},"systemReserve":{"cpuMilli":500,"memoryMi":1024,"diskGi":6},"downloadCacheGi":20,"backupGi":3,"headroomPercent":10,"scope":"startup","cacheSource":"local","backupSource":"local","required":{"cpuMilli":1683,"memoryMi":2996,"diskGi":35},"declared":{"cpuMilli":2000,"memoryMi":3913,"diskGi":18},"controlPlaneFailureDomains":0,"reasons":["DECLARED_CAPACITY_INSUFFICIENT"],"fitsDeclaredCapacity":false,"installAuthorized":false}
+PREFLIGHT_BLOCKED: capacity planning blocked; see report reason codes
+
+exit_code=3

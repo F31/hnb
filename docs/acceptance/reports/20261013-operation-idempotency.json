@@ -1,0 +1,35 @@
+{
+  "run_id": "startup-operation-idempotency-20261013",
+  "finished_at": "2026-10-13T15:50:26.125481+00:00",
+  "results": {
+    "client_idempotency_key": "startup-live-c3aeef09-4f54-4d16-9140-8976b8663fbe",
+    "semantic_replay": {
+      "http_status": 202,
+      "replayed": true,
+      "operation_id": "d423131c-fbd1-4301-b757-ddedfb5b5a2c",
+      "operations_before": 5,
+      "operations_after": 5,
+      "same_operation": true,
+      "intents": 1
+    },
+    "digest_conflict": {
+      "http_status": 409,
+      "code": "IDEMPOTENCY_CONFLICT",
+      "operations_after": 5
+    },
+    "operations": [
+      "56889fcd-8dab-4ebd-890f-aa5b7ae7214e failed",
+      "e0dd3813-855b-4ce3-b7ba-650d9f4e965e failed",
+      "d423131c-fbd1-4301-b757-ddedfb5b5a2c succeeded",
+      "659bffac-4d3e-4d14-9ffc-87cd61508f75 queued",
+      "3aebbaa5-694f-4c47-9aba-886e1fe0de42 succeeded"
+    ],
+    "targets": [
+      "00000000-0000-4000-8000-0000000000ca ACTIVE obs=- gen=-",
+      "00000000-0000-4000-8000-0000000000cb ACTIVE obs=- gen=-",
+      "a61fe949-b644-5fcc-aed9-7daaf1b70a8e REGISTERING obs=- gen=-",
+      "f13b8fa2-5af7-546d-894f-adb2708fb0c8 REGISTERING obs=agent gen=1"
+    ]
+  },
+  "note": "Replay uses the client-supplied idempotency key; an earlier attempt used the internally scoped form and correctly produced a separate request."
+}

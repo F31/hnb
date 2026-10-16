@@ -1,0 +1,61 @@
+{
+  "run_id": "startup-conformance-admission-20261013",
+  "started_at": "2026-10-13T14:47:59.462547+00:00",
+  "finished_at": "2026-10-13T14:48:30.297948+00:00",
+  "exit_code": 0,
+  "scope": "negative API checks only; no real action conformance or Operation success",
+  "checks": {
+    "anonymous": 401,
+    "untrusted_signer": {
+      "status": 400,
+      "reason": "One or more request fields are invalid."
+    },
+    "signed_failed_assertion": {
+      "status": 400,
+      "response": {
+        "type": "https://hnb.cloud/problems/validation-failed",
+        "title": "Bad Request",
+        "status": 400,
+        "detail": "One or more request fields are invalid.",
+        "code": "VALIDATION_FAILED",
+        "correlationId": "d5ef34ec-5bec-43b7-9d35-f3a8106c507c",
+        "traceId": "81a047c8878e16286fd147c14f93f26a"
+      }
+    },
+    "signed_expired": {
+      "status": 400,
+      "response": {
+        "type": "https://hnb.cloud/problems/validation-failed",
+        "title": "Bad Request",
+        "status": 400,
+        "detail": "One or more request fields are invalid.",
+        "code": "VALIDATION_FAILED",
+        "correlationId": "3a8415a4-9e63-4851-9396-8bc386d21684",
+        "traceId": "81774f449cee4598c6b73cdbc23e203b"
+      }
+    },
+    "tampered_signature": {
+      "status": 400,
+      "response": {
+        "type": "https://hnb.cloud/problems/validation-failed",
+        "title": "Bad Request",
+        "status": 400,
+        "detail": "One or more request fields are invalid.",
+        "code": "VALIDATION_FAILED",
+        "correlationId": "7d9c8786-7fe6-4a2c-b8c9-0a06efd0a457",
+        "traceId": "1cc7a0ce75f90767494bacbe44745d5b"
+      }
+    }
+  },
+  "database": {
+    "operations": 0,
+    "provider_manifests": 0
+  },
+  "stability": {
+    "seconds": 30,
+    "ready_before": 12,
+    "ready_after": 12,
+    "additional_restarts": 0
+  },
+  "platform_image": "hnb-fix/platform-api@sha256:5ff99712a08e7ced88ce5c6b32f66e673c743f3dc32e4cd894a0c8b37cc0fa02"
+}

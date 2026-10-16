@@ -1,0 +1,25 @@
+{
+  "run_id": "startup-orphan-step-20261013",
+  "captured_at": "2026-10-13T15:57:46.104581+00:00",
+  "finding": "A step-requested message published while no worker consumer was attached is never re-driven; the Operation stays queued indefinitely.",
+  "evidence": {
+    "operation_id": "659bffac-4d3e-4d14-9ffc-87cd61508f75",
+    "operation_created_at": "2026-10-13 15:48:22.748661+00",
+    "outbox_published_at": "2026-10-13 15:48:23.461523+00",
+    "worker_pod_created_at": "2026-10-13T15:48:24Z",
+    "worker_ready": true,
+    "worker_restarts": 0,
+    "step_status": "pending retry=0/3 lease=none started=none",
+    "operation_status_now": "queued 0/1",
+    "ack_wait_seconds": 60,
+    "max_deliver": 4,
+    "reconciler_scope": "pkg/core.NewProviderReconciler reconciles provider bindings only; no component re-drives orphaned pending steps"
+  },
+  "operations_now": [
+    "56889fcd-8dab-4ebd-890f-aa5b7ae7214e failed",
+    "e0dd3813-855b-4ce3-b7ba-650d9f4e965e failed",
+    "d423131c-fbd1-4301-b757-ddedfb5b5a2c succeeded",
+    "659bffac-4d3e-4d14-9ffc-87cd61508f75 queued",
+    "3aebbaa5-694f-4c47-9aba-886e1fe0de42 succeeded"
+  ]
+}

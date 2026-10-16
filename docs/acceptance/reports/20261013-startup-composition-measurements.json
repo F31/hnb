@@ -1,0 +1,71 @@
+{
+  "measured_at": "2026-10-13T06:40:01.723345+00:00",
+  "scope": "Real host measurement of the running Startup composition",
+  "node": {
+    "memory_total_bytes": 4103929856,
+    "memory_available_bytes": 3038470144,
+    "disk_total_bytes": 19682557952,
+    "disk_used_bytes": 5626912768,
+    "disk_available_bytes": 14038867968
+  },
+  "k3s_footprint_bytes": 1838906610,
+  "k3s_images_bytes": 194508973,
+  "k3s_containerd_total_bytes": 1444222890,
+  "pods": [
+    [
+      "apiserver-56f844bffb-scnq9",
+      "Running",
+      "true"
+    ],
+    [
+      "app-market-775c5cfcd6-s5fwg",
+      "Running",
+      "true"
+    ],
+    [
+      "cluster-router-58b77ddfcf-bbwgj",
+      "Running",
+      "true"
+    ],
+    [
+      "extension-controller-f4f56d865-69b86",
+      "Running",
+      "true"
+    ],
+    [
+      "nats-0",
+      "Running",
+      "true"
+    ],
+    [
+      "operation-worker-5f88744df6-nfqj2",
+      "Running",
+      "true"
+    ],
+    [
+      "platform-api-6745778f9f-tj9j4",
+      "Running",
+      "true"
+    ],
+    [
+      "portal-6b748855b7-5t596",
+      "Running",
+      "true"
+    ],
+    [
+      "postgresql-0",
+      "Running",
+      "true"
+    ],
+    [
+      "tunnel-server-7654b6c78f-rpmlj",
+      "Running",
+      "true"
+    ]
+  ],
+  "requested": [],
+  "actual_workload_memory_bytes": {},
+  "actual_workload_memory_total_bytes": 0,
+  "postgres_data_bytes": 106551231,
+  "nats_data_bytes": 0
+}

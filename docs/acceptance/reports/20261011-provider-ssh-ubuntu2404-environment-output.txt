@@ -1,0 +1,18 @@
+namespace "hnb-ubuntu-e2e" deleted
+okNAME            STATUS   ROLES           AGE     VERSION   INTERNAL-IP   EXTERNAL-IP   OS-IMAGE           KERNEL-VERSION             CONTAINER-RUNTIME
+hnb-ubuntu-cp   Ready    control-plane   4m44s   v1.36.5   10.9.127.43   <none>        Ubuntu 24.04 LTS   6.8.0-31-generic (amd64)   containerd://2.2.1
+NAME           DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR            AGE
+cilium         1         1         1       1            1           kubernetes.io/os=linux   2m46s
+cilium-envoy   1         1         1       1            1           kubernetes.io/os=linux   2m47s
+NAME              READY   UP-TO-DATE   AVAILABLE   AGE
+cilium-operator   1/1     1            1           2m47s
+coredns           2/2     2            2           4m42s
+containerd	2.2.1-0ubuntu1~24.04.3
+kubeadm	1.36.5-1.1
+kubectl	1.36.5-1.1
+kubelet	1.36.5-1.1
+runc	1.3.4-0ubuntu1~24.04.1
+      sandbox = 'registry.aliyuncs.com/google_containers/pause:3.10'
+            SystemdCgroup = true
+      bin_dirs = ['/opt/cni/bin']
+Filename				Type		Size		Used		Priority

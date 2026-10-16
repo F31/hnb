@@ -1,0 +1,138 @@
+{
+  "verified_at": "2026-10-13T14:16:35.013734+00:00",
+  "checks": {
+    "runtime-target-lifecycle-provider": {
+      "health": 200,
+      "unauthenticated_execution": 401
+    },
+    "kubernetes-provider": {
+      "health": 200,
+      "unauthenticated_execution": 401
+    },
+    "login": {
+      "status": 200,
+      "token_issued": true
+    },
+    "/api/v1/session/bootstrap": {
+      "status": 200
+    },
+    "/api/v1/workspaces": {
+      "status": 200
+    },
+    "/api/v1/tenants": {
+      "status": 200
+    },
+    "secret_registration": {
+      "status": 201,
+      "response": {
+        "apiVersion": "hnb.io/v1",
+        "provider": "local-aes",
+        "scope": "runtime-eval",
+        "name": "startup-discovery",
+        "version": "1",
+        "purpose": "kubeconfig"
+      }
+    },
+    "intent_preflight": {
+      "status": 503,
+      "response": {
+        "type": "https://hnb.cloud/problems/upstream-unavailable",
+        "title": "Service Unavailable",
+        "status": 503,
+        "detail": "The platform service is temporarily unavailable.",
+        "instance": "/api/v1/runtime-intents",
+        "code": "UPSTREAM_UNAVAILABLE",
+        "correlationId": "f26e0c7e-c7b2-4379-8235-868b9b995065",
+        "traceId": "f26e0c7ec7b243798235868b9b995065",
+        "retryable": true
+      }
+    },
+    "stability": {
+      "seconds": 60,
+      "ready_before": 12,
+      "ready_after": 12,
+      "additional_restarts": 0
+    }
+  },
+  "pods": [
+    {
+      "name": "apiserver-5d5949f847-fh2tf",
+      "image": "hnb-fix/apiserver@sha256:aa9850fc076a850224a647655e9f298d2f67560644a1e18b7d0c69e8f608869a",
+      "ready": true,
+      "restarts": 0
+    },
+    {
+      "name": "app-market-64ccd7d87b-6bjbn",
+      "image": "hnb-fix/app-market@sha256:6d4e18c2c9c66efa0c7c3f65c5e5ae513b4dfaa8e431269a2fd0d20ce239de9c",
+      "ready": true,
+      "restarts": 1
+    },
+    {
+      "name": "cluster-router-54c4d4c6ff-5knrm",
+      "image": "hnb-fix/cluster-router@sha256:a946da295619ccd312c65c5ac5ac5497f1b181a248108805d72986fdd1360f8a",
+      "ready": true,
+      "restarts": 2
+    },
+    {
+      "name": "extension-controller-56f57fc67-8g49r",
+      "image": "hnb-fix/extension-controller@sha256:6abb7cb5849867d308588ac73e8ccc59b796a1b984e9301f4c9aea3f675c31c2",
+      "ready": true,
+      "restarts": 1
+    },
+    {
+      "name": "kubernetes-provider-5d698d6f55-kvbdl",
+      "image": "hnb-fix/kubernetes-provider@sha256:801a99a65dbfbed3572c49be30913489080676632fc47758103cff01285ae3fc",
+      "ready": true,
+      "restarts": 0
+    },
+    {
+      "name": "nats-0",
+      "image": "nats@sha256:4bb7463f82c83da51fd098d9ddbc0dccfdc7415e110b02de375f60066b392878",
+      "ready": true,
+      "restarts": 1
+    },
+    {
+      "name": "operation-worker-785fdf5789-j5cft",
+      "image": "hnb-fix/operation-worker@sha256:caa54ac1a5420dbb06a23ab8ff3df5e540e9b38060d2542529d82cda267c42c1",
+      "ready": true,
+      "restarts": 1
+    },
+    {
+      "name": "platform-api-6dcf5dff9c-wkztj",
+      "image": "hnb-fix/platform-api@sha256:5bbe718e5a1a09eaa811e0bb3677b4b3b2942dfe3bd3098af95fbe3056b4b3ea",
+      "ready": true,
+      "restarts": 0
+    },
+    {
+      "name": "portal-57c9b8987d-kkqqp",
+      "image": "hnb-eval/portal@sha256:7133b0980e1f0c8bdfd569ce84fe706a5ed86ccdc34a310b569defce21343de0",
+      "ready": true,
+      "restarts": 2
+    },
+    {
+      "name": "postgresql-0",
+      "image": "postgres@sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d",
+      "ready": true,
+      "restarts": 1
+    },
+    {
+      "name": "runtime-target-lifecycle-provider-6cd7474dfb-5ndq8",
+      "image": "hnb-fix/runtime-target-lifecycle-provider@sha256:91b0baccd1778fff01f9fb5a07e4ff2cc77378b643254f04e8f8adc1ee741949",
+      "ready": true,
+      "restarts": 0
+    },
+    {
+      "name": "tunnel-server-664995456-s6rcf",
+      "image": "hnb-fix/tunnel-server@sha256:3605bbc47c7c4080279e153ad13268c70644e047f5fe210b0bae0a006291c2c3",
+      "ready": true,
+      "restarts": 1
+    }
+  ],
+  "session_keys": [],
+  "database": {
+    "operations": 0,
+    "provider_manifests": 0,
+    "encrypted_eval_secrets": 1
+  },
+  "finished_at": "2026-10-13T14:17:35.576163+00:00"
+}

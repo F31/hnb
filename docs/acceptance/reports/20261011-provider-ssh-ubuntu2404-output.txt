@@ -1,0 +1,19 @@
+=== RUN   TestProvisionRealSSH
+    provision_real_test.go:99: SSH step 1 host=106.75.26.57 started
+    provision_real_test.go:101: SSH step 1 host=106.75.26.57 completed success=true
+    provision_real_test.go:99: SSH step 2 host=106.75.26.57 started
+    provision_real_test.go:101: SSH step 2 host=106.75.26.57 completed success=true
+    provision_real_test.go:99: SSH step 3 host=106.75.26.57 started
+    provision_real_test.go:101: SSH step 3 host=106.75.26.57 completed success=true
+    provision_real_test.go:99: SSH step 4 host=106.75.26.57 started
+    provision_real_test.go:101: SSH step 4 host=106.75.26.57 completed success=true
+    provision_real_test.go:99: SSH step 5 host=106.75.26.57 started
+    provision_real_test.go:101: SSH step 5 host=106.75.26.57 completed success=true
+    provision_real_test.go:99: SSH step 6 host=106.75.26.57 started
+    provision_real_test.go:101: SSH step 6 host=106.75.26.57 completed success=true
+    provision_real_test.go:99: SSH step 7 host=106.75.26.57 started
+    provision_real_test.go:101: SSH step 7 host=106.75.26.57 completed success=true
+    provision_real_test.go:89: accepted nodes=1 endpoint=10.9.127.43:6443 kubeconfig_ref=local-aes/tenant/provision-ubuntu240420@2 encrypted_at_rest=true
+--- PASS: TestProvisionRealSSH (156.17s)
+PASS
+ok  	github.com/F31/hnb/cmd/runtime-target-lifecycle-provider/internal/provider	157.215s

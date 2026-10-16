@@ -1,0 +1,10 @@
+{
+  "registered_at": "2026-10-13T15:21:38.894974+00:00",
+  "status": 201,
+  "scope": "KubernetesTarget/import only, four-hour evaluation window",
+  "provider_version": "startup-eval-20261013",
+  "provider_digest": "sha256:52277423921da253037228b5358e8f169dfa3bd892d084c5f1396d208dda2cec",
+  "evidence_ref": "sha256:3226c2e89b9215b662890576f6838d192acead1cab7da55b3b0ef5e57d58586d",
+  "artifact_digest": "sha256:e584c576118f3318b19342ba417f68ef32ac861618af9c9833d4bba494d7ddaa",
+  "matrix_version": "1.0.0"
+}

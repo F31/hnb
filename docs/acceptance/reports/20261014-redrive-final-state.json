@@ -1,0 +1,25 @@
+{
+  "observed_at": "2026-10-14T01:43:37.186223+00:00",
+  "expected_manifest": "sha256:c1fb52bd0f206018dbe081ca4f00ddc30fd09ab6e9c96ff83e6078016af8bf7a",
+  "wrong_source_rejected": "docker.io/hnb-fix/operation-worker:redrive-v2 resolves to sha256:1b3d622a079c0927a91f67c1d2799902667bcea9829ba59e2c78b571cf49cf58, not expected amd64 manifest sha256:c1fb52bd0f206018dbe081ca4f00ddc30fd09ab6e9c96ff83e6078016af8bf7a",
+  "verified_import_target": "sha256:c1fb52bd0f206018dbe081ca4f00ddc30fd09ab6e9c96ff83e6078016af8bf7a",
+  "workers": [
+    {
+      "name": "operation-worker-7bcbcd855-nfrcj",
+      "requested_image": "hnb-fix/operation-worker@sha256:c1fb52bd0f206018dbe081ca4f00ddc30fd09ab6e9c96ff83e6078016af8bf7a",
+      "image_id": "docker.io/hnb-fix/operation-worker@sha256:c1fb52bd0f206018dbe081ca4f00ddc30fd09ab6e9c96ff83e6078016af8bf7a",
+      "ready": true
+    }
+  ],
+  "repaired_v3_target": "sha256:6241abc516f2cd3bdb5f47614f1c0083a9bc071b2e0ec525b59c3d296511e2f6",
+  "exhausted_step": {
+    "operation_id": "659bffac-4d3e-4d14-9ffc-87cd61508f75",
+    "step_id": "ef0e3c85-e1bd-4c29-875c-02d324174f7a",
+    "status": "pending",
+    "max_retries": 3,
+    "attempt": 3,
+    "max_attempts": 10
+  },
+  "legacy_archive_sha256": "7208acae434a80a51ee7e25e402300d7938244ff156d6ffe57c4493ea6ceb1ad",
+  "passed": true
+}

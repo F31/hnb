@@ -1,0 +1,163 @@
+{
+  "operation_id": "36d171ec-5721-41fd-a35e-4e33345881e6",
+  "duplicate_wait_seconds": 16.993246,
+  "before": {
+    "status": "succeeded",
+    "completed_steps": 1,
+    "total_steps": 1,
+    "steps": [
+      {
+        "id": "0edfc722-f39e-43e2-9595-65f7ed25c20f",
+        "status": "succeeded",
+        "retry_count": 0,
+        "error": null,
+        "started_at": "2026-10-14T01:37:19.158345+00:00",
+        "completed_at": "2026-10-14T01:37:19.184163+00:00"
+      }
+    ],
+    "requests": [
+      {
+        "message_id": "0688d61b-98aa-420e-a74f-8aa15c4a946c",
+        "status": "published",
+        "attempt": 1,
+        "max_attempts": 10,
+        "key_matches_step": true
+      }
+    ]
+  },
+  "after": {
+    "status": "succeeded",
+    "completed_steps": 1,
+    "total_steps": 1,
+    "steps": [
+      {
+        "id": "0edfc722-f39e-43e2-9595-65f7ed25c20f",
+        "status": "succeeded",
+        "retry_count": 0,
+        "error": null,
+        "started_at": "2026-10-14T01:37:19.158345+00:00",
+        "completed_at": "2026-10-14T01:37:19.184163+00:00"
+      }
+    ],
+    "requests": [
+      {
+        "message_id": "0688d61b-98aa-420e-a74f-8aa15c4a946c",
+        "status": "published",
+        "attempt": 2,
+        "max_attempts": 10,
+        "key_matches_step": true
+      }
+    ]
+  },
+  "duplicate_acknowledgments": [
+    "2026/10/14 01:39:25 [worker-5444f799] operation 36d171ec-5721-41fd-a35e-4e33345881e6 is terminal (succeeded); acknowledging stale command"
+  ],
+  "legacy_archive_count": 12,
+  "legacy_removed": "DELETE 12",
+  "legacy_archive_path": "/home/ubuntu/redrive-v4-legacy-outbox-archive.json",
+  "legacy_operation_states": {
+    "0c4711d6-5c92-4c97-8d83-90cf3e8818dc": {
+      "status": "failed",
+      "completed_steps": 0,
+      "total_steps": 1,
+      "steps": [
+        {
+          "id": "f5ad475d-930a-48d6-ace2-8f934e312351",
+          "status": "failed",
+          "retry_count": 0,
+          "error": "runtime provider error INVALID_REQUEST: lifecycle provider \"runtime-target.lifecycle.kubernetes\" pinned digest \"sha256:ec30de8b74af5ab6fc1d3e14c8f78a4ca421a504cf63715fee2b3941b3589e92\" does not match configured digest \"sha256:52277423921da253037228b5358e8f169dfa3bd892d084c5f1396d208dda2cec\"",
+          "started_at": "2026-10-14T01:29:00.038592+00:00",
+          "completed_at": "2026-10-14T01:29:00.039209+00:00"
+        }
+      ],
+      "requests": [
+        {
+          "message_id": "89692a46-d527-41b7-b299-0069ac60042e",
+          "status": "published",
+          "attempt": 1,
+          "max_attempts": 10,
+          "key_matches_step": true
+        }
+      ]
+    },
+    "1335a418-dbc7-47d9-aed6-6e536238ae8f": {
+      "status": "failed",
+      "completed_steps": 0,
+      "total_steps": 1,
+      "steps": [
+        {
+          "id": "a0cda0d6-727e-4be3-912c-99511f3d32a7",
+          "status": "failed",
+          "retry_count": 0,
+          "error": "runtime provider error INVALID_REQUEST: lifecycle provider \"runtime-target.lifecycle.kubernetes\" pinned digest \"sha256:ec30de8b74af5ab6fc1d3e14c8f78a4ca421a504cf63715fee2b3941b3589e92\" does not match configured digest \"sha256:52277423921da253037228b5358e8f169dfa3bd892d084c5f1396d208dda2cec\"",
+          "started_at": "2026-10-14T01:29:00.038318+00:00",
+          "completed_at": "2026-10-14T01:29:00.040011+00:00"
+        }
+      ],
+      "requests": [
+        {
+          "message_id": "ee368bc6-d81a-45c2-a100-d3366887ea54",
+          "status": "published",
+          "attempt": 1,
+          "max_attempts": 10,
+          "key_matches_step": true
+        }
+      ]
+    },
+    "17a63c7a-558a-4e41-bd8c-6e0dc55117c3": {
+      "status": "failed",
+      "completed_steps": 0,
+      "total_steps": 1,
+      "steps": [
+        {
+          "id": "15adfa2b-708b-461d-b2ef-6704f6eaaf63",
+          "status": "failed",
+          "retry_count": 0,
+          "error": "runtime provider error INVALID_REQUEST: lifecycle provider \"runtime-target.lifecycle.kubernetes\" pinned digest \"sha256:ec30de8b74af5ab6fc1d3e14c8f78a4ca421a504cf63715fee2b3941b3589e92\" does not match configured digest \"sha256:52277423921da253037228b5358e8f169dfa3bd892d084c5f1396d208dda2cec\"",
+          "started_at": "2026-10-14T01:29:00.050154+00:00",
+          "completed_at": "2026-10-14T01:29:00.050479+00:00"
+        }
+      ],
+      "requests": [
+        {
+          "message_id": "0084d173-3585-4889-838e-80a8a79b71a2",
+          "status": "published",
+          "attempt": 1,
+          "max_attempts": 10,
+          "key_matches_step": true
+        }
+      ]
+    },
+    "3657edc2-5f15-4e30-8113-3c00074c5d6d": {
+      "status": "failed",
+      "completed_steps": 0,
+      "total_steps": 1,
+      "steps": [
+        {
+          "id": "8c208c0e-5bb9-4eac-9cf4-a9cf1b2c506f",
+          "status": "failed",
+          "retry_count": 0,
+          "error": "runtime provider error INVALID_REQUEST: lifecycle provider \"runtime-target.lifecycle.kubernetes\" pinned digest \"sha256:ec30de8b74af5ab6fc1d3e14c8f78a4ca421a504cf63715fee2b3941b3589e92\" does not match configured digest \"sha256:52277423921da253037228b5358e8f169dfa3bd892d084c5f1396d208dda2cec\"",
+          "started_at": "2026-10-14T01:29:00.056048+00:00",
+          "completed_at": "2026-10-14T01:29:00.056373+00:00"
+        }
+      ],
+      "requests": [
+        {
+          "message_id": "9b616784-0a43-41c1-8c09-297eadc69fe4",
+          "status": "published",
+          "attempt": 1,
+          "max_attempts": 10,
+          "key_matches_step": true
+        }
+      ]
+    }
+  },
+  "exhaustion_logs": [
+    "2026/10/14 01:37:19 [redrive] step ef0e3c85-e1bd-4c29-875c-02d324174f7a exhausted its delivery budget and still has no worker; manual intervention required",
+    "2026/10/14 01:38:19 [redrive] step ef0e3c85-e1bd-4c29-875c-02d324174f7a exhausted its delivery budget and still has no worker; manual intervention required",
+    "2026/10/14 01:39:19 [redrive] step ef0e3c85-e1bd-4c29-875c-02d324174f7a exhausted its delivery budget and still has no worker; manual intervention required"
+  ],
+  "finished_at": "2026-10-14T01:39:26.837541+00:00",
+  "passed": true
+}

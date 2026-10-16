@@ -13,6 +13,7 @@ use (
 	cmd/extension-controller
 	cmd/gateway-provider
 	cmd/gslb-controller
+	cmd/hnbctl
 	cmd/karmada-provider
 	cmd/kube-ovn-provider
 	cmd/kubernetes-provider
@@ -20,6 +21,7 @@ use (
 	cmd/network-registry
 	cmd/operation-worker
 	cmd/platform-api
+	cmd/plugin-worker
 	cmd/provider-conformance
 	cmd/rbac-syncer
 	cmd/runtime-target-lifecycle-provider
@@ -37,6 +39,7 @@ use (
 	pkg/messaging
 	pkg/network
 	pkg/observability
+	pkg/provision
 	pkg/router
 	pkg/storagemetrics
 	pkg/tunnel

@@ -1,0 +1,374 @@
+
+## host snapshot before 2026-10-13T02:34:32.340569+00:00
+{"os": "PRETTY_NAME=\"Ubuntu 24.04 LTS\"\nNAME=\"Ubuntu\"\nVERSION_ID=\"24.04\"\nVERSION=\"24.04 LTS (Noble Numbat)\"\nVERSION_CODENAME=noble\nID=ubuntu\nID_LIKE=debian\nHOME_URL=\"https://www.ubuntu.com/\"\nSUPPORT_URL=\"https://help.ubuntu.com/\"\nBUG_REPORT_URL=\"https://bugs.launchpad.net/ubuntu/\"\nPRIVACY_POLICY_URL=\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\"\nUBUNTU_CODENAME=noble\nLOGO=ubuntu-logo\n", "kernel": "6.8.0-138-generic", "arch": "x86_64", "cpu": 2, "memoryMi": 3913, "availableMemoryMi": 3524, "diskBytes": 19682557952, "freeDiskBytes": 17475899392, "bootId": "89e7b556-cbc0-4b59-a453-5b9bcc7f0935", "tools": {"docker": null, "containerd": null, "k3s": null, "kubectl": null, "psql": null, "nats-server": null}}
+
+exit_code=0
+
+## create isolated working directory 2026-10-13T02:34:33.545348+00:00
+
+exit_code=0
+
+## upload hnbctl-cloud-test 2026-10-13T02:34:34.420034+00:00
+
+exit_code=0
+
+## verify uploaded binary digest 2026-10-13T02:34:55.803320+00:00
+66ecac8cdb740ef074c3c9fd51fa1e372f70021ff6429a67eab76022d998ef39  /home/ubuntu/hnb-startup-host-test-20261013/hnbctl-cloud-test
+
+exit_code=0
+
+## hnbctl version 2026-10-13T02:34:56.515957+00:00
+hnbctl 0.2.0 (candidate; not a certified HNB platform release)
+
+exit_code=0
+
+## hnbctl help 2026-10-13T02:34:57.776497+00:00
+HNB deployment toolkit (hnbctl)
+
+Usage: hnbctl <command> [flags]
+
+  bundle       prepare/verify/import a verified offline dependency closure
+  capacity     estimate capacity from rendered requests (planning only)
+  cluster      managed cluster operations (server-authoritative)
+  collect      export a redacted diagnostics archive
+  handoff      establish the first management relationship via formal registration + live agent observation
+  help         show command help
+  identity     generate instance identity, KMS material and bootstrap admin credential
+  init         create a DeploymentConfig draft
+  install      run the certified install route
+  lock         generate an artifact-identified candidate release lock
+  matrix       print the certified capability and evidence matrix
+  node         node operations (server-authoritative)
+  operation    query or act on an Operation
+  platform     platform upgrade/rollback/uninstall (server-authoritative)
+  preflight    run the read-only preflight (no side effects)
+  prepare      download/verify/cache locked artifacts
+  recipe       show the node dependency declaration derived from the provision scripts
+  recovery     verify original install and backup input identities (read-only; no restore)
+  resume       resume a failed/blocked install after revalidation
+  status       show install progress for a run
+  validate     validate a DeploymentConfig and ReleaseLock
+  verify       run layered node/cluster/platform/managed checks
+  version      print the hnbctl version and support matrix digest
+
+Unsupported actions return exit code 3 (TARGET_ACTION_UNSUPPORTED).
+
+exit_code=0
+
+## hnbctl matrix 2026-10-13T02:34:58.426601+00:00
+evidence version: 2026-10-11
+evidence scope: provider/node/cluster method-level only; not full platform certification
+certified OS: ubuntu-24.04, rocky-10.1
+certified arch: amd64
+kubernetes 1.36.5: certified (docs/acceptance/reports/20261011-provider-ssh-ubuntu2404.md)
+cni 1.20.1: certified (docs/acceptance/reports/20261011-provider-ssh-ubuntu2404.md (cilium))
+profile Minimal: blocked (full platform Minimal E2E not yet performed)
+profile LiteHA: blocked (no failure-domain or PG/JetStream HA drills)
+profile StandardHA: blocked (no certified HA topology evidence)
+profile Enterprise: blocked (no capacity or recovery evidence)
+route: existing is the priority implementation route; full platform delivery remains blocked pending E2E
+
+exit_code=0
+
+## hnbctl init draft 2026-10-13T02:34:59.111916+00:00
+created /home/ubuntu/hnb-startup-host-test-20261013/hnb.yaml (mode=bootstrap profile=Minimal). Fill required values (entry, storage, credentials, release lock) before install.
+
+exit_code=0
+
+## hnbctl validate refuses incomplete draft 2026-10-13T02:34:59.741070+00:00
+config: node "cp-1" sshAddress must be a unicast IPv4 address (IPv6 route lacks evidence)
+config: node "cp-1" internalAddress must be a unicast IPv4 address
+config: node "cp-1" sshKeyFile is required
+config: cluster.apiEndpoint is required
+config: platform.publicBaseURL is required (there is no default fake domain)
+config: platform.publicBaseURL must be an HTTPS origin without credentials, query, fragment or path
+config: platform.tls.existingSecret is required and must name a Secret
+config: platform.storage.className is required and must name a StorageClass
+INVALID_CONFIG: DeploymentConfig is invalid
+
+exit_code=2
+
+## hnbctl preflight refuses incomplete draft 2026-10-13T02:35:00.401572+00:00
+INVALID_CONFIG: DeploymentConfig is invalid: node "cp-1" sshAddress must be a unicast IPv4 address (IPv6 route lacks evidence); node "cp-1" internalAddress must be a unicast IPv4 address; node "cp-1" sshKeyFile is required; cluster.apiEndpoint is required; platform.publicBaseURL is required (there is no default fake domain); platform.publicBaseURL must be an HTTPS origin without credentials, query, fragment or path; platform.tls.existingSecret is required and must name a Secret; platform.storage.className is required and must name a StorageClass
+
+exit_code=2
+
+## hnbctl install refuses incomplete draft 2026-10-13T02:35:01.036426+00:00
+INVALID_CONFIG: node "cp-1" sshAddress must be a unicast IPv4 address (IPv6 route lacks evidence); node "cp-1" internalAddress must be a unicast IPv4 address; node "cp-1" sshKeyFile is required; cluster.apiEndpoint is required; platform.publicBaseURL is required (there is no default fake domain); platform.publicBaseURL must be an HTTPS origin without credentials, query, fragment or path; platform.tls.existingSecret is required and must name a Secret; platform.storage.className is required and must name a StorageClass
+
+exit_code=2
+
+## hnbctl verify remains unverified 2026-10-13T02:35:01.716746+00:00
+{"schemaVersion":"verify-report/v1","layers":[{"layer":"node","state":"failed","checks":[{"checkId":"node.readiness","layer":"node","expected":"independent observation required","actual":"no bound deployment observation source","state":"failed","reasonCode":"VERIFY_CHECK_FAILED","observedAt":"2026-10-13T02:35:01.153381849Z"},{"checkId":"node.owner-conflict","layer":"node","expected":"independent observation required","actual":"no bound deployment observation source","state":"failed","reasonCode":"VERIFY_CHECK_FAILED","observedAt":"2026-10-13T02:35:01.153381849Z"}]},{"layer":"cluster","state":"failed","checks":[{"checkId":"cluster.api","layer":"cluster","expected":"independent observation required","actual":"no bound deployment observation source","state":"failed","reasonCode":"VERIFY_CHECK_FAILED","observedAt":"2026-10-13T02:35:01.153381849Z"},{"checkId":"cluster.control-plane-ready","layer":"cluster","expected":"independent observation required","actual":"no bound deployment observation source","state":"failed","reasonCode":"VERIFY_CHECK_FAILED","observedAt":"2026-10-13T02:35:01.153381849Z"},{"checkId":"cluster.cni-ready","layer":"cluster","expected":"independent observation required","actual":"no bound deployment observation source","state":"failed","reasonCode":"VERIFY_CHECK_FAILED","observedAt":"2026-10-13T02:35:01.153381849Z"}]},{"layer":"platform","state":"failed","checks":[{"checkId":"platform.entry-tls","layer":"platform","expected":"independent observation required","actual":"no bound deployment observation source","state":"failed","reasonCode":"VERIFY_CHECK_FAILED","observedAt":"2026-10-13T02:35:01.153381849Z"},{"checkId":"platform.login","layer":"platform","expected":"independent observation required","actual":"no bound deployment observation source","state":"failed","reasonCode":"VERIFY_CHECK_FAILED","observedAt":"2026-10-13T02:35:01.153381849Z"},{"checkId":"platform.pg","layer":"platform","expected":"independent observation required","actual":"no bound deployment observation source","state":"failed","reasonCode":"VERIFY_CHECK_FAILED","observedAt":"2026-10-13T02:35:01.153381849Z"},{"checkId":"platform.jetstream","layer":"platform","expected":"independent observation required","actual":"no bound deployment observation source","state":"failed","reasonCode":"VERIFY_CHECK_FAILED","observedAt":"2026-10-13T02:35:01.153381849Z"},{"checkId":"platform.provider-route","layer":"platform","expected":"independent observation required","actual":"no bound deployment observation source","state":"failed","reasonCode":"VERIFY_CHECK_FAILED","observedAt":"2026-10-13T02:35:01.153381849Z"},{"checkId":"platform.app-operation","layer":"platform","expected":"independent observation required","actual":"no bound deployment observation source","state":"failed","reasonCode":"VERIFY_CHECK_FAILED","observedAt":"2026-10-13T02:35:01.153381849Z"},{"checkId":"platform.agent-observation","layer":"platform","expected":"independent observation required","actual":"no bound deployment observation source","state":"failed","reasonCode":"VERIFY_CHECK_FAILED","observedAt":"2026-10-13T02:35:01.153381849Z"},{"checkId":"platform.read-model","layer":"platform","expected":"independent observation required","actual":"no bound deployment observation source","state":"failed","reasonCode":"VERIFY_CHECK_FAILED","observedAt":"2026-10-13T02:35:01.153381849Z"}]},{"layer":"managed","state":"failed","checks":[{"checkId":"managed.registration-operation","layer":"managed","expected":"independent observation required","actual":"no bound deployment observation source","state":"failed","reasonCode":"VERIFY_CHECK_FAILED","observedAt":"2026-10-13T02:35:01.153381849Z"},{"checkId":"managed.agent-authenticated","layer":"managed","expected":"independent observation required","actual":"no bound deployment observation source","state":"failed","reasonCode":"VERIFY_CHECK_FAILED","observedAt":"2026-10-13T02:35:01.153381849Z"}]}],"delivery":{"schemaVersion":"delivery-report/v1","runId":"","layers":[{"layer":"node","state":"failed","reasonCode":"VERIFY_CHECK_FAILED","detail":"node.owner-conflict","observedAt":"2026-10-13T02:35:01.153381849Z"},{"layer":"cluster","state":"failed","reasonCode":"VERIFY_CHECK_FAILED","detail":"cluster.cni-ready","observedAt":"2026-10-13T02:35:01.153381849Z"},{"layer":"platform","state":"failed","reasonCode":"VERIFY_CHECK_FAILED","detail":"platform.read-model","observedAt":"2026-10-13T02:35:01.153381849Z"},{"layer":"managed","state":"failed","reasonCode":"VERIFY_CHECK_FAILED","detail":"managed.agent-authenticated","observedAt":"2026-10-13T02:35:01.153381849Z"}],"overall":"failed","failedLayers":["node","cluster","platform","managed"],"completeDelivery":false,"generatedAt":"2026-10-13T02:35:01.153436423Z"},"generatedAt":"2026-10-13T02:35:01.153381849Z"}
+PLATFORM_NOT_VERIFIED: verify incomplete: 0 required checks unverified; run against a bound deployment
+
+exit_code=4
+
+## upload 20261013-ubuntu-startup-host-test-fixture-rendered.yaml 2026-10-13T02:35:04.617512+00:00
+
+exit_code=0
+
+## upload 20261013-ubuntu-startup-host-test-actual-nodes.yaml 2026-10-13T02:35:05.767877+00:00
+
+exit_code=0
+
+## hnbctl capacity real host disk rejection 2026-10-13T02:35:06.826063+00:00
+{"schemaVersion":"capacity-report/v1","profile":"Minimal","manifestDigest":"sha256:0cc3c00f480cb603d78cebd47463fd1b5a31d48409ab776595afa95d44bbe360","inputSource":"rendered manifests and operator-declared nodes; planning only","workloads":[{"name":"Deployment//apiserver","replicas":1,"perPod":{"cpuMilli":125,"memoryMi":256,"diskGi":0}},{"name":"Deployment//app-market","replicas":1,"perPod":{"cpuMilli":100,"memoryMi":128,"diskGi":0}},{"name":"Deployment//cluster-router","replicas":1,"perPod":{"cpuMilli":100,"memoryMi":128,"diskGi":0}},{"name":"Deployment//extension-controller","replicas":1,"perPod":{"cpuMilli":100,"memoryMi":128,"diskGi":0}},{"name":"Deployment//operation-worker","replicas":1,"perPod":{"cpuMilli":125,"memoryMi":256,"diskGi":0}},{"name":"Deployment//platform-api","replicas":1,"perPod":{"cpuMilli":125,"memoryMi":256,"diskGi":0}},{"name":"Deployment//portal","replicas":1,"perPod":{"cpuMilli":100,"memoryMi":128,"diskGi":0}},{"name":"Deployment//tunnel-server","replicas":1,"perPod":{"cpuMilli":100,"memoryMi":128,"diskGi":0}},{"name":"StatefulSet//nats","replicas":1,"perPod":{"cpuMilli":50,"memoryMi":128,"diskGi":0}},{"name":"StatefulSet//postgresql","replicas":1,"perPod":{"cpuMilli":150,"memoryMi":256,"diskGi":0}}],"requests":{"cpuMilli":1075,"memoryMi":1792,"diskGi":15},"systemReserve":{"cpuMilli":500,"memoryMi":1024,"diskGi":10},"downloadCacheGi":20,"backupGi":15,"headroomPercent":10,"scope":"startup","cacheSource":"external","backupSource":"external","required":{"cpuMilli":1683,"memoryMi":2996,"diskGi":27},"declared":{"cpuMilli":2000,"memoryMi":3913,"diskGi":18},"controlPlaneFailureDomains":0,"reasons":["DECLARED_CAPACITY_INSUFFICIENT"],"fitsDeclaredCapacity":false,"installAuthorized":false}
+PREFLIGHT_BLOCKED: capacity planning blocked; see report reason codes
+
+exit_code=3
+
+## upload 20261013-ubuntu-startup-host-test-hypothetical-40gi-nodes.yaml 2026-10-13T02:35:07.500434+00:00
+
+exit_code=0
+
+## hnbctl capacity hypothetical 40Gi positive control 2026-10-13T02:35:08.534166+00:00
+{"schemaVersion":"capacity-report/v1","profile":"Minimal","manifestDigest":"sha256:0cc3c00f480cb603d78cebd47463fd1b5a31d48409ab776595afa95d44bbe360","inputSource":"rendered manifests and operator-declared nodes; planning only","workloads":[{"name":"Deployment//apiserver","replicas":1,"perPod":{"cpuMilli":125,"memoryMi":256,"diskGi":0}},{"name":"Deployment//app-market","replicas":1,"perPod":{"cpuMilli":100,"memoryMi":128,"diskGi":0}},{"name":"Deployment//cluster-router","replicas":1,"perPod":{"cpuMilli":100,"memoryMi":128,"diskGi":0}},{"name":"Deployment//extension-controller","replicas":1,"perPod":{"cpuMilli":100,"memoryMi":128,"diskGi":0}},{"name":"Deployment//operation-worker","replicas":1,"perPod":{"cpuMilli":125,"memoryMi":256,"diskGi":0}},{"name":"Deployment//platform-api","replicas":1,"perPod":{"cpuMilli":125,"memoryMi":256,"diskGi":0}},{"name":"Deployment//portal","replicas":1,"perPod":{"cpuMilli":100,"memoryMi":128,"diskGi":0}},{"name":"Deployment//tunnel-server","replicas":1,"perPod":{"cpuMilli":100,"memoryMi":128,"diskGi":0}},{"name":"StatefulSet//nats","replicas":1,"perPod":{"cpuMilli":50,"memoryMi":128,"diskGi":0}},{"name":"StatefulSet//postgresql","replicas":1,"perPod":{"cpuMilli":150,"memoryMi":256,"diskGi":0}}],"requests":{"cpuMilli":1075,"memoryMi":1792,"diskGi":15},"systemReserve":{"cpuMilli":500,"memoryMi":1024,"diskGi":10},"downloadCacheGi":20,"backupGi":15,"headroomPercent":10,"scope":"startup","cacheSource":"external","backupSource":"external","required":{"cpuMilli":1683,"memoryMi":2996,"diskGi":27},"declared":{"cpuMilli":2000,"memoryMi":3913,"diskGi":40},"controlPlaneFailureDomains":0,"reasons":[],"fitsDeclaredCapacity":true,"installAuthorized":false}
+
+exit_code=0
+
+## install bounded dependency test packages 2026-10-13T02:35:09.181949+00:00
+Preconfiguring packages ...
+(Reading database ... 
+(Reading database ... 5%
+(Reading database ... 10%
+(Reading database ... 15%
+(Reading database ... 20%
+(Reading database ... 25%
+(Reading database ... 30%
+(Reading database ... 35%
+(Reading database ... 40%
+(Reading database ... 45%
+(Reading database ... 50%
+(Reading database ... 55%
+(Reading database ... 60%
+(Reading database ... 65%
+(Reading database ... 70%
+(Reading database ... 75%
+(Reading database ... 80%
+(Reading database ... 85%
+(Reading database ... 90%
+(Reading database ... 95%
+(Reading database ... 100%
+(Reading database ... 110359 files and directories currently installed.)
+Preparing to unpack .../libperl5.38t64_5.38.2-3.2ubuntu0.6_amd64.deb ...
+Unpacking libperl5.38t64:amd64 (5.38.2-3.2ubuntu0.6) over (5.38.2-3.2build2) ...
+Preparing to unpack .../perl_5.38.2-3.2ubuntu0.6_amd64.deb ...
+Unpacking perl (5.38.2-3.2ubuntu0.6) over (5.38.2-3.2build2) ...
+Preparing to unpack .../perl-base_5.38.2-3.2ubuntu0.6_amd64.deb ...
+Unpacking perl-base (5.38.2-3.2ubuntu0.6) over (5.38.2-3.2build2) ...
+Setting up perl-base (5.38.2-3.2ubuntu0.6) ...
+(Reading database ... 
+(Reading database ... 5%
+(Reading database ... 10%
+(Reading database ... 15%
+(Reading database ... 20%
+(Reading database ... 25%
+(Reading database ... 30%
+(Reading database ... 35%
+(Reading database ... 40%
+(Reading database ... 45%
+(Reading database ... 50%
+(Reading database ... 55%
+(Reading database ... 60%
+(Reading database ... 65%
+(Reading database ... 70%
+(Reading database ... 75%
+(Reading database ... 80%
+(Reading database ... 85%
+(Reading database ... 90%
+(Reading database ... 95%
+(Reading database ... 100%
+(Reading database ... 110359 files and directories currently installed.)
+Preparing to unpack .../00-perl-modules-5.38_5.38.2-3.2ubuntu0.6_all.deb ...
+Unpacking perl-modules-5.38 (5.38.2-3.2ubuntu0.6) over (5.38.2-3.2build2) ...
+Selecting previously unselected package libjson-perl.
+Preparing to unpack .../01-libjson-perl_4.10000-1_all.deb ...
+Unpacking libjson-perl (4.10000-1) ...
+Selecting previously unselected package postgresql-client-common.
+Preparing to unpack .../02-postgresql-client-common_257build1.1_all.deb ...
+Unpacking postgresql-client-common (257build1.1) ...
+Selecting previously unselected package ssl-cert.
+Preparing to unpack .../03-ssl-cert_1.1.2ubuntu1_all.deb ...
+Unpacking ssl-cert (1.1.2ubuntu1) ...
+Selecting previously unselected package postgresql-common.
+Preparing to unpack .../04-postgresql-common_257build1.1_all.deb ...
+Adding 'diversion of /usr/bin/pg_config to /usr/bin/pg_config.libpq-dev by postgresql-common'
+Unpacking postgresql-common (257build1.1) ...
+Selecting previously unselected package libcommon-sense-perl:amd64.
+Preparing to unpack .../05-libcommon-sense-perl_3.75-3build3_amd64.deb ...
+Unpacking libcommon-sense-perl:amd64 (3.75-3build3) ...
+Selecting previously unselected package libtypes-serialiser-perl.
+Preparing to unpack .../06-libtypes-serialiser-perl_1.01-1_all.deb ...
+Unpacking libtypes-serialiser-perl (1.01-1) ...
+Selecting previously unselected package libjson-xs-perl.
+Preparing to unpack .../07-libjson-xs-perl_4.040-0ubuntu0.24.04.1_amd64.deb ...
+Unpacking libjson-xs-perl (4.040-0ubuntu0.24.04.1) ...
+Selecting previously unselected package libllvm17t64:amd64.
+Preparing to unpack .../08-libllvm17t64_1%3a17.0.6-9ubuntu1_amd64.deb ...
+Unpacking libllvm17t64:amd64 (1:17.0.6-9ubuntu1) ...
+Selecting previously unselected package libpq5:amd64.
+Preparing to unpack .../09-libpq5_16.15-0ubuntu0.24.04.1_amd64.deb ...
+Unpacking libpq5:amd64 (16.15-0ubuntu0.24.04.1) ...
+Selecting previously unselected package libxslt1.1:amd64.
+Preparing to unpack .../10-libxslt1.1_1.1.39-0exp1ubuntu0.24.04.3_amd64.deb ...
+Unpacking libxslt1.1:amd64 (1.1.39-0exp1ubuntu0.24.04.3) ...
+Selecting previously unselected package nats-server.
+Preparing to unpack .../11-nats-server_2.10.7-1ubuntu0.3_amd64.deb ...
+Unpacking nats-server (2.10.7-1ubuntu0.3) ...
+Selecting previously unselected package postgresql-client-16.
+Preparing to unpack .../12-postgresql-client-16_16.15-0ubuntu0.24.04.1_amd64.deb ...
+Unpacking postgresql-client-16 (16.15-0ubuntu0.24.04.1) ...
+Selecting previously unselected package postgresql-16.
+Preparing to unpack .../13-postgresql-16_16.15-0ubuntu0.24.04.1_amd64.deb ...
+Unpacking postgresql-16 (16.15-0ubuntu0.24.04.1) ...
+Setting up libpq5:amd64 (16.15-0ubuntu0.24.04.1) ...
+Setting up libllvm17t64:amd64 (1:17.0.6-9ubuntu1) ...
+Setting up ssl-cert (1.1.2ubuntu1) ...
+Created symlink /etc/systemd/system/multi-user.target.wants/ssl-cert.service → /usr/lib/systemd/system/ssl-cert.service.
+
+Setting up perl-modules-5.38 (5.38.2-3.2ubuntu0.6) ...
+Setting up nats-server (2.10.7-1ubuntu0.3) ...
+info: The home dir /nonexistent you specified can't be accessed: No such file or directory
+
+info: Selecting UID from range 100 to 999 ...
+
+info: Selecting GID from range 100 to 999 ...
+info: Adding system user `nats' (UID 109) ...
+info: Adding new group `nats' (GID 113) ...
+info: Adding new user `nats' (UID 109) with group `nats' ...
+info: Not creating `/nonexistent'.
+Created symlink /etc/systemd/system/multi-user.target.wants/nats-server.service → /usr/lib/systemd/system/nats-server.service.
+
+Setting up libxslt1.1:amd64 (1.1.39-0exp1ubuntu0.24.04.3) ...
+Setting up libperl5.38t64:amd64 (5.38.2-3.2ubuntu0.6) ...
+Setting up perl (5.38.2-3.2ubuntu0.6) ...
+Setting up libjson-perl (4.10000-1) ...
+Setting up postgresql-client-common (257build1.1) ...
+Setting up postgresql-client-16 (16.15-0ubuntu0.24.04.1) ...
+update-alternatives: using /usr/share/postgresql/16/man/man1/psql.1.gz to provide /usr/share/man/man1/psql.1.gz (psql.1.gz) in auto mode
+Setting up libcommon-sense-perl:amd64 (3.75-3build3) ...
+Setting up postgresql-common (257build1.1) ...
+
+Creating config file /etc/postgresql-common/createcluster.conf with new version
+Building PostgreSQL dictionaries from installed myspell/hunspell packages...
+Removing obsolete dictionary files:
+Created symlink /etc/systemd/system/multi-user.target.wants/postgresql.service → /usr/lib/systemd/system/postgresql.service.
+
+Setting up libtypes-serialiser-perl (1.01-1) ...
+Setting up libjson-xs-perl (4.040-0ubuntu0.24.04.1) ...
+Setting up postgresql-16 (16.15-0ubuntu0.24.04.1) ...
+Creating new PostgreSQL cluster 16/main ...
+/usr/lib/postgresql/16/bin/initdb -D /var/lib/postgresql/16/main --auth-local peer --auth-host scram-sha-256 --no-instructions
+The files belonging to this database system will be owned by user "postgres".
+This user must also own the server process.
+
+The database cluster will be initialized with locale "C.UTF-8".
+The default database encoding has accordingly been set to "UTF8".
+The default text search configuration will be set to "english".
+
+Data page checksums are disabled.
+
+fixing permissions on existing directory /var/lib/postgresql/16/main ... ok
+creating subdirectories ... ok
+selecting dynamic shared memory implementation ... posix
+selecting default max_connections ... 100
+selecting default shared_buffers ... 128MB
+selecting default time zone ... Asia/Shanghai
+creating configuration files ... ok
+running bootstrap script ... ok
+performing post-bootstrap initialization ... ok
+syncing data to disk ... ok
+Processing triggers for man-db (2.12.0-4build2) ...
+Processing triggers for libc-bin (2.39-0ubuntu8.8) ...
+
+Running kernel seems to be up-to-date.
+
+No services need to be restarted.
+
+No containers need to be restarted.
+
+No user sessions are running outdated binaries.
+
+No VM guests are running outdated hypervisor (qemu) binaries on this host.
+Warning: The unit file, source configuration file or drop-ins of apt-news.service changed on disk. Run 'systemctl daemon-reload' to reload units.
+Warning: The unit file, source configuration file or drop-ins of esm-cache.service changed on disk. Run 'systemctl daemon-reload' to reload units.
+
+exit_code=0
+
+## upload 20261013-ubuntu-startup-host-test-dependency.py 2026-10-13T02:35:40.961205+00:00
+
+exit_code=0
+
+## dependency seed 2026-10-13T02:35:42.163590+00:00
+{"action": "verify", "databaseSuffix": "", "pgPlanes": 3, "jetstreamMessages": 1, "identityKmsDigestMatch": true, "bootId": "89e7b556-cbc0-4b59-a453-5b9bcc7f0935"}
+
+exit_code=0
+
+## dependency backup 2026-10-13T02:35:45.540076+00:00
+{"action": "backup", "files": 9, "pgFormat": "custom", "jetstreamMethod": "quiesced-store-copy", "snapshotAt": 1791858945.3718393}
+
+exit_code=0
+
+## controlled real reboot 2026-10-13T02:35:46.611034+00:00
+
+exit_code=0
+
+## reconnect after reboot 2026-10-13T02:35:55.465493+00:00
+ssh: connect to host 106.75.34.133 port 22: Connection refused
+
+exit_code=255
+
+## reconnect after reboot 2026-10-13T02:36:11.948492+00:00
+{"os": "PRETTY_NAME=\"Ubuntu 24.04 LTS\"\nNAME=\"Ubuntu\"\nVERSION_ID=\"24.04\"\nVERSION=\"24.04 LTS (Noble Numbat)\"\nVERSION_CODENAME=noble\nID=ubuntu\nID_LIKE=debian\nHOME_URL=\"https://www.ubuntu.com/\"\nSUPPORT_URL=\"https://help.ubuntu.com/\"\nBUG_REPORT_URL=\"https://bugs.launchpad.net/ubuntu/\"\nPRIVACY_POLICY_URL=\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\"\nUBUNTU_CODENAME=noble\nLOGO=ubuntu-logo\n", "kernel": "6.8.0-138-generic", "arch": "x86_64", "cpu": 2, "memoryMi": 3913, "availableMemoryMi": 3454, "diskBytes": 19682557952, "freeDiskBytes": 17108738048, "bootId": "2a752711-13cf-42e3-9bf5-aa904ef67e04", "tools": {"docker": null, "containerd": null, "k3s": null, "kubectl": null, "psql": "/usr/bin/psql", "nats-server": "/usr/sbin/nats-server"}}
+
+exit_code=0
+
+## dependency verify persistence 2026-10-13T02:36:13.388692+00:00
+{"action": "verify", "databaseSuffix": "", "pgPlanes": 3, "jetstreamMessages": 1, "identityKmsDigestMatch": true, "bootId": "2a752711-13cf-42e3-9bf5-aa904ef67e04"}
+
+exit_code=0
+
+## dependency restore and verify 2026-10-13T02:36:14.428899+00:00
+{"action": "verify", "databaseSuffix": "_restored", "pgPlanes": 3, "jetstreamMessages": 1, "identityKmsDigestMatch": true, "bootId": "2a752711-13cf-42e3-9bf5-aa904ef67e04"}
+{"action": "restore", "measuredSeconds": 0.797, "approvedRtoRpoVerified": false, "platformCertified": false}
+
+exit_code=0
+
+## cross-owner database read rejected 2026-10-13T02:36:15.972211+00:00
+SET
+ERROR:  permission denied for table drill
+
+exit_code=1
+
+## package versions and measured service memory 2026-10-13T02:36:16.686322+00:00
+nats-server	2.10.7-1ubuntu0.3
+postgresql-16	16.15-0ubuntu0.24.04.1
+    PID COMMAND           RSS
+    812 postgres        30780
+    841 postgres         6324
+    842 postgres         6772
+    845 postgres        10200
+    846 postgres         9040
+    847 postgres         8288
+   1163 nats-server     14452
+               total        used        free      shared  buff/cache   available
+Mem:            3913         464        3396          45         318        3449
+Swap:              0           0           0
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/vda1        19G  2.4G   16G  14% /
+State  Recv-Q Send-Q Local Address:Port  Peer Address:PortProcess                                   
+LISTEN 0      200        127.0.0.1:5432       0.0.0.0:*    users:(("postgres",pid=812,fd=6))        
+LISTEN 0      4096       127.0.0.1:14222      0.0.0.0:*    users:(("nats-server",pid=1163,fd=3))    
+LISTEN 0      4096   127.0.0.53%lo:53         0.0.0.0:*    users:(("systemd-resolve",pid=502,fd=15))
+LISTEN 0      4096      127.0.0.54:53         0.0.0.0:*    users:(("systemd-resolve",pid=502,fd=17))
+LISTEN 0      4096               *:22               *:*    users:(("sshd",pid=876,fd=3),("systemd",pid=1,fd=92))
+active
+active
+
+exit_code=0
+
+## host snapshot after 2026-10-13T02:36:17.472353+00:00
+{"os": "PRETTY_NAME=\"Ubuntu 24.04 LTS\"\nNAME=\"Ubuntu\"\nVERSION_ID=\"24.04\"\nVERSION=\"24.04 LTS (Noble Numbat)\"\nVERSION_CODENAME=noble\nID=ubuntu\nID_LIKE=debian\nHOME_URL=\"https://www.ubuntu.com/\"\nSUPPORT_URL=\"https://help.ubuntu.com/\"\nBUG_REPORT_URL=\"https://bugs.launchpad.net/ubuntu/\"\nPRIVACY_POLICY_URL=\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\"\nUBUNTU_CODENAME=noble\nLOGO=ubuntu-logo\n", "kernel": "6.8.0-138-generic", "arch": "x86_64", "cpu": 2, "memoryMi": 3913, "availableMemoryMi": 3452, "diskBytes": 19682557952, "freeDiskBytes": 17101299712, "bootId": "2a752711-13cf-42e3-9bf5-aa904ef67e04", "tools": {"docker": null, "containerd": null, "k3s": null, "kubectl": null, "psql": "/usr/bin/psql", "nats-server": "/usr/sbin/nats-server"}}
+
+exit_code=0

@@ -1,0 +1,22 @@
+namespace/hnb-ubuntu-e2e created
+pod/server created
+service/server created
+pod/client created
+pod/server condition met
+pod/client condition met
+NAME     READY   STATUS    RESTARTS   AGE   IP             NODE            NOMINATED NODE   READINESS GATES
+client   1/1     Running   0          8s    10.244.0.242   hnb-ubuntu-cp   <none>           <none>
+server   1/1     Running   0          8s    10.244.0.153   hnb-ubuntu-cp   <none>           <none>
+hnb-provider-e2e
+hnb-provider-e2e
+;; Got recursion not available from 10.96.0.10
+;; Got recursion not available from 10.96.0.10
+;; Got recursion not available from 10.96.0.10
+;; Got recursion not available from 10.96.0.10
+Server:		10.96.0.10
+Address:	10.96.0.10#53
+
+Name:	kubernetes.default.svc.cluster.local
+Address: 10.96.0.1
+;; Got recursion not available from 10.96.0.10
+

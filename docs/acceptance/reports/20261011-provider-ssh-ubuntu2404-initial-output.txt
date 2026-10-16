@@ -1,0 +1,18 @@
+=== RUN   TestProvisionRealSSH
+    provision_real_test.go:99: SSH step 1 host=106.75.26.57 started
+    provision_real_test.go:101: SSH step 1 host=106.75.26.57 completed success=true
+    provision_real_test.go:99: SSH step 2 host=106.75.26.57 started
+    provision_real_test.go:101: SSH step 2 host=106.75.26.57 completed success=true
+    provision_real_test.go:99: SSH step 3 host=106.75.26.57 started
+    provision_real_test.go:101: SSH step 3 host=106.75.26.57 completed success=true
+    provision_real_test.go:99: SSH step 4 host=106.75.26.57 started
+    provision_real_test.go:101: SSH step 4 host=106.75.26.57 completed success=true
+    provision_real_test.go:99: SSH step 5 host=106.75.26.57 started
+    provision_real_test.go:101: SSH step 5 host=106.75.26.57 completed success=true
+    provision_real_test.go:99: SSH step 6 host=106.75.26.57 started
+    provision_real_test.go:101: SSH step 6 host=106.75.26.57 completed success=false
+    provision_real_test.go:68: cluster-acceptance: ssh-run: Process exited with status 1: error: timed out waiting for the condition on nodes/hnb-ubuntu-cp
+--- FAIL: TestProvisionRealSSH (519.50s)
+FAIL
+FAIL	github.com/F31/hnb/cmd/runtime-target-lifecycle-provider/internal/provider	519.514s
+FAIL

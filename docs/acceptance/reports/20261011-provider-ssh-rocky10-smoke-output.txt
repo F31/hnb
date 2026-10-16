@@ -1,0 +1,22 @@
+pod "server" deleted from hnb-provision-e2e namespace
+namespace/hnb-provision-e2e unchanged
+pod/server created
+service/server unchanged
+pod/client unchanged
+pod/server condition met
+pod/client condition met
+NAME     READY   STATUS    RESTARTS   AGE     IP             NODE             NOMINATED NODE   READINESS GATES
+client   1/1     Running   0          2m48s   10.244.1.202   hnb-e2e-worker   <none>           <none>
+server   1/1     Running   0          3s      10.244.0.227   hnb-e2e-cp       <none>           <none>
+hnb-provider-e2e
+hnb-provider-e2e
+;; Got recursion not available from 10.96.0.10
+;; Got recursion not available from 10.96.0.10
+;; Got recursion not available from 10.96.0.10
+;; Got recursion not available from 10.96.0.10
+Server:		10.96.0.10
+Address:	10.96.0.10#53
+
+Name:	kubernetes.default.svc.cluster.local
+Address: 10.96.0.1
+;; Got recursion not available from 10.96.0.10

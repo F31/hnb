@@ -1,0 +1,45 @@
+apiVersion: deployment.hnb.io/v1alpha1
+kind: DeploymentConfig
+metadata:
+  name: standard-ha-unsupported
+spec:
+  mode: bootstrap
+  profile: StandardHA
+  releaseLock: ./release.lock.yaml
+  cluster:
+    strategy: provision
+    distribution: kubeadm
+    kubernetesVersion: 1.36.5
+    apiEndpoint: 10.0.0.10:6443
+    nodes:
+      - name: cp-1
+        roles: [control-plane]
+        sshAddress: 10.0.0.10
+        internalAddress: 10.0.0.10
+        user: ubuntu
+        sshKeyFile: ~/.ssh/hnb_install
+      - name: cp-2
+        roles: [control-plane]
+        sshAddress: 10.0.0.11
+        internalAddress: 10.0.0.11
+        user: ubuntu
+        sshKeyFile: ~/.ssh/hnb_install
+    network:
+      plugin: cilium
+      version: 1.20.1
+      podCIDR: 10.244.0.0/16
+      serviceCIDR: 10.96.0.0/12
+      routingMode: native
+  platform:
+    namespace: hnb-system
+    publicBaseURL: https://hnb.example.internal
+    infrastructure:
+      postgresql:
+        mode: bundled
+      nats:
+        mode: bundled
+  artifacts:
+    mode: online
+  timeouts:
+    download: 15m
+    readiness: 10m

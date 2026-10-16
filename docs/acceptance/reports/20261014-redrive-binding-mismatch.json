@@ -1,0 +1,62 @@
+{
+  "run_id": "redrive-v4-c5633c7b",
+  "started_at": "2026-10-14T01:29:22.149070+00:00",
+  "scope": "lost request then real provider execution",
+  "credential_status": 201,
+  "intent_status": 202,
+  "operation_id": "616eee38-fb5c-4739-bf70-ce390103ffdd",
+  "injection": "UPDATE 1",
+  "before": {
+    "status": "queued",
+    "completed_steps": 0,
+    "total_steps": 1,
+    "steps": [
+      {
+        "id": "738e68d4-d5b9-49b6-af02-88f2b06edfab",
+        "status": "pending",
+        "retry_count": 0,
+        "error": null,
+        "started_at": null,
+        "completed_at": null
+      }
+    ],
+    "requests": [
+      {
+        "message_id": "43b51ee6-3e33-4499-a3ca-342b11757693",
+        "status": "published",
+        "attempt": 0,
+        "max_attempts": 10,
+        "key_matches_step": true
+      }
+    ]
+  },
+  "token_minted_at": "2026-10-14T01:31:29.711346+00:00",
+  "worker_restored_at": "2026-10-14T01:31:35.298700+00:00",
+  "after": {
+    "status": "failed",
+    "completed_steps": 0,
+    "total_steps": 1,
+    "steps": [
+      {
+        "id": "738e68d4-d5b9-49b6-af02-88f2b06edfab",
+        "status": "failed",
+        "retry_count": 0,
+        "error": "runtime provider error INVALID_REQUEST: lifecycle provider \"runtime-target.lifecycle.kubernetes\" pinned digest \"sha256:ec30de8b74af5ab6fc1d3e14c8f78a4ca421a504cf63715fee2b3941b3589e92\" does not match configured digest \"sha256:52277423921da253037228b5358e8f169dfa3bd892d084c5f1396d208dda2cec\"",
+        "started_at": "2026-10-14T01:31:32.343429+00:00",
+        "completed_at": "2026-10-14T01:31:32.344061+00:00"
+      }
+    ],
+    "requests": [
+      {
+        "message_id": "43b51ee6-3e33-4499-a3ca-342b11757693",
+        "status": "published",
+        "attempt": 1,
+        "max_attempts": 10,
+        "key_matches_step": true
+      }
+    ]
+  },
+  "passed": false,
+  "error": "{'status': 'failed', 'completed_steps': 0, 'total_steps': 1, 'steps': [{'id': '738e68d4-d5b9-49b6-af02-88f2b06edfab', 'status': 'failed', 'retry_count': 0, 'error': 'runtime provider error INVALID_REQUEST: lifecycle provider \"runtime-target.lifecycle.kubernetes\" pinned digest \"sha256:ec30de8b74af5ab6fc1d3e14c8f78a4ca421a504cf63715fee2b3941b3589e92\" does not match configured digest \"sha256:52277423921da253037228b5358e8f169dfa3bd892d084c5f1396d208dda2cec\"', 'started_at': '2026-10-14T01:31:32.343429+00:00', 'completed_at': '2026-10-14T01:31:32.344061+00:00'}], 'requests': [{'message_id': '43b51ee6-3e33-4499-a3ca-342b11757693', 'status': 'published', 'attempt': 1, 'max_attempts': 10, 'key_matches_step': True}]}",
+  "finished_at": "2026-10-14T01:31:35.557340+00:00"
+}

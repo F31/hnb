@@ -1,0 +1,5 @@
+- cpuMilli: 2000
+  diskGi: 18
+  memoryMi: 3913
+  name: cp-1
+  reserveDiskGi: 6

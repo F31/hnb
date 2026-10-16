@@ -1,0 +1,25 @@
+=== RUN   TestProvisionRealSSH
+    provision_real_test.go:99: SSH step 1 host=106.75.8.151 started
+    provision_real_test.go:101: SSH step 1 host=106.75.8.151 completed success=true
+    provision_real_test.go:99: SSH step 2 host=106.75.8.151 started
+    provision_real_test.go:101: SSH step 2 host=106.75.8.151 completed success=true
+    provision_real_test.go:99: SSH step 3 host=106.75.8.151 started
+    provision_real_test.go:101: SSH step 3 host=106.75.8.151 completed success=true
+    provision_real_test.go:99: SSH step 4 host=106.75.8.151 started
+    provision_real_test.go:101: SSH step 4 host=106.75.8.151 completed success=true
+    provision_real_test.go:99: SSH step 5 host=106.75.13.7 started
+    provision_real_test.go:101: SSH step 5 host=106.75.13.7 completed success=true
+    provision_real_test.go:99: SSH step 6 host=106.75.13.7 started
+    provision_real_test.go:101: SSH step 6 host=106.75.13.7 completed success=true
+    provision_real_test.go:99: SSH step 7 host=106.75.13.7 started
+    provision_real_test.go:101: SSH step 7 host=106.75.13.7 completed success=true
+    provision_real_test.go:99: SSH step 8 host=106.75.8.151 started
+    provision_real_test.go:101: SSH step 8 host=106.75.8.151 completed success=true
+    provision_real_test.go:99: SSH step 9 host=106.75.8.151 started
+    provision_real_test.go:101: SSH step 9 host=106.75.8.151 completed success=true
+    provision_real_test.go:99: SSH step 10 host=106.75.8.151 started
+    provision_real_test.go:101: SSH step 10 host=106.75.8.151 completed success=true
+    provision_real_test.go:89: accepted nodes=2 endpoint=10.9.31.180:6443 kubeconfig_ref=local-aes/tenant/provision-20261011prov@2 encrypted_at_rest=true
+--- PASS: TestProvisionRealSSH (91.00s)
+PASS
+ok  	github.com/F31/hnb/cmd/runtime-target-lifecycle-provider/internal/provider	91.023s

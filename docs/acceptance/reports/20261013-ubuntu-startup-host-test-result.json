@@ -1,0 +1,518 @@
+{
+  "run_id": "ubuntu-startup-host-test-20261013",
+  "host": "106.75.34.133",
+  "started_at": "2026-10-13T02:34:27.428345+00:00",
+  "commit": "c23f6e4128e92d7a9457807dce5b10e0b0704e73",
+  "working_tree_dirty": true,
+  "scope": "Actual-host hnbctl smoke and distro dependency persistence/restore only",
+  "platform_deployed": false,
+  "steps": [
+    {
+      "name": "host snapshot before",
+      "started_at": "2026-10-13T02:34:32.340569+00:00",
+      "finished_at": "2026-10-13T02:34:33.545215+00:00",
+      "exit_code": 0
+    },
+    {
+      "name": "create isolated working directory",
+      "started_at": "2026-10-13T02:34:33.545348+00:00",
+      "finished_at": "2026-10-13T02:34:34.397686+00:00",
+      "exit_code": 0
+    },
+    {
+      "name": "upload hnbctl-cloud-test",
+      "started_at": "2026-10-13T02:34:34.420034+00:00",
+      "finished_at": "2026-10-13T02:34:55.803215+00:00",
+      "exit_code": 0
+    },
+    {
+      "name": "verify uploaded binary digest",
+      "started_at": "2026-10-13T02:34:55.803320+00:00",
+      "finished_at": "2026-10-13T02:34:56.515864+00:00",
+      "exit_code": 0
+    },
+    {
+      "name": "hnbctl version",
+      "started_at": "2026-10-13T02:34:56.515957+00:00",
+      "finished_at": "2026-10-13T02:34:57.776443+00:00",
+      "exit_code": 0
+    },
+    {
+      "name": "hnbctl help",
+      "started_at": "2026-10-13T02:34:57.776497+00:00",
+      "finished_at": "2026-10-13T02:34:58.426542+00:00",
+      "exit_code": 0
+    },
+    {
+      "name": "hnbctl matrix",
+      "started_at": "2026-10-13T02:34:58.426601+00:00",
+      "finished_at": "2026-10-13T02:34:59.111839+00:00",
+      "exit_code": 0
+    },
+    {
+      "name": "hnbctl init draft",
+      "started_at": "2026-10-13T02:34:59.111916+00:00",
+      "finished_at": "2026-10-13T02:34:59.740987+00:00",
+      "exit_code": 0
+    },
+    {
+      "name": "hnbctl validate refuses incomplete draft",
+      "started_at": "2026-10-13T02:34:59.741070+00:00",
+      "finished_at": "2026-10-13T02:35:00.401493+00:00",
+      "exit_code": 2
+    },
+    {
+      "name": "hnbctl preflight refuses incomplete draft",
+      "started_at": "2026-10-13T02:35:00.401572+00:00",
+      "finished_at": "2026-10-13T02:35:01.036363+00:00",
+      "exit_code": 2
+    },
+    {
+      "name": "hnbctl install refuses incomplete draft",
+      "started_at": "2026-10-13T02:35:01.036426+00:00",
+      "finished_at": "2026-10-13T02:35:01.716659+00:00",
+      "exit_code": 2
+    },
+    {
+      "name": "hnbctl verify remains unverified",
+      "started_at": "2026-10-13T02:35:01.716746+00:00",
+      "finished_at": "2026-10-13T02:35:02.382707+00:00",
+      "exit_code": 4
+    },
+    {
+      "name": "upload 20261013-ubuntu-startup-host-test-fixture-rendered.yaml",
+      "started_at": "2026-10-13T02:35:04.617512+00:00",
+      "finished_at": "2026-10-13T02:35:05.767795+00:00",
+      "exit_code": 0
+    },
+    {
+      "name": "upload 20261013-ubuntu-startup-host-test-actual-nodes.yaml",
+      "started_at": "2026-10-13T02:35:05.767877+00:00",
+      "finished_at": "2026-10-13T02:35:06.825995+00:00",
+      "exit_code": 0
+    },
+    {
+      "name": "hnbctl capacity real host disk rejection",
+      "started_at": "2026-10-13T02:35:06.826063+00:00",
+      "finished_at": "2026-10-13T02:35:07.495535+00:00",
+      "exit_code": 3
+    },
+    {
+      "name": "upload 20261013-ubuntu-startup-host-test-hypothetical-40gi-nodes.yaml",
+      "started_at": "2026-10-13T02:35:07.500434+00:00",
+      "finished_at": "2026-10-13T02:35:08.534091+00:00",
+      "exit_code": 0
+    },
+    {
+      "name": "hnbctl capacity hypothetical 40Gi positive control",
+      "started_at": "2026-10-13T02:35:08.534166+00:00",
+      "finished_at": "2026-10-13T02:35:09.181866+00:00",
+      "exit_code": 0
+    },
+    {
+      "name": "install bounded dependency test packages",
+      "started_at": "2026-10-13T02:35:09.181949+00:00",
+      "finished_at": "2026-10-13T02:35:40.945635+00:00",
+      "exit_code": 0
+    },
+    {
+      "name": "upload 20261013-ubuntu-startup-host-test-dependency.py",
+      "started_at": "2026-10-13T02:35:40.961205+00:00",
+      "finished_at": "2026-10-13T02:35:42.163510+00:00",
+      "exit_code": 0
+    },
+    {
+      "name": "dependency seed",
+      "started_at": "2026-10-13T02:35:42.163590+00:00",
+      "finished_at": "2026-10-13T02:35:45.540014+00:00",
+      "exit_code": 0
+    },
+    {
+      "name": "dependency backup",
+      "started_at": "2026-10-13T02:35:45.540076+00:00",
+      "finished_at": "2026-10-13T02:35:46.610974+00:00",
+      "exit_code": 0
+    },
+    {
+      "name": "controlled real reboot",
+      "started_at": "2026-10-13T02:35:46.611034+00:00",
+      "finished_at": "2026-10-13T02:35:47.465189+00:00",
+      "exit_code": 0
+    },
+    {
+      "name": "reconnect after reboot",
+      "started_at": "2026-10-13T02:35:55.465493+00:00",
+      "finished_at": "2026-10-13T02:36:06.948222+00:00",
+      "exit_code": 255
+    },
+    {
+      "name": "reconnect after reboot",
+      "started_at": "2026-10-13T02:36:11.948492+00:00",
+      "finished_at": "2026-10-13T02:36:13.388577+00:00",
+      "exit_code": 0
+    },
+    {
+      "name": "dependency verify persistence",
+      "started_at": "2026-10-13T02:36:13.388692+00:00",
+      "finished_at": "2026-10-13T02:36:14.428841+00:00",
+      "exit_code": 0
+    },
+    {
+      "name": "dependency restore and verify",
+      "started_at": "2026-10-13T02:36:14.428899+00:00",
+      "finished_at": "2026-10-13T02:36:15.972047+00:00",
+      "exit_code": 0
+    },
+    {
+      "name": "cross-owner database read rejected",
+      "started_at": "2026-10-13T02:36:15.972211+00:00",
+      "finished_at": "2026-10-13T02:36:16.686264+00:00",
+      "exit_code": 1
+    },
+    {
+      "name": "package versions and measured service memory",
+      "started_at": "2026-10-13T02:36:16.686322+00:00",
+      "finished_at": "2026-10-13T02:36:17.472269+00:00",
+      "exit_code": 0
+    },
+    {
+      "name": "host snapshot after",
+      "started_at": "2026-10-13T02:36:17.472353+00:00",
+      "finished_at": "2026-10-13T02:36:18.265031+00:00",
+      "exit_code": 0
+    }
+  ],
+  "initial": {
+    "os": "PRETTY_NAME=\"Ubuntu 24.04 LTS\"\nNAME=\"Ubuntu\"\nVERSION_ID=\"24.04\"\nVERSION=\"24.04 LTS (Noble Numbat)\"\nVERSION_CODENAME=noble\nID=ubuntu\nID_LIKE=debian\nHOME_URL=\"https://www.ubuntu.com/\"\nSUPPORT_URL=\"https://help.ubuntu.com/\"\nBUG_REPORT_URL=\"https://bugs.launchpad.net/ubuntu/\"\nPRIVACY_POLICY_URL=\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\"\nUBUNTU_CODENAME=noble\nLOGO=ubuntu-logo\n",
+    "kernel": "6.8.0-138-generic",
+    "arch": "x86_64",
+    "cpu": 2,
+    "memoryMi": 3913,
+    "availableMemoryMi": 3524,
+    "diskBytes": 19682557952,
+    "freeDiskBytes": 17475899392,
+    "bootId": "89e7b556-cbc0-4b59-a453-5b9bcc7f0935",
+    "tools": {
+      "docker": null,
+      "containerd": null,
+      "k3s": null,
+      "kubectl": null,
+      "psql": null,
+      "nats-server": null
+    }
+  },
+  "binary_sha256": "66ecac8cdb740ef074c3c9fd51fa1e372f70021ff6429a67eab76022d998ef39",
+  "capacity_actual_host": {
+    "schemaVersion": "capacity-report/v1",
+    "profile": "Minimal",
+    "manifestDigest": "sha256:0cc3c00f480cb603d78cebd47463fd1b5a31d48409ab776595afa95d44bbe360",
+    "inputSource": "rendered manifests and operator-declared nodes; planning only",
+    "workloads": [
+      {
+        "name": "Deployment//apiserver",
+        "replicas": 1,
+        "perPod": {
+          "cpuMilli": 125,
+          "memoryMi": 256,
+          "diskGi": 0
+        }
+      },
+      {
+        "name": "Deployment//app-market",
+        "replicas": 1,
+        "perPod": {
+          "cpuMilli": 100,
+          "memoryMi": 128,
+          "diskGi": 0
+        }
+      },
+      {
+        "name": "Deployment//cluster-router",
+        "replicas": 1,
+        "perPod": {
+          "cpuMilli": 100,
+          "memoryMi": 128,
+          "diskGi": 0
+        }
+      },
+      {
+        "name": "Deployment//extension-controller",
+        "replicas": 1,
+        "perPod": {
+          "cpuMilli": 100,
+          "memoryMi": 128,
+          "diskGi": 0
+        }
+      },
+      {
+        "name": "Deployment//operation-worker",
+        "replicas": 1,
+        "perPod": {
+          "cpuMilli": 125,
+          "memoryMi": 256,
+          "diskGi": 0
+        }
+      },
+      {
+        "name": "Deployment//platform-api",
+        "replicas": 1,
+        "perPod": {
+          "cpuMilli": 125,
+          "memoryMi": 256,
+          "diskGi": 0
+        }
+      },
+      {
+        "name": "Deployment//portal",
+        "replicas": 1,
+        "perPod": {
+          "cpuMilli": 100,
+          "memoryMi": 128,
+          "diskGi": 0
+        }
+      },
+      {
+        "name": "Deployment//tunnel-server",
+        "replicas": 1,
+        "perPod": {
+          "cpuMilli": 100,
+          "memoryMi": 128,
+          "diskGi": 0
+        }
+      },
+      {
+        "name": "StatefulSet//nats",
+        "replicas": 1,
+        "perPod": {
+          "cpuMilli": 50,
+          "memoryMi": 128,
+          "diskGi": 0
+        }
+      },
+      {
+        "name": "StatefulSet//postgresql",
+        "replicas": 1,
+        "perPod": {
+          "cpuMilli": 150,
+          "memoryMi": 256,
+          "diskGi": 0
+        }
+      }
+    ],
+    "requests": {
+      "cpuMilli": 1075,
+      "memoryMi": 1792,
+      "diskGi": 15
+    },
+    "systemReserve": {
+      "cpuMilli": 500,
+      "memoryMi": 1024,
+      "diskGi": 10
+    },
+    "downloadCacheGi": 20,
+    "backupGi": 15,
+    "headroomPercent": 10,
+    "scope": "startup",
+    "cacheSource": "external",
+    "backupSource": "external",
+    "required": {
+      "cpuMilli": 1683,
+      "memoryMi": 2996,
+      "diskGi": 27
+    },
+    "declared": {
+      "cpuMilli": 2000,
+      "memoryMi": 3913,
+      "diskGi": 18
+    },
+    "controlPlaneFailureDomains": 0,
+    "reasons": [
+      "DECLARED_CAPACITY_INSUFFICIENT"
+    ],
+    "fitsDeclaredCapacity": false,
+    "installAuthorized": false
+  },
+  "capacity_hypothetical_40gi": {
+    "schemaVersion": "capacity-report/v1",
+    "profile": "Minimal",
+    "manifestDigest": "sha256:0cc3c00f480cb603d78cebd47463fd1b5a31d48409ab776595afa95d44bbe360",
+    "inputSource": "rendered manifests and operator-declared nodes; planning only",
+    "workloads": [
+      {
+        "name": "Deployment//apiserver",
+        "replicas": 1,
+        "perPod": {
+          "cpuMilli": 125,
+          "memoryMi": 256,
+          "diskGi": 0
+        }
+      },
+      {
+        "name": "Deployment//app-market",
+        "replicas": 1,
+        "perPod": {
+          "cpuMilli": 100,
+          "memoryMi": 128,
+          "diskGi": 0
+        }
+      },
+      {
+        "name": "Deployment//cluster-router",
+        "replicas": 1,
+        "perPod": {
+          "cpuMilli": 100,
+          "memoryMi": 128,
+          "diskGi": 0
+        }
+      },
+      {
+        "name": "Deployment//extension-controller",
+        "replicas": 1,
+        "perPod": {
+          "cpuMilli": 100,
+          "memoryMi": 128,
+          "diskGi": 0
+        }
+      },
+      {
+        "name": "Deployment//operation-worker",
+        "replicas": 1,
+        "perPod": {
+          "cpuMilli": 125,
+          "memoryMi": 256,
+          "diskGi": 0
+        }
+      },
+      {
+        "name": "Deployment//platform-api",
+        "replicas": 1,
+        "perPod": {
+          "cpuMilli": 125,
+          "memoryMi": 256,
+          "diskGi": 0
+        }
+      },
+      {
+        "name": "Deployment//portal",
+        "replicas": 1,
+        "perPod": {
+          "cpuMilli": 100,
+          "memoryMi": 128,
+          "diskGi": 0
+        }
+      },
+      {
+        "name": "Deployment//tunnel-server",
+        "replicas": 1,
+        "perPod": {
+          "cpuMilli": 100,
+          "memoryMi": 128,
+          "diskGi": 0
+        }
+      },
+      {
+        "name": "StatefulSet//nats",
+        "replicas": 1,
+        "perPod": {
+          "cpuMilli": 50,
+          "memoryMi": 128,
+          "diskGi": 0
+        }
+      },
+      {
+        "name": "StatefulSet//postgresql",
+        "replicas": 1,
+        "perPod": {
+          "cpuMilli": 150,
+          "memoryMi": 256,
+          "diskGi": 0
+        }
+      }
+    ],
+    "requests": {
+      "cpuMilli": 1075,
+      "memoryMi": 1792,
+      "diskGi": 15
+    },
+    "systemReserve": {
+      "cpuMilli": 500,
+      "memoryMi": 1024,
+      "diskGi": 10
+    },
+    "downloadCacheGi": 20,
+    "backupGi": 15,
+    "headroomPercent": 10,
+    "scope": "startup",
+    "cacheSource": "external",
+    "backupSource": "external",
+    "required": {
+      "cpuMilli": 1683,
+      "memoryMi": 2996,
+      "diskGi": 27
+    },
+    "declared": {
+      "cpuMilli": 2000,
+      "memoryMi": 3913,
+      "diskGi": 40
+    },
+    "controlPlaneFailureDomains": 0,
+    "reasons": [],
+    "fitsDeclaredCapacity": true,
+    "installAuthorized": false
+  },
+  "dependency_source_sha256": "fc7da3372c105e33509d44379d910e579f0d08410ff70001ee65f73c03b9f52c",
+  "after_reboot": {
+    "os": "PRETTY_NAME=\"Ubuntu 24.04 LTS\"\nNAME=\"Ubuntu\"\nVERSION_ID=\"24.04\"\nVERSION=\"24.04 LTS (Noble Numbat)\"\nVERSION_CODENAME=noble\nID=ubuntu\nID_LIKE=debian\nHOME_URL=\"https://www.ubuntu.com/\"\nSUPPORT_URL=\"https://help.ubuntu.com/\"\nBUG_REPORT_URL=\"https://bugs.launchpad.net/ubuntu/\"\nPRIVACY_POLICY_URL=\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\"\nUBUNTU_CODENAME=noble\nLOGO=ubuntu-logo\n",
+    "kernel": "6.8.0-138-generic",
+    "arch": "x86_64",
+    "cpu": 2,
+    "memoryMi": 3913,
+    "availableMemoryMi": 3454,
+    "diskBytes": 19682557952,
+    "freeDiskBytes": 17108738048,
+    "bootId": "2a752711-13cf-42e3-9bf5-aa904ef67e04",
+    "tools": {
+      "docker": null,
+      "containerd": null,
+      "k3s": null,
+      "kubectl": null,
+      "psql": "/usr/bin/psql",
+      "nats-server": "/usr/sbin/nats-server"
+    }
+  },
+  "restore": {
+    "action": "restore",
+    "measuredSeconds": 0.797,
+    "approvedRtoRpoVerified": false,
+    "platformCertified": false
+  },
+  "final": {
+    "os": "PRETTY_NAME=\"Ubuntu 24.04 LTS\"\nNAME=\"Ubuntu\"\nVERSION_ID=\"24.04\"\nVERSION=\"24.04 LTS (Noble Numbat)\"\nVERSION_CODENAME=noble\nID=ubuntu\nID_LIKE=debian\nHOME_URL=\"https://www.ubuntu.com/\"\nSUPPORT_URL=\"https://help.ubuntu.com/\"\nBUG_REPORT_URL=\"https://bugs.launchpad.net/ubuntu/\"\nPRIVACY_POLICY_URL=\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\"\nUBUNTU_CODENAME=noble\nLOGO=ubuntu-logo\n",
+    "kernel": "6.8.0-138-generic",
+    "arch": "x86_64",
+    "cpu": 2,
+    "memoryMi": 3913,
+    "availableMemoryMi": 3452,
+    "diskBytes": 19682557952,
+    "freeDiskBytes": 17101299712,
+    "bootId": "2a752711-13cf-42e3-9bf5-aa904ef67e04",
+    "tools": {
+      "docker": null,
+      "containerd": null,
+      "k3s": null,
+      "kubectl": null,
+      "psql": "/usr/bin/psql",
+      "nats-server": "/usr/sbin/nats-server"
+    }
+  },
+  "cli_smoke_status": "passed",
+  "dependency_status": "passed",
+  "platform_status": "blocked",
+  "blockers": [
+    "Root filesystem smaller than 27Gi Startup planning budget",
+    "No real release lock/digest/identity/TLS/Secret bindings for full platform",
+    "Startup composition not wired to complete hnbctl install acceptance"
+  ],
+  "exit_code": 0,
+  "finished_at": "2026-10-13T02:36:18.265121+00:00"
+}

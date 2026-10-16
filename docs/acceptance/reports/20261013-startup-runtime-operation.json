@@ -1,0 +1,33 @@
+{
+  "run_id": "startup-runtime-operation-20261013",
+  "captured_at": "2026-10-13T15:27:56.392858+00:00",
+  "chain": "Portal -> apiserver -> platform-api intent -> ExecutionPlan -> Operation -> NATS outbox -> operation-worker -> step",
+  "intent_http_status": 202,
+  "intent_id": "45153ce6-3bba-44ea-bd5d-df652de2ce1a",
+  "execution_plan_id": "f18d00fb-2658-44ee-a207-44ca881f8236",
+  "operation_id": "56889fcd-8dab-4ebd-890f-aa5b7ae7214e",
+  "operation_rows": "1 failed",
+  "steps": [
+    {
+      "step": "runtime_target.kubernetes.register",
+      "type": "runtime_target.kubernetes.register",
+      "status": "failed",
+      "error": "runtime provider error INVALID_REQUEST: runtime provider \"runtime-target.lifecycle.kubernetes\" is not configured"
+    }
+  ],
+  "outbox": [
+    {
+      "type": "hnb.command.operation.step-requested.v1",
+      "status": "published"
+    },
+    {
+      "type": "hnb.event.operation.step-completed.v1",
+      "status": "published"
+    },
+    {
+      "type": "hnb.failed.command.operation.step-requested.v1",
+      "status": "published"
+    }
+  ],
+  "note": "Operation failed because the worker has no bound provider route; no provider execution occurred."
+}

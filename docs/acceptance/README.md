@@ -3,7 +3,68 @@
 `registry.yaml` 是验收台账；源码存在、测试通过、容器启动、真实业务验收分别记录。
 历史会话结论不作为发布资格。Blocked 表示目标尚未达成，不得改成 cancelled 隐藏缺环。
 
-## Kubernetes 版本目录
+2026-10-15 新增：[`Ubuntu 26.04 OS 适配与 19 工作负载部署复验`](reports/20261015-ubuntu2604-adaptation.md)。
+`hnbctl os inspect` 已在真机验证；现有 K3s 路线上完成工作负载滚动恢复，
+PG 2Gi/NATS 1Gi 的 TopoLVM 卷与三平面迁移 ledger 保留。该结果不提升 kubeadm
+bootstrap、HA、离线或完整发布资格。命令说明见
+[`hnbctl 稳定接口`](../deployment/hnbctl-interface.md)。
+
+最近云主机测试：[`106.75.34.133：hnbctl 与依赖层真机测试`](reports/20261013-ubuntu-startup-host-test.md)、
+[`Startup 组合部署与真机复验`](reports/20261013-startup-composition-deploy.md)、
+[`凭据、启动可靠性与锁定渲染`](reports/20261013-startup-priority-optimization.md)、
+[`2C4G 负载与容量实测`](reports/20261013-startup-capacity-under-load.md)、
+[`Runtime 前置验证`](reports/20261013-startup-runtime-preflight.md)、
+[`Provider conformance 登记`](reports/20261013-conformance-registration-and-operation.md)、
+[`真实 Import Operation`](reports/20261013-runtime-import-operation.md)、
+[`孤立步骤重驱动闭环`](reports/20261014-redrive-real-host-verification.md)。
+CLI 冒烟/拒绝路径、verify 修复复测、数据库/JetStream 重启恢复、依赖故障与整机重启、
+并发负载下的延迟/资源实测分别留存证据；完整 Startup 平台安装、Minimal 档位、
+真实 Agent 纳管、HA 与离线仍 blocked，不从这些测试提升平台资格。
+
+本地交付工具增量：[`prepare 镜像源、失败摘要与真实下载`](reports/20261014-prepare-download-verification.md)。
+已验证显式镜像源映射、失败/取消后的部分结果与恢复，以及真实 OCI 冷下载/热缓存；
+4.2 的节点 preload 仍依赖 4.4 授权，未提升为云主机或完整平台验收。
+
+2026-10-14 已恢复评估主机 `106.75.34.133` 访问：本地代理隧道曾接管 SSH 路由，
+绕开隧道后完成重驱动真机验证；具体时间及范围见该报告。
+
+## 验收索引（OS × 拓扑 × 档位）
+
+下表只列**有留存报告的真实环境**。没有报告的组合一律不列，并在下方"未验收组合"
+显式说明，避免从其他组合推导。`partial` 表示已产出可复核证据但结论不足以支撑
+对应结论；`blocked` 表示目标未达成且不得隐藏缺环。
+
+| OS | 拓扑 / 环境 | 档位 | 状态 | 证据 |
+| --- | --- | --- | --- | --- |
+| Ubuntu 26.04 | 既有单节点 K3s v1.36.5+k3s1，4 vCPU/7680Mi，TopoLVM loop VG | OS 适配、完整 Minimal 19 工作负载滚动恢复 | passed（限定范围） | `20261015-ubuntu2604-adaptation.md` / `20261015-ubuntu2604-result.json` |
+| Ubuntu 24.04 | 既有单节点 K3s v1.36.5+k3s1，2 vCPU/3914Mi | Startup 部署 | passed | `20261013-startup-composition-deploy.md` |
+| Ubuntu 24.04 | 同上 | Startup 依赖可靠性（探针/中断/重启） | passed | `20261013-startup-priority-optimization.md` |
+| Ubuntu 24.04 | 同上 | Startup 读负载容量 | **partial** | `20261013-startup-capacity-under-load.md`（含 limitations） |
+| Ubuntu 24.04 | 同上 | Runtime 前置（12 工作负载、凭据登记） | partial | `20261013-startup-runtime-preflight.md` |
+| Ubuntu 24.04 | 同上 + 隔离 SQL fixtures | provider conformance 登记 | partial | `20261013-conformance-registration-and-operation.md` |
+| Ubuntu 24.04 | 同上（导入评估集群自身） | 真实 Import Operation | partial | `20261013-runtime-import-operation.md` |
+| Ubuntu 24.04 | 同上，丢失请求与重复投递注入 | worker 孤立步骤重驱动 | passed | `20261014-redrive-real-host-verification.md` |
+| Ubuntu 24.04 | hnbctl CLI 与依赖层（在线源安装） | 依赖/CLI 真机 | passed | `20261013-ubuntu-startup-host-test.md` |
+| Ubuntu 24.04 | PostgreSQL 16.15 / NATS 2.10.7 | 依赖重启与备份恢复 | passed | `20261012-ubuntu-dependency-drill.*` |
+| Rocky Linux 10.1 | 两台云主机，SSH+kubeadm 单控制面，kernel 6.12/containerd 2.2.7 | Kubernetes 创建 | passed | `registry.kubernetes_ssh_create` |
+| — | 同上 | CAPI 创建 | **blocked** | 无报告 |
+| — | — | 离线安装 | **blocked** | 无报告 |
+
+**未验收组合（不得由上表推导）**
+
+- Rocky Linux 10.1 的 Startup 组合、Minimal 档位、依赖恢复与容量：均无报告。
+- Ubuntu 24.04 的 Minimal 档位完整 E2E、冷缓存 bootstrap、节点重启持久化、离线。
+- 任何 HA / 多故障域 / Lite HA 结论。
+- 完整安装执行路径（`hnbctl install` 实际资源执行）：render 已完成，install 未接通。
+- 节点增加（node add）与平台升级的服务端契约与执行路由。
+- 服务凭据签发与轮换：`GenerateServiceCredential` 为显式桩函数，平台无签发方；
+  当前真机成功依赖"签发后 8 秒内提交"。
+
+**跨主机/跨进程未验证项**
+
+- `hnbctl` 运行存储的跨进程与掉电 durability（尚未验证）。
+
+
 
 唯一配置键为 `platform_settings.resource.cluster.kubernetesVersions`。
 默认目录为空；仅通过真实创建验收且留存报告后才加入精确 patch 版本。
@@ -18,9 +79,13 @@
 当前可继续验收的路线为 **SSH + kubeadm 单控制面**，不得标为 CAPI 已实现。
 管理集群/CAPI 是独立生命周期 owner；在真正的 CRD/controller/BOM 交付前，
 禁止将其挂到 SSH 装机后作为“接管”步骤。
-SSH success 必须经过 API readyz、精确节点数量、所有节点 Ready、Flannel 与
+SSH success 必须经过 API readyz、精确节点数量、所有节点 Ready、所选 CNI 与
 CoreDNS rollout 检查，才允许保存 kubeconfig 与返回 provisioned=true。
-当前仅此 CNI 路线可以验收；其它 CNI、HA、完全离线、证书轮换仍是未验收能力。
+当前有真实报告的 CNI 路线为 Cilium 1.20.1：Rocky Linux 10.1 双节点和 Ubuntu
+24.04 单控制面，具体环境/缓存/网络范围见 `registry.yaml` 的 `os_matrix` 和报告。
+默认 Flannel 路线尚无保留的真实验收报告；HA、完全离线、证书轮换仍是未验收能力。
+root 登录直接执行；非 root 用户必须预先具备免密 sudo，provider 使用 `sudo -n`
+执行脚本。Cilium 路线须预置 Helm CLI。
 
 验收须用独立目标，不得修改现有业务集群或复用部分失败的节点当作通过证据。
 需记录 OS/架构、Kubernetes、kubeadm、containerd、CNI 精确版本和制品摘要。

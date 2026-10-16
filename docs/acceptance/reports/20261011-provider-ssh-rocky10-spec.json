@@ -1,0 +1,17 @@
+{
+  "TenantID": "default",
+  "TargetID": "20261011-provider-ssh",
+  "DesiredVersion": "1.36.5",
+  "NetworkPlugin": "cilium",
+  "NetworkVersion": "1.20.1",
+  "AdvertiseAddress": "10.9.31.180",
+  "ControlPlaneEndpoint": "10.9.31.180:6443",
+  "ImageRepository": "registry.aliyuncs.com/google_containers",
+  "SandboxImage": "registry.aliyuncs.com/google_containers/pause:3.10",
+  "PodCIDR": "10.244.0.0/16",
+  "ServiceCIDR": "10.96.0.0/12",
+  "Nodes": [
+    {"id": "hnb-e2e-cp", "host": "106.75.8.151", "role": "control-plane"},
+    {"id": "hnb-e2e-worker", "host": "106.75.13.7", "role": "worker"}
+  ]
+}

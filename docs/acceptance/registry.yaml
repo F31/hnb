@@ -6,6 +6,256 @@ policy:
   report_fields: [run_id, commit, command, environment, started_at, finished_at, exit_code, assertions, artifact_digests]
   legacy_results: "Prior chat/log summaries are historical traces only; do not promote without retained reports."
 features:
+  ubuntu2604_existing_cluster_deployment:
+    unit:
+      status: passed
+      commands: ["go test -race ./... -count=1 (cmd/hnbctl)", "go test -race ./... -count=1 (pkg/provision)", "go test ./... (cmd/runtime-target-lifecycle-provider)"]
+      assertions: [shared_os_adapter_registry, target_os_apt_package_selection, ubuntu2604_draft_and_user, legacy_os_behavior_preserved, unknown_kernel_arch_and_os_rejected, owner_fence_preserved, mismatched_release_os_rejected, versioned_os_json_and_help_aliases]
+    db_integration: {status: not_run}
+    real_e2e:
+      status: passed
+      run_id: ubuntu2604-adaptation-20261015
+      commit: c23f6e4128e92d7a9457807dce5b10e0b0704e73
+      report: reports/20261015-ubuntu2604-adaptation.md
+      artifacts: reports/20261015-ubuntu2604-result.json
+      command: "sudo python3 hnb-ubuntu2604-verify.py --hnbctl /home/ubuntu/hnbctl-ubuntu2604 --restart-workloads --output /home/ubuntu/hnb-ubuntu2604-result.json"
+      environment: "43.142.101.136; Ubuntu 26.04 LTS, kernel 7.0.0-30-generic, amd64, cgroup v2; 4 vCPU/7680Mi; existing single-node K3s v1.36.5+k3s1; TopoLVM 0.42.0 on evaluation loop VG"
+      scope: "OS adapter/inspection and 19-workload existing-cluster rolling recovery; not kubeadm bootstrap, Cilium CNI, offline, HA, production credential lifecycle or 2C4G/15G qualification"
+      started_at: "2026-10-15T07:51:02Z"
+      finished_at: "2026-10-15T07:51:40Z"
+      exit_code: 0
+      assertions: [actual_os_kernel_recognized, draft_private_and_side_effect_free, nineteen_current_workloads_ready_before_after, all_workload_pods_recreated, pvc_uids_and_volumes_preserved, pg_2gi_nats_1gi_on_topolvm, three_plane_ledgers_preserved, portal_login_read_apis_agent_and_anonymous_rejection]
+    production_ha: {status: not_run}
+  existing_minimal_platform_delivery:
+    unit:
+      status: passed
+      commands: ["go test -race ./... -count=1 (cmd/hnbctl)"]
+      assertions: [gate_refuses_existing_minimal_when_blocked, gate_authorizes_certified_existing, applier_apply_and_rollout_under_certified_evidence, applier_rollout_failure_fails_closed, migrations_run_in_owner_order_and_fail_closed, migration_dsn_never_leaked, secret_key_read_decodes_and_fails_closed, bootstrap_pipeline_refuses_without_evidence, bootstrap_pipeline_runs_when_certified]
+    db_integration: {status: not_run}
+    real_e2e:
+      status: passed
+      run_id: existing-minimal-e2e-20261016
+      commit: c23f6e4128e92d7a9457807dce5b10e0b0704e73
+      report: reports/20261016-existing-minimal-e2e.md
+      artifacts: reports/20261016-existing-minimal-e2e-result.json
+      command: "sudo python3 hnb-e2e-verify.py --hnbctl /home/ubuntu/hnbctl-e2e --restart-workloads --output /home/ubuntu/hnb-e2e-result.json"
+      environment: "43.142.101.136; Ubuntu 26.04 LTS, kernel 7.0.0-30-generic, amd64, cgroup v2; 4 vCPU/7680Mi; existing single-node K3s v1.36.5+k3s1; TopoLVM 0.42.0"
+      scope: "existing-route Minimal full platform delivery and rolling recovery; not kubeadm bootstrap, Cilium CNI, offline, HA, production credential lifecycle or 2C4G/15G qualification"
+      started_at: "2026-10-15T16:30:24Z"
+      finished_at: "2026-10-15T16:31:03Z"
+      exit_code: 0
+      assertions: [observed_os_kernel_within_scoped_evidence, draft_owner_only_without_installing, nineteen_workloads_ready, three_plane_migration_ledgers_103, postgresql_2gi_nats_1gi_on_topolvm, login_read_apis_agent_and_anonymous_rejection, nineteen_workloads_ready_after_recovery, claims_unchanged_across_recovery, three_plane_migration_ledgers_preserved, all_workload_pods_recreated]
+    production_ha: {status: not_run}
+  hnbctl_install_execute_uninstall:
+    unit:
+      status: passed
+      commands: ["go test -race ./... -count=1 (cmd/hnbctl)"]
+      assertions: [execute_refused_without_applier_inputs, certified_existing_execute_finalises_succeeded, rollout_failure_fails_closed, uninstall_retains_data_and_namespace_by_default, uninstall_delete_data_requires_acknowledgement, uninstall_config_and_snapshot_mismatch_refused]
+    db_integration: {status: not_run}
+    real_e2e:
+      status: passed
+      run_id: existing-minimal-hnbctl-execute-20261016
+      commit: c23f6e4128e92d7a9457807dce5b10e0b0704e73
+      report: reports/20261016-existing-minimal-hnbctl-execute.md
+      command: "hnbctl install -f hnb.yaml --lock release.exec.lock.yaml --runs-dir runs-exec --execute --chart-package hnb.tgz --bindings bindings.yaml --workload Deployment/apiserver --format json"
+      environment: "43.142.101.136; Ubuntu 26.04 LTS, kernel 7.0.0-30-generic, amd64; existing single-node K3s v1.36.5+k3s1; helm v3.16.4 (render only)"
+      scope: "hnbctl existing-cluster applier (render/apply/rollout/finalise) and uninstall decision matrix against the live cluster; fixture ConfigMap, not the 19-workload platform; no real release chart package"
+      assertions: [matrix_minimal_certified_existing_route, plan_records_planning_only_and_no_node_init, execute_authorized_and_run_succeeded, configmap_applied_to_cluster, rollout_failure_finalizes_blocked, uninstall_default_retains_data_and_namespace, uninstall_delete_data_requires_acknowledgement, uninstall_defers_execution_to_server_contract]
+    production_ha: {status: not_run}
+  profile_upgrade_and_scaling:
+    unit:
+      status: passed
+      commands: ["go test -race ./... -count=1 (cmd/hnbctl)"]
+      assertions: [profile_shape_monotonic_superset, profile_shape_matches_overlays, release_train_lock_v2_and_v1_compat, upgrade_plan_side_effect_free_and_gated, upgrade_executor_backup_gate_fails_closed, upgrade_executor_irreversible_ack, upgrade_executor_resume_skips_succeeded, upgrade_rollback_blocks_irreversible, scale_guardrails_quorum_colocation_storage, scale_requires_apply_step, scale_resume_skips_succeeded, upgrade_execute_cli_end_to_end, scale_execute_cli_end_to_end]
+    db_integration: {status: not_run}
+    real_e2e:
+      status: passed
+      run_id: profile-upgrade-rehearsal-20261016
+      commit: c23f6e4128e92d7a9457807dce5b10e0b0704e73
+      report: reports/20261016-profile-upgrade-rehearsal.md
+      command: "hnbctl upgrade -f hnb.yaml --lock release.upgrade.lock.yaml --to Minimal --execute --chart-package hnb.tgz --bindings bindings.yaml --workload Deployment/apiserver --runs-dir runs-upgrade; hnbctl scale -f hnb.yaml --component apiserver --replicas 3 --execute"
+      environment: "43.142.101.136; Ubuntu 26.04 LTS, kernel 7.0.0-30-generic, amd64; existing single-node K3s v1.36.5+k3s1; helm v3.16.4 (render only)"
+      scope: "gated profile upgrade executor (run kind=upgrade) via Minimal->Minimal train-lock transition, and live horizontal scale (apiserver 1->3->1), against the live cluster with a fixture resource; not a higher-profile upgrade (targets uncertified), not PVC expansion drill, not DB data-plane failover"
+      assertions: [upgrade_plan_authorized_and_side_effect_free, upgrade_run_kind_upgrade_succeeded, configmap_applied_to_cluster, scale_replicas_plan_authorized, scale_storage_shrink_refused, scale_execute_run_succeeded, scale_reverted_to_baseline, pvc_nats_expanded_one_way, vertical_scale_portal_memory_one_way_and_reverted, platform_19_workloads_intact]
+    production_ha: {status: not_run}
+  release_material_catalog:
+    unit:
+      status: passed
+      commands: ["go test -race ./internal/toolkit -run 'Offline|ReleaseCatalog|RoleClosure' -count=1 (cmd/hnbctl)", "go test ./internal/api -run ReleaseMaterial -count=1 (cmd/platform-api)"]
+      assertions: [role_closure_matches_console_control_plane_worker, missing_role_dependency_rejected, missing_os_package_index_rejected, duplicate_local_import_idempotent, fixed_local_release_digest_change_rejected, api_created_201, api_duplicate_idempotent_200, api_fixed_release_conflict_409, api_invalid_role_digest_required_field_unknown_field_400, api_permission_denied_403]
+    db_integration:
+      status: passed
+      command: "HNB_TEST_POSTGRES_DSN=... go test ./internal/store -run TestReleaseCatalogPG -count=1 -v"
+      environment: "real PostgreSQL 16; dedicated per-test schema; migration 104 shape applied"
+      assertions: [first_import_returns_id, same_digest_replay_idempotent, lock_or_content_digest_change_rejected, rejected_replacement_does_not_change_catalog, new_release_version_adds_entry]
+    real_e2e: {status: not_run}
+    production_ha: {status: not_run}
+  release_cli_directory:
+    unit:
+      status: passed
+      commands: ["go test ./internal/toolkit -run 'RegisterReleaseMaterial|ListReleaseMaterials' -count=1 (cmd/hnbctl)", "go test ./internal/cli -run 'Release' -count=1 (cmd/hnbctl)"]
+      assertions: [client_register_created_201, client_register_duplicate_200, client_register_conflict_409, client_register_5xx_unavailable, client_register_invalid_entry_validation, client_list_directory_decode, cli_offline_verify_ready, cli_verify_refuses_platform_flags_no_fallback, cli_register_submits_verified_closure, cli_register_replays_same_closure, cli_register_surfaces_fixed_conflict, cli_list_output, cli_invalid_role_rejected]
+    db_integration: {status: not_run}
+    real_e2e: {status: not_run}
+    production_ha: {status: not_run}
+  shared_kubeadm_worker_join:
+    unit: {status: not_run}
+    db_integration: {status: not_run}
+    real_e2e:
+      status: passed
+      run_id: "ubuntu-worker-join-20261014"
+      report: "reports/20261014-ubuntu-worker-join.md"
+      artifacts: "reports/20261014-ubuntu-node-add-smoke.yaml; source/image hashes in report"
+      environment: "Ubuntu 24.04; control plane 106.75.10.89/10.9.36.43, worker 106.75.15.246/10.9.57.29; Kubernetes 1.36.5, Cilium 1.20.1"
+      scope: "shared AddNodes with explicit evaluation SSH routing/runtime preparation, live Ready, replay and bidirectional Pod/Service/DNS; not platform Intent/Operation, provider conformance, offline or HA"
+      assertions: [worker_joined_once, replay_already_joined, control_plane_identity_unchanged, cilium_and_envoy_two_ready, bidirectional_cross_node_http, service_dns_http, cluster_dns_resolution, owned_test_namespace_deleted]
+    production_ha: {status: not_run}
+  local_material_preparation:
+    unit:
+      status: passed
+      command: "go test -race ./... -count=1 (cmd/hnbctl)"
+      assertions: [explicit_mirror_mapping_required, preparation_only_validation, failure_outputs_verified_partial_result, interrupted_retry_preserves_cache, canceled_result_preserves_completed_artifacts, actual_cdn_origin_and_failure_cause_reported, digest_mismatch_rejected, preload_refused_before_side_effects]
+    db_integration: {status: not_run}
+    real_e2e:
+      status: passed
+      run_id: "local-prepare-registry-20261014"
+      report: "reports/20261014-prepare-download-verification.md"
+      artifacts: "reports/20261014-prepare-real-registry.json"
+      environment: "local Linux installer, existing HTTP proxy 127.0.0.1:7892, Docker Hub plus explicitly declared CDN origin"
+      scope: "one public linux/amd64 image closure downloaded into a fresh private cache and rehashed warm; no node preload, package installation, platform or offline qualification; task 4.2 remains partial"
+      assertions: [real_anonymous_bearer_negotiation, explicit_cdn_source_policy, cold_four_objects_3813273_verified_bytes, warm_four_cache_hits]
+    production_ha: {status: not_run}
+  orphaned_step_redrive:
+    unit:
+      status: passed
+      command: "go test -race ./... -count=1 (cmd/operation-worker)"
+      assertions: [worker_envelope_key_contract, millisecond_idle_threshold, canonical_request_selected, unpublished_request_blocks_redrive, step_and_outbox_budget_enforced, concurrent_sweeps_single_winner]
+    db_integration:
+      status: passed
+      commands: ["HNB_TEST_POSTGRES_DSN=... go test -race ./... -count=1", "HNB_TEST_POSTGRES_DSN=... HNB_TEST_NATS_URL=... go test -race ./internal/nats -run 'TestSharedConsumerAndOutboxRelay|TestReArmedStepRequestPassesEnvelopeValidation' -count=1 -v"]
+      environment: "isolated PostgreSQL fixture database; separate empty database for PostgreSQL/NATS relay test"
+    real_e2e:
+      status: passed
+      run_id: "redrive-v4-aa8be79c"
+      report: "reports/20261014-redrive-real-host-verification.md"
+      artifacts: "reports/20261014-redrive-recovery.json, reports/20261014-redrive-followup.json, reports/20261014-redrive-final-state.json, reports/20261014-redrive-artifacts.json"
+      environment: "106.75.34.133; Ubuntu 24.04; 2 vCPU/3914Mi; existing single-node K3s"
+      scope: "lost-request injection, real import execution, duplicate acknowledgment after broker dedup window and exhausted-budget logging; evaluation 60-second service token"
+      assertions: [oci_content_and_runtime_image_id_match, wrong_image_alias_rejected, lost_request_update_one, redriven_operation_succeeded, one_canonical_outbox_row, duplicate_not_executed, exhausted_step_pending_and_logged, legacy_derived_rows_archived_before_cleanup]
+    production_ha: {status: not_run}
+  runtime_target_import_operation:
+    unit:
+      status: passed
+      commands: ["python3 -m unittest test_candidate_components (deploy/charts/hnb)", "go test -race ./... (cmd/operation-worker, cmd/runtime-target-lifecycle-provider)"]
+      assertions: [owner_only_token_staging_rendered, staging_required_when_providers_configured, staged_volume_is_bounded_and_read_only]
+    db_integration: {status: not_run}
+    real_e2e:
+      status: partial
+      run_id: "startup-worker-live-import-20261013 / startup-operation-idempotency-20261013"
+      report: "reports/20261013-runtime-import-operation.md"
+      artifacts: "reports/20261013-worker-provider-binding.json, reports/20261013-startup-live-import.json, reports/20261013-operation-idempotency.json"
+      environment: "106.75.34.133; Ubuntu 24.04; 2 vCPU/3914Mi; existing single-node K3s; evaluation cluster imported into itself"
+      scope: "One ImportRuntimeTarget executed through the formal chain with an evaluation credential and a hand-minted service token; no clean-host install, no Agent observation, no HA or offline result, and no production credential lifecycle"
+      assertions: [worker_reads_owner_only_staged_token, pinned_provider_digest_matches_live_manifest, provider_authenticates_service_token, operation_reached_succeeded, target_registered_with_agent_observer, replay_returns_same_operation, digest_conflict_rejected_409, distinct_key_executes_once_without_duplicate_observation]
+      defects: ["orphaned_step_never_redriven: step-requested published with no attached consumer leaves the Operation queued indefinitely (reports/20261013-orphaned-step-defect.json)"]
+      fixed: ["bounded redrive re-arms the canonical outbox row with unchanged identity; SKIP LOCKED, unpublished-request exclusion and delivery budgets; real-host success/duplicate/exhaustion verified in reports/20261014-redrive-real-host-verification.md"]
+      blocked: ["service credential issuance and rotation is not implemented; the successful import required submitting within 8 seconds of minting a 60-second token"]
+    production_ha: {status: not_run}
+  provider_conformance_registration:
+    unit:
+      status: passed
+      commands: ["go test -race ./... (pkg/core, cmd/platform-api)", "go test -race ./internal/provider (cmd/runtime-target-lifecycle-provider)"]
+      assertions: [signed_report_rejects_untrusted_tampered_failed_expired_and_incomplete, admission_rejects_unauthorized_and_identity_mismatch, manifest_upsert_handles_missing_unique_and_duplicate_rows, observer_replay_is_idempotent]
+    db_integration:
+      status: passed
+      command: "HNB_TEST_POSTGRES_DSN=... go test -race ./internal/store -run TestConformancePG -count=1"
+      environment: "isolated PostgreSQL 16 container, per-test schema"
+      scope: "registration transaction, manifest upsert and concurrent manifest replacement only"
+      assertions: [atomic_registration_under_row_lock, stale_report_rejected_after_manifest_replacement, concurrent_replacement_blocks_registration, duplicate_manifest_rows_fail_closed]
+    real_e2e:
+      status: partial
+      run_id: "startup-conformance-admission-20261013 / isolated-import-conformance-70af0293 / startup-runtime-operation-20261013"
+      report: "reports/20261013-conformance-registration-and-operation.md"
+      artifacts: "reports/20261013-import-conformance-isolated.json, reports/20261013-import-conformance-registration.json, reports/20261013-startup-runtime-operation.json, reports/20261013-conformance-admission-negative.json"
+      environment: "106.75.34.133; Ubuntu 24.04; 2 vCPU/3914Mi; existing single-node K3s; isolated SQL fixtures for the provider exercise"
+      scope: "Signed import conformance executed against the deployed provider image and registered for one matrix cell with a four-hour window; a real Operation was created and failed on an unbound worker provider route; not Minimal, not HA, not offline, not ongoing support"
+      assertions: [negative_admission_rejects_bad_reports, live_provider_import_passes_contract_functional_security_fault_idempotency_fencing, replay_preserves_observer_generation, older_generation_fenced, cross_tenant_credential_denied, registration_bound_to_artifact_and_manifest_digest, real_operation_created_and_failed_with_recorded_reason, no_provider_execution_occurred]
+    production_ha: {status: not_run}
+  startup_runtime_preflight:
+    unit:
+      status: passed
+      commands: ["go test -race ./internal/handler (cmd/apiserver)", "python3 -m unittest test_candidate_components test_profiles (deploy/charts/hnb)"]
+      scope: "Import digest contract and Chart bindings; no action-specific provider conformance"
+    db_integration: {status: not_run}
+    real_e2e:
+      status: partial
+      run_id: "ubuntu-startup-runtime-preflight-20261013"
+      report: "reports/20261013-startup-runtime-preflight.md"
+      artifacts: "reports/20261013-startup-runtime-artifacts.json"
+      environment: "106.75.34.133; Ubuntu 24.04; 2 vCPU/3914Mi; existing single-node K3s"
+      scope: "12-workload preflight, encrypted Secret registration and rejected Import; superseded by provider_conformance_registration, which registers an import cell and creates a real Operation"
+      assertions: [twelve_workloads_ready_at_both_samples, no_additional_restarts_in_60_seconds, provider_health_200, anonymous_execution_401, portal_login_200, secret_registration_201, aes_gcm_secret_record_present, import_rejected_503, no_operation_created]
+    production_ha: {status: not_run}
+  ubuntu_startup_host_cli_and_dependencies:
+    unit: {status: passed, command: "go test -race ./... -count=1", module: cmd/hnbctl}
+    db_integration: {status: not_run}
+    real_e2e:
+      status: passed
+      run_id: "ubuntu-startup-host-test-20261013"
+      report: "reports/20261013-ubuntu-startup-host-test.md"
+      environment: "106.75.34.133; Ubuntu 24.04, 2 vCPU/3913Mi/18.33Gi root filesystem; online distro dependency installation"
+      scope: "hnbctl actual-host smoke/rejection paths and dependency-only reboot/backup/restore; platform Startup composition has a separate retained report"
+      assertions: [uploaded_cli_digest_matches, cli_draft_generation, incomplete_config_rejected, actual_disk_capacity_rejected, hypothetical_40gi_control_passed, verify_scoped_check_counts_fixed_and_retested, boot_id_changed, three_pg_databases_persisted, jetstream_message_persisted, backup_hashes_verified, pg_restore_into_new_databases, cross_owner_table_read_denied, loopback_only_dependency_listeners]
+    production_ha: {status: not_run}
+  startup_platform_deployment:
+    unit: {status: passed, command: "python3 -m unittest test_candidate_components test_profiles", directory: deploy/charts/hnb, assertions: [47_chart_and_capacity_tests_passed]}
+    db_integration: {status: not_run}
+    real_e2e:
+      status: passed
+      run_id: "ubuntu-startup-composition-20261013"
+      report: "reports/20261013-startup-composition-deploy.md"
+      artifacts: "reports/20261013-startup-composition-fixed-artifacts.json"
+      environment: "106.75.34.133; Ubuntu 24.04, 2 vCPU/3914Mi/18.33Gi root filesystem; single-node K3s v1.36.5+k3s1"
+      scope: "Startup 10-workload small-data composition with current Chart, locally built digest-pinned evaluation images and host-generated identity/TLS; not complete hnbctl installation, Minimal, offline release, real Operation/Agent or HA certification"
+      assertions: [current_chart_render_applied, ten_workloads_ready, secret_modes_0440, portal_proxy_login_token_issued, anonymous_request_401, unauthorized_route_403, boot_id_changed, ten_workloads_recovered_after_reboot, workspace_and_tenant_data_hashes_unchanged]
+    production_ha: {status: not_run}
+  startup_dependency_reliability:
+    unit: {status: passed, command: "go test -race ./...", modules: [pkg/db, pkg/messaging, cmd/hnbctl]}
+    db_integration: {status: not_run}
+    real_e2e:
+      status: passed
+      run_id: "ubuntu-startup-priority-20261013"
+      report: "reports/20261013-startup-priority-optimization.md"
+      artifacts: "reports/20261013-startup-priority-artifacts.json"
+      environment: "106.75.34.133; Ubuntu 24.04; 2 vCPU/3914Mi; existing single-node K3s v1.36.5+k3s1"
+      scope: "Startup Secret references, health probes, PG/NATS outage/recovery and host reboot; locked candidate rendering only, not clean-host install or complete Minimal/Operation/Agent certification"
+      assertions: [database_credentials_are_secret_refs, five_core_health_endpoints_ready, dependency_outages_drop_readiness_not_liveness, no_core_restart_during_dependency_outages, automatic_dependency_recovery, boot_id_changed, one_container_restart_per_host_reboot, portal_login_and_data_hashes_preserved]
+    production_ha: {status: not_run}
+  startup_capacity_under_load:
+    unit: {status: not_run}
+    db_integration: {status: not_run}
+    real_e2e:
+      status: partial
+      run_id: "ubuntu-startup-capacity-20261013"
+      report: "reports/20261013-startup-capacity-under-load.md"
+      artifacts: "reports/20261013-startup-capacity-under-load.json (sha256:c433630c63c636d4e4e42dad4ca33984631e27bd405c6d56cc0a69cfc2800d02), reports/20261013-startup-capacity-under-load.py (sha256:8d5f75d9be050e71840ec72a305fce8abfaad9541d19fccadbb61dc2b3dd4ca7)"
+      base_commit: "c23f6e4128e92d7a9457807dce5b10e0b0704e73 (uncommitted working-tree changes; commit alone does not identify the source)"
+      environment: "106.75.34.133; Ubuntu 24.04; 2 vCPU/3914Mi/18.33Gi; single-node K3s v1.36.5+k3s1; load generator on the same host"
+      scope: "Startup 10-workload composition under a login+workspaces+tenants read mix at 1/2/4/8/16 concurrent workers; per-pod cgroup CPU/memory, apiserver livez/readyz and PostgreSQL session counts; not a production capacity certification, not write/upload/Operation/Agent/HA/offline, generator competes for the same 2 vCPU"
+      assertions: [ten_workloads_running_after_the_run, apiserver_livez_and_readyz_204_in_every_sampled_scenario, throughput_between_118_and_150_ops_per_second, login_p99_stays_below_400ms_at_16_workers, postgresql_and_apiserver_have_the_highest_cpu_share, memory_headroom_keeps_2738_mib_available_at_peak, postgresql_session_rows_peak_at_27_with_max_connections_unchecked]
+      limitations: ["component CPU peaks are sampled at different instants and cannot be summed", "fixed 2s CPU normalization overstates precision because the sampling loop exceeds 2s", "pg_stat_activity counts idle and system sessions rather than active connections", "percentiles cover successful requests only and 429 is counted separately", "restart counts for all pods were not retained, so no claim is made about restarts during the run"]
+    production_ha: {status: not_run}
+  ubuntu_dependency_persistence_restore:
+    unit: {status: not_run}
+    db_integration: {status: not_run}
+    real_e2e:
+      status: passed
+      run_id: "ubuntu-dependency-drill-20261012"
+      report: "reports/20261012-ubuntu-dependency-drill.md"
+      environment: "Ubuntu 24.04, 2 vCPU/4 GiB/19 GiB, PostgreSQL 16.15, NATS 2.10.7; online package installation"
+      scope: "Dependency-only experiment: dedicated test databases, JetStream file stream and synthetic identity/KMS bytes; no HNB platform or offline certification"
+      assertions: [node_probe_snapshot_unchanged, boot_id_changed, three_pg_databases_persisted, jetstream_message_persisted, backup_hashes_verified, pg_restore_into_new_databases, quiesced_jetstream_store_restore, synthetic_material_digest_match, cross_owner_table_read_denied]
+    production_ha: {status: not_run}
   kubernetes_import:
     unit: {status: not_run, command: "go test ./internal/provider -count=1", module: cmd/runtime-target-lifecycle-provider}
     db_integration: {status: not_run}
@@ -21,11 +271,20 @@ features:
       assertions: [migrations_001_101_apply, uq_secret_references_admission_backs_on_conflict, version_bump_on_conflict]
     real_e2e:
       status: passed
-      run_id: "hnb-e2e-20261011-1"
-      report: "reports/20261011-k8s-1.36.5-create-online-rocky10.md"
-      environment: "Cloud VM Rocky Linux 10.1, kernel 6.12, 2vCPU/3.6GiB, xfs, cgroup v2, no swap"
-      assertions: [api_readyz, node_count_1, node_ready, static_pods_running, coredns_rollout, kube_proxy_running, cni_running, pod_network, clusterip_service, dns_resolution]
-      notes: "Rocky10 minimal kernel has no xt_/ip_set/br_netfilter modules: kube-proxy must run nftables mode and CNI must be eBPF (Cilium). kubeadm images pulled from registry.aliyuncs.com/google_containers."
+      run_id: "hnb-provider-ssh-rocky10-20261011"
+      report: "reports/20261011-provider-ssh-rocky10.md"
+      os_matrix:
+        rocky_linux_10_1:
+          status: passed
+          report: "reports/20261011-provider-ssh-rocky10.md"
+          scope: "Single control-plane plus worker, root SSH, cross-node network"
+        ubuntu_24_04:
+          status: passed
+          report: "reports/20261011-provider-ssh-ubuntu2404.md"
+          scope: "Single control-plane, ubuntu SSH with passwordless sudo, clean Kubernetes rebuild with cached packages/images, same-node Pod/Service/DNS"
+      environment: "Two cloud VMs, Rocky Linux 10.1, kernel 6.12, containerd 2.2.7, cgroup v2, no swap; preinstalled tooling/cached images for final clean Kubernetes rebuild"
+      assertions: [real_provider_provision, api_readyz, node_count_2, nodes_ready, worker_join, coredns_rollout, cilium_rollout, encrypted_kubeconfig_store_and_resolve, secret_version_increment, cross_node_pod_http, clusterip_service, dns_resolution]
+      notes: "Scope is Provision()+RealSSH+PG/KMS bridge, not northbound API/admission/operation/Agent E2E. Cilium 1.20.1 replaces kube-proxy; API endpoint is private 10.9.31.180:6443. Public API reachability was not accepted. Historical manual-readiness report remains retained."
     production_ha: {status: blocked, reason: "Multi-control-plane SSH bootstrap is explicitly unsupported."}
   kubernetes_capi_create:
     unit: {status: not_run, note: "Old manifest/stub tests do not certify CAPI contract compatibility."}

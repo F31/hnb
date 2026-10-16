@@ -1,0 +1,22 @@
+{
+  "run_id": "ubuntu-startup-runtime-preflight-20261013",
+  "base_commit": "c23f6e4128e92d7a9457807dce5b10e0b0704e73",
+  "working_tree": "uncommitted evaluation changes; base commit alone does not identify source",
+  "artifact_digests": {
+    "20261013-startup-runtime-preflight.json": "sha256:22ae75ed8bd24874534b324c775e405c5ac9b4b210f04d9ea7711352f39be029",
+    "cmd/apiserver/internal/handler/resource_cluster.go": "sha256:d63f3e986f83445ef759ccdf74e77dbcf5e96dccb7ca109bec9b080a5149e537",
+    "deploy/charts/hnb/charts/platform-api/templates/deployment.yaml": "sha256:9fe1aec3b0fcf177f3e95ec951251b421ab6070ccf8cdc237c9c80f2867ed1de",
+    "deploy/charts/hnb/charts/kubernetes-provider/templates/deployment.yaml": "sha256:448872e43232d17d059d9dc00d670564733e758ca0e2a42b54028bfd1464b4e6",
+    "runtime-selected.yaml": "sha256:87021547c298fc6a58a0eca217070ed0e47a539e5ee4310886d3014760bdd538",
+    "runtime-apiserver.yaml": "sha256:d87040d687532ac96370585f95e95ae991612e8d373c8788f617fad3fe706710",
+    "verify-runtime-host.py": "sha256:5ec5230ff3037a3bc56ca1014dfc9a5aeb69981bd6fce58a7c5d83820f7455e2",
+    "runtime-images.tar": "sha256:ebe96d2ad1d15625247ab013e3e8a4226df921f6bf764350cd9e7104b02bd25f",
+    "runtime-apiserver.tar": "sha256:e4ae622ac1ad355067baf8080c706435648e07764f325ef5d673bbebf95f99e6"
+  },
+  "images": {
+    "apiserver": "hnb-fix/apiserver@sha256:aa9850fc076a850224a647655e9f298d2f67560644a1e18b7d0c69e8f608869a",
+    "runtime-target-lifecycle-provider": "hnb-fix/runtime-target-lifecycle-provider@sha256:91b0baccd1778fff01f9fb5a07e4ff2cc77378b643254f04e8f8adc1ee741949",
+    "kubernetes-provider": "hnb-fix/kubernetes-provider@sha256:801a99a65dbfbed3572c49be30913489080676632fc47758103cff01285ae3fc"
+  },
+  "retention": "Images imported on evaluation host; selected manifests and archives retained under /home/ubuntu and /tmp/opencode; observation JSON retained in repository. Temporary paths are not a distributable release bundle."
+}

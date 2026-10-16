@@ -1,0 +1,7 @@
+{
+  "run_id": "startup-worker-provider-binding-20261013",
+  "live_manifest_digest": "sha256:52277423921da253037228b5358e8f169dfa3bd892d084c5f1396d208dda2cec",
+  "applied_at": "2026-10-13T15:44:49.950328+00:00",
+  "init_containers": [],
+  "worker_ready": true
+}

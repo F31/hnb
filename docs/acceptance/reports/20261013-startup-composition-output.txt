@@ -1,0 +1,93 @@
+{
+  "measured_at": "2026-10-13T05:07:09.651359+00:00",
+  "scope": "Real host measurement of the running Startup composition",
+  "node": {
+    "memory_total_bytes": 4103929856,
+    "memory_available_bytes": 3096313856,
+    "disk_total_bytes": 19682557952,
+    "disk_used_bytes": 5625151488,
+    "disk_available_bytes": 14040629248
+  },
+  "k3s_footprint_bytes": 1838101347,
+  "k3s_images_bytes": 194508973,
+  "k3s_containerd_total_bytes": 1444209811,
+  "pods": [
+    [
+      "apiserver-56f844bffb-scnq9",
+      "Running",
+      "true"
+    ],
+    [
+      "app-market-775c5cfcd6-s5fwg",
+      "Running",
+      "true"
+    ],
+    [
+      "cluster-router-58b77ddfcf-bbwgj",
+      "Running",
+      "true"
+    ],
+    [
+      "extension-controller-f4f56d865-69b86",
+      "Running",
+      "true"
+    ],
+    [
+      "nats-0",
+      "Running",
+      "true"
+    ],
+    [
+      "operation-worker-5f88744df6-nfqj2",
+      "Running",
+      "true"
+    ],
+    [
+      "platform-api-6745778f9f-tj9j4",
+      "Running",
+      "true"
+    ],
+    [
+      "portal-6b748855b7-5t596",
+      "Running",
+      "true"
+    ],
+    [
+      "postgresql-0",
+      "Running",
+      "true"
+    ],
+    [
+      "tunnel-server-7654b6c78f-rpmlj",
+      "Running",
+      "true"
+    ]
+  ],
+  "requested": [],
+  "actual_workload_memory_bytes": {},
+  "actual_workload_memory_total_bytes": 0,
+  "postgres_data_bytes": 106518463,
+  "nats_data_bytes": 0
+}
+
+=== pods:
+NAME                                   READY   STATUS    RESTARTS        AGE
+apiserver-56f844bffb-scnq9             1/1     Running   1 (2m24s ago)   7m46s
+app-market-775c5cfcd6-s5fwg            1/1     Running   2 (95s ago)     40m
+cluster-router-58b77ddfcf-bbwgj        1/1     Running   1 (2m24s ago)   40m
+extension-controller-f4f56d865-69b86   1/1     Running   2 (94s ago)     40m
+nats-0                                 1/1     Running   1 (2m24s ago)   52m
+operation-worker-5f88744df6-nfqj2      1/1     Running   2 (95s ago)     40m
+platform-api-6745778f9f-tj9j4          1/1     Running   1 (2m24s ago)   40m
+portal-6b748855b7-5t596                1/1     Running   1 (2m24s ago)   40m
+postgresql-0                           1/1     Running   1 (2m24s ago)   52m
+tunnel-server-7654b6c78f-rpmlj         1/1     Running   1 (2m24s ago)   40m
+
+=== routes after reboot:
+authenticated token acquired, length 1500
+/api/v1/auth/session       -> 403  {"code":40300,"message":"route is not authorized"}
+/api/v1/workspaces         -> 200  {"code":0,"message":"success","data":[{"id":"e4c9d215-01ad-452f-a26e-1d2700c9cd71","name":"default","display_name":"Default","tenant_id":"default","quota":{},"i
+/api/v1/tenants            -> 200  {"code":0,"message":"success","data":{"items":[{"id":"default","name":"default","display_name":"Default","status":"active","quota":{},"created_at":"2026-10-13T0
+/api/v1/auth/me            -> 403  {"code":40300,"message":"route is not authorized"}
+/api/v1/products           -> 403  {"code":40300,"message":"route is not authorized"}
+/health                    -> 200  {"code":0,"message":"success","data":{"status":"ok"}}

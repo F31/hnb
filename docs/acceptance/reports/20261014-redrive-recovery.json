@@ -1,0 +1,61 @@
+{
+  "run_id": "redrive-v4-aa8be79c",
+  "started_at": "2026-10-14T01:35:09.437963+00:00",
+  "scope": "lost request then real provider execution",
+  "credential_status": 201,
+  "intent_status": 202,
+  "operation_id": "36d171ec-5721-41fd-a35e-4e33345881e6",
+  "injection": "UPDATE 1",
+  "before": {
+    "status": "queued",
+    "completed_steps": 0,
+    "total_steps": 1,
+    "steps": [
+      {
+        "id": "0edfc722-f39e-43e2-9595-65f7ed25c20f",
+        "status": "pending",
+        "retry_count": 0,
+        "error": null,
+        "started_at": null,
+        "completed_at": null
+      }
+    ],
+    "requests": [
+      {
+        "message_id": "0688d61b-98aa-420e-a74f-8aa15c4a946c",
+        "status": "published",
+        "attempt": 0,
+        "max_attempts": 10,
+        "key_matches_step": true
+      }
+    ]
+  },
+  "token_minted_at": "2026-10-14T01:37:18.142316+00:00",
+  "worker_restored_at": "2026-10-14T01:37:24.077901+00:00",
+  "after": {
+    "status": "succeeded",
+    "completed_steps": 1,
+    "total_steps": 1,
+    "steps": [
+      {
+        "id": "0edfc722-f39e-43e2-9595-65f7ed25c20f",
+        "status": "succeeded",
+        "retry_count": 0,
+        "error": null,
+        "started_at": "2026-10-14T01:37:19.158345+00:00",
+        "completed_at": "2026-10-14T01:37:19.184163+00:00"
+      }
+    ],
+    "requests": [
+      {
+        "message_id": "0688d61b-98aa-420e-a74f-8aa15c4a946c",
+        "status": "published",
+        "attempt": 1,
+        "max_attempts": 10,
+        "key_matches_step": true
+      }
+    ]
+  },
+  "passed": true,
+  "finished_at": "2026-10-14T01:37:24.353094+00:00"
+}
