@@ -1,0 +1,52 @@
+{{- $profile := .Values.global.deploymentProfile | default "" -}}
+{{- $stage := .Values.global.deploymentStage | default "full" -}}
+{{- if not (has $stage (list "full" "startup")) -}}
+{{- fail "UNKNOWN_DEPLOYMENT_STAGE: expected full or startup" -}}
+{{- end -}}
+{{- if eq $stage "startup" -}}
+{{- if ne $profile "" -}}
+{{- fail "STARTUP_NOT_CERTIFIED_PROFILE: startup is an initial component composition, not a complete Minimal/HA delivery" -}}
+{{- end -}}
+{{- range $name := list "apiserver" "operation-worker" "platform-api" "extension-controller" "app-market" "cluster-router" "tunnel-server" "portal" -}}
+{{- if not (index $.Values $name).enabled -}}
+{{- fail (printf "STARTUP_REQUIRED_COMPONENT_MISSING: %s" $name) -}}
+{{- end -}}
+{{- end -}}
+{{- range $name := list "cilium-provider" "calico-provider" "kube-ovn-provider" "network-provider" -}}
+{{- if and (index $.Values $name).enabled (not (index $.Values "network-registry").enabled) -}}
+{{- fail (printf "COMPONENT_DEPENDENCY_MISSING: %s requires network-registry" $name) -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- $backings := .Values.global.backings | default "bundled" -}}
+{{- if not (has $backings (list "bundled" "in-cluster-ha" "external")) -}}
+{{- fail "UNKNOWN_BACKINGS: expected bundled, in-cluster-ha or external" -}}
+{{- end -}}
+{{- if and (ne $profile "") (ne $profile "Minimal") -}}
+{{- if eq $backings "in-cluster-ha" -}}
+{{- if lt (int (.Values.global.controlPlaneDomains | default 1)) 3 -}}
+{{- fail "HA_CONTROL_NODES_INSUFFICIENT: in-cluster-ha requires at least 3 schedulable control-plane domains" -}}
+{{- end -}}
+{{- if or (not .Values.postgresql.enabled) (not .Values.nats.enabled) -}}
+{{- fail "IN_CLUSTER_HA_UNCONFIGURED: in-cluster-ha requires bundled PostgreSQL and JetStream to be enabled" -}}
+{{- end -}}
+{{- else if eq $backings "external" -}}
+{{- if or .Values.postgresql.enabled .Values.nats.enabled -}}
+{{- fail "EXTERNAL_BACKING_MISCONFIGURED: external backing must disable bundled PostgreSQL and JetStream" -}}
+{{- end -}}
+{{- else -}}
+{{- fail "HA_BUNDLED_NOT_HA: HA profiles require in-cluster-ha or external backings, not single-instance bundled" -}}
+{{- end -}}
+{{- end -}}
+{{- if eq $profile "Minimal" -}}
+{{- range $name := list "calico-provider" "kube-ovn-provider" "network-provider" "karmada-provider" "edge-provider" "gslb-controller" -}}
+{{- if (index $.Values $name).enabled -}}
+{{- fail (printf "MINIMAL_OPTIONAL_PACK_ENABLED: %s requires independent Pack qualification" $name) -}}
+{{- end -}}
+{{- end -}}
+{{- range $name := list "apiserver" "operation-worker" "platform-api" "extension-controller" "app-market" "plugin-worker" "runtime-target-lifecycle-provider" "gateway-provider" "cluster-router" "tunnel-server" "rbac-syncer" "alert-manager" "cluster-agent" "network-registry" "cilium-provider" "kubernetes-provider" "portal" -}}
+{{- if not (index $.Values $name).enabled -}}
+{{- fail (printf "MINIMAL_REQUIRED_COMPONENT_MISSING: %s" $name) -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}

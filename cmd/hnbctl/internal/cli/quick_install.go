@@ -19,8 +19,10 @@ import (
 type installOptions struct {
 	config, output, lock, runsDir                                                         string
 	host, internal, user, key, kubeconfig, profile, domain, namespace, name, tls, storage string
+	backing                                                                               string
 	format                                                                                string
 	plan, yes, execute                                                                    bool
+	controlNodeCount                                                                      int
 	chartPackage, bindings                                                                string
 	workloads                                                                             stringSlice
 	imageRepository, sandboxImage, cniImageRepository, chartRepository                    string
@@ -57,6 +59,8 @@ func parseInstallOptions(args []string) (installOptions, error) {
 	fs.StringVar(&o.name, "name", "hnb", "installation configuration name")
 	fs.StringVar(&o.tls, "tls-secret", "", "existing TLS Secret in the platform namespace")
 	fs.StringVar(&o.storage, "storage-class", "", "verified target StorageClass")
+	fs.StringVar(&o.backing, "backing", "", "data-plane backing: bundled|in-cluster-ha|external (default: profile default)")
+	fs.IntVar(&o.controlNodeCount, "control-node-count", 0, "observed schedulable control-plane domains (>=3 for in-cluster-ha; 0 = unknown)")
 	fs.StringVar(&o.format, "format", "", "human or json (shortcut default: human; -f default: json)")
 	fs.BoolVar(&o.plan, "plan", false, "only generate a plan/snapshots; no remote probes or mutations")
 	fs.BoolVar(&o.execute, "execute", false, "attempt the install execution path; still refuses unless delivery evidence is certified and an applier exists")
@@ -117,6 +121,15 @@ func parseInstallOptions(args []string) (installOptions, error) {
 	}
 	if o.format != "human" && o.format != "json" {
 		return o, fmt.Errorf("--format must be human or json")
+	}
+	if o.backing != "" && o.backing != "bundled" && o.backing != "in-cluster-ha" && o.backing != "external" {
+		return o, fmt.Errorf("--backing must be bundled, in-cluster-ha or external")
+	}
+	if o.controlNodeCount < 0 {
+		return o, fmt.Errorf("--control-node-count must not be negative")
+	}
+	if o.backing == "in-cluster-ha" && o.controlNodeCount > 0 && o.controlNodeCount < 3 {
+		return o, fmt.Errorf("HA_CONTROL_NODES_INSUFFICIENT: in-cluster-ha requires at least 3 schedulable control-plane domains")
 	}
 	return o, nil
 }
@@ -235,6 +248,12 @@ func runInstallExecution(ctx context.Context, env *Env, store toolkit.RunStore, 
 	bindings, err := os.ReadFile(opts.bindings)
 	if err != nil {
 		return fmt.Errorf("cannot read bindings: %w", err)
+	}
+	if opts.backing != "" {
+		bindings, err = toolkit.ApplyBackingValue(bindings, opts.backing)
+		if err != nil {
+			return fmt.Errorf("cannot apply backing: %w", err)
+		}
 	}
 	rendered, err := toolkit.RenderLockedChart(ctx, cfg, lock, opts.chartPackage, bindings, "full")
 	if err != nil {

@@ -182,3 +182,41 @@ func TestRunUpgradeRollbackRefusesIrreversible(t *testing.T) {
 		t.Fatalf("irreversible rollback not refused: %v", err)
 	}
 }
+
+func TestRunUpgradeExecutesRebackingPhase(t *testing.T) {
+	store, writer, epoch := upgradeRunFixture(t)
+	plan := authorizedUpgradePlan(true)
+	plan.Steps = append(plan.Steps, UpgradeStep{Kind: "backings", Target: "postgresql+nats", From: "bundled", To: "in-cluster-ha", Reversible: false})
+	ran := false
+	res, err := RunUpgrade(context.Background(), UpgradeExecutionInput{
+		Store: store, Writer: writer, Epoch: epoch, Plan: plan,
+		RequiresBackup: true, BackupVerified: true,
+		Steps: UpgradeSteps{
+			Rebacking: func(context.Context) error { ran = true; return nil },
+			Migrate:   func(context.Context) error { return nil },
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !ran {
+		t.Fatal("rebacking step not executed")
+	}
+	recorded := false
+	for _, p := range res.Applied {
+		if p == PhaseDataPlaneRebacking {
+			recorded = true
+		}
+	}
+	if !recorded {
+		t.Fatalf("rebacking phase not recorded: %v", res.Applied)
+	}
+}
+
+func TestPlanRollbackBlocksRebackings(t *testing.T) {
+	plan := authorizedUpgradePlan(true)
+	plan.Steps = append(plan.Steps, UpgradeStep{Kind: "backings", Target: "postgresql+nats", From: "bundled", To: "in-cluster-ha", Reversible: false})
+	if _, blocks := PlanRollback(plan); len(blocks) == 0 || !strings.Contains(strings.Join(blocks, ";"), "ROLLBACK_REBACKING_UNSUPPORTED") {
+		t.Fatalf("rebacking rollback not blocked: %v", blocks)
+	}
+}

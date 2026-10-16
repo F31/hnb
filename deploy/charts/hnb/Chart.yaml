@@ -66,3 +66,18 @@ dependencies:
   - name: alert-manager
     version: 0.1.0
     condition: alert-manager.enabled
+  - name: plugin-worker
+    version: 0.1.0
+    condition: plugin-worker.enabled
+  - name: runtime-target-lifecycle-provider
+    version: 0.1.0
+    condition: runtime-target-lifecycle-provider.enabled
+  - name: portal
+    version: 0.1.0
+    condition: portal.enabled
+  - name: postgresql
+    version: 0.1.0
+    condition: postgresql.enabled
+  - name: nats
+    version: 0.1.0
+    condition: nats.enabled

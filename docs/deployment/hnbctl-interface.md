@@ -253,23 +253,42 @@ hnbctl capacity ... --evidence hnb.yaml --material-verified
   （capabilities/components/HA 故障域/backings/storage/resources），由
   `deploy/charts/hnb/overlays` 单一事实源派生并受 parity 测试守护；偏序
   `Minimal ⊂ Lite ⊂ Standard ⊂ Pro`，目标必须是当前能力超集。
-- `hnbctl upgrade --to <profile> [-f hnb.yaml] [--allow-downgrade]`：默认只产出
-  `profile-upgrade-plan/v1`（能力增启、副本、存储扩容、backing 切换、owner 顺序迁移、
-  release、verify，每步标注可逆性），**无副作用**。目标形态/路径未认证或缺发布列车
-  路径时计划标记 `blocked`。`--execute` 在计划授权且门禁通过时渲染目标 overlay 并驱动
-  门禁化升级执行器（run kind=`upgrade`，阶段 `preflight → backup → infra-delta →
-  database-migration → platform-release → platform-verified`）；`backup` 前置、不可逆
-  迁移 `--allow-irreversible` 确认、失败关闭与 resume 不重跑一次性阶段。
+- `backings` 三值：`bundled`（Minimal 单实例，默认）、`in-cluster-ha`（HA 档默认，
+  控制节点内部署 CloudNativePG PostgreSQL + 3 节点 JetStream）、`external`（外部托管，
+  显式可选）。偏序 `bundled < in-cluster-ha ≈ external`（in-cluster 与 external 互不
+  为降级，回退到 `bundled` 被拒绝）。chart 侧结构门：`in-cluster-ha` 要求
+  `global.controlPlaneDomains ≥ 3`，否则渲染失败并给出 `HA_CONTROL_NODES_INSUFFICIENT`
+  / `IN_CLUSTER_HA_UNCONFIGURED` / `EXTERNAL_BACKING_MISCONFIGURED` / `HA_BUNDLED_NOT_HA`；
+  渲染成功 ≠ 认证，安装仍由能力证据门禁阻断。
+- `hnbctl upgrade --to <profile> [-f hnb.yaml] [--allow-downgrade] [--backing bundled|in-cluster-ha|external] [--control-node-count N] [--operator-ready true|false]`：
+  默认只产出 `profile-upgrade-plan/v1`（能力增启、副本、存储扩容、backing 切换、owner 顺序迁移、
+  release、verify，每步标注可逆性），**无副作用**。`--backing` 覆盖目标形态默认 backing；
+  `--control-node-count`/`--operator-ready` 提供观测前置（`0`/省略=未观测则跳过），
+  `in-cluster-ha` 且控制域 <3 记 `HA_CONTROL_NODES_INSUFFICIENT`，operator 未就绪记
+  `OPERATOR_NOT_INSTALLED`；backing 变化的路径须在发布锁声明 `backingChange: true`，否则
+  `BACKING_CHANGE_NOT_SUPPORTED`。目标形态/路径未认证或缺发布列车路径时计划标记 `blocked`。
+  `--execute` 在计划授权且门禁通过时渲染目标 overlay 并驱动门禁化升级执行器（run kind=`upgrade`，
+  阶段 `preflight → backup → infra-delta → data-plane-rebacking → database-migration →
+  platform-release → platform-verified`；`data-plane-rebacking` 仅在计划含 backings 步骤时执行）；
+  `backup` 前置、不可逆迁移 `--allow-irreversible` 确认、失败关闭与 resume 不重跑一次性阶段；
+  cutover 后的再背靠不可自动回滚（`ROLLBACK_REBACKING_UNSUPPORTED`）。
 - `hnbctl scale [--component NAME --replicas N] [--storage NAME=Gi]... [--cpu NAME=V] [--memory NAME=V]
-  [-f hnb.yaml] [--current NAME=N]... [--current-storage NAME=Gi]... [--current-cpu NAME=V]... [--current-memory NAME=V]...`：
+  [-f hnb.yaml] [--current NAME=N]... [--current-storage NAME=Gi]... [--current-cpu NAME=V]... [--current-memory NAME=V]...
+  [--control-node-count N] [--operator-ready true|false]`：
   默认产出 `scale-plan/v1`。观测基线（`--current*`）使扩容相对**实时**副本/PVC/requests 规划，
   而非形态默认值。护栏：HA 关键组件不低于 quorum、不超单域共置上限、迁移/升级进行中禁止扩容、
-  PVC 只增不减。`--execute` 在已有集群路线生效：组件 `kubectl scale deployment/...`、存储扩容
+  PVC 只增不减。in-cluster 数据面 `--component postgresql|nats` 映射到 CloudNativePG
+  `Cluster.spec.instances` / `StatefulSet.spec.replicas`，最小 3 副本（`<3` → `SCALE_BELOW_QUORUM`），
+  JetStream 需奇数（偶数 → `SCALE_EVEN_QUORUM`）；`bundled` 档对 pg/nats 返回
+  `SCALE_UNKNOWN_COMPONENT`。前置同上（`HA_CONTROL_NODES_INSUFFICIENT`/`OPERATOR_NOT_INSTALLED`）。
+  `--execute` 在已有集群路线生效：组件 `kubectl scale deployment/...`、存储扩容
   `pvc <name>-data`、垂直 `kubectl set resources deployment/...` 并等待 rollout（run kind=`scale`，
   阶段 `preflight → infra-delta → platform-verified`）。
-- 发布列车 `release-lock/v2` 增量字段：`profiles`（requiredCapabilities/最小 k8s）、
-  `supportedUpgrades`（from→to）、`migrationChain`（owner 顺序 + from/to schema +
+- 发布列车 `release-lock/v2` 增量字段：`profiles`（requiredCapabilities/最小 k8s/**backings 允许集合**）、
+  `supportedUpgrades`（from→to/**backingChange**）、`migrationChain`（owner 顺序 + from/to schema +
   checksum + reversible）；v1 锁仍可读，升级路径仅在声明后可用。
+- 再背靠（backing 迁移）建立平台 Operation 行记录 `from`/`to`（审计可追踪）；`profiles[].backings`
+  与 `supportedUpgrades[].backingChange` 未声明时对应的迁移或契约被拒绝。
 
 
 ## 扩展位置

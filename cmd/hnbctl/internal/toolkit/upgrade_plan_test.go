@@ -16,7 +16,7 @@ func certifiedProfiles(profiles ...Profile) *EvidenceMatrix {
 func trainLockForUpgrade() *ReleaseLock {
 	return &ReleaseLock{
 		SchemaVersion: LockSchemaVersion, ReleaseID: "fixture", ReleaseVersion: "0.1.0",
-		SupportedUpgrades: []LockUpgradePath{{From: "Minimal", To: "LiteHA"}, {From: "LiteHA", To: "StandardHA"}},
+		SupportedUpgrades: []LockUpgradePath{{From: "Minimal", To: "LiteHA", BackingChange: true}, {From: "LiteHA", To: "StandardHA"}},
 		MigrationChain: []MigrationStep{
 			{Owner: "platform", Name: "001", FromSchema: "0", ToSchema: "1", Checksum: strings.Repeat("a", 64), Reversible: true},
 			{Owner: "platform", Name: "002", FromSchema: "1", ToSchema: "2", Checksum: strings.Repeat("b", 64), Reversible: false},
@@ -102,7 +102,7 @@ func TestPlanUpgradeUnknownProfile(t *testing.T) {
 func TestPlanUpgradeReleaseTrainStepsAreOrdered(t *testing.T) {
 	plan, err := PlanUpgrade(UpgradeInput{
 		From: ProfileMinimal, To: ProfileStandardHA,
-		Lock:     &ReleaseLock{SupportedUpgrades: []LockUpgradePath{{From: "Minimal", To: "StandardHA"}}},
+		Lock:     &ReleaseLock{SupportedUpgrades: []LockUpgradePath{{From: "Minimal", To: "StandardHA", BackingChange: true}}},
 		Evidence: certifiedProfiles(ProfileStandardHA),
 	})
 	if err != nil {
@@ -116,5 +116,31 @@ func TestPlanUpgradeReleaseTrainStepsAreOrdered(t *testing.T) {
 	}
 	if first := plan.Steps[0].Kind; first != "components" && first != "capabilities" {
 		t.Fatalf("plan must start with a diff step, got %s", first)
+	}
+}
+
+func TestPlanUpgradeBlocksInClusterHAPreconditions(t *testing.T) {
+	plan, err := PlanUpgrade(UpgradeInput{From: ProfileMinimal, To: ProfileLiteHA, ControlPlaneDomains: 2})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(strings.Join(plan.Blocked, ";"), "HA_CONTROL_NODES_INSUFFICIENT") || plan.Authorized {
+		t.Fatalf("insufficient control domains must block: %v", plan.Blocked)
+	}
+	notReady := false
+	plan, err = PlanUpgrade(UpgradeInput{From: ProfileMinimal, To: ProfileLiteHA, ControlPlaneDomains: 3, OperatorReady: &notReady})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(strings.Join(plan.Blocked, ";"), "OPERATOR_NOT_INSTALLED") {
+		t.Fatalf("missing operator must block: %v", plan.Blocked)
+	}
+	ready := true
+	plan, err = PlanUpgrade(UpgradeInput{From: ProfileMinimal, To: ProfileLiteHA, ControlPlaneDomains: 3, OperatorReady: &ready})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(plan.Blocked) != 0 || !plan.Authorized {
+		t.Fatalf("satisfied in-cluster-ha preconditions must authorise: %v", plan.Blocked)
 	}
 }

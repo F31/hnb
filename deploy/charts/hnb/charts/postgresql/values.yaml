@@ -1,0 +1,34 @@
+# Credentials are existing Secrets provisioned before the workload starts.
+# Password generation/rotation never takes place inside disposable Pod volumes.
+image:
+  repository: postgres
+  tag: "16"
+  digest: ""
+  pullPolicy: ""
+storage:
+  size: 20Gi
+  existingClaim: ""
+  className: ""
+# CloudNativePG topology for the in-cluster-ha backing (global.backings).
+# The bundled single-instance branch ignores instances/placement.
+instances: 3
+placement:
+  controlPlane: true
+  nodeSelector: {}
+  tolerations: []
+# The bundled instance never ships an example or shared admin password; the
+# operator must provide an existing Secret.
+adminSecret: ""
+adminUser: hnb_admin
+securityContext:
+  # Match the postgres UID/GID in the locked Debian-based PostgreSQL image.
+  fsGroup: 999
+# Every plane requires database, role and existingSecret (key: password).
+planes: {}
+resources:
+  requests:
+    cpu: 150m
+    memory: 256Mi
+  limits:
+    cpu: "1"
+    memory: 1Gi

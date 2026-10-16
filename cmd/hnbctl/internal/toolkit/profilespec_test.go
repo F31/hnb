@@ -71,11 +71,33 @@ func TestProfileShapeDigestIsStableAndDistinct(t *testing.T) {
 	}
 }
 
-func TestSupersetAllowsExternalisingBundledStorage(t *testing.T) {
+func TestBackingRankIsMonotonicAndSymmetric(t *testing.T) {
+	if backingRank(BackingBundled) >= backingRank(BackingInClusterHA) {
+		t.Fatal("in-cluster-ha must outrank bundled")
+	}
+	if backingRank(BackingInClusterHA) != backingRank(BackingExternal) {
+		t.Fatal("in-cluster-ha and external must share the same HA rank")
+	}
 	shapes := ProfileShapeData()
-	// lite externalises the bundled PG/NATS claims: an upgrade, not a shrink.
+	// minimal(bundled) -> lite(in-cluster-ha) is an upgrade, not a shrink.
 	if problems := shapes[ProfileLiteHA].SupersetOf(shapes[ProfileMinimal]); len(problems) != 0 {
-		t.Fatalf("bundled->external must be monotonic: %v", problems)
+		t.Fatalf("bundled->in-cluster-ha must be monotonic: %v", problems)
+	}
+	// external and in-cluster-ha are both HA: neither is a downgrade.
+	external := shapes[ProfileLiteHA]
+	external.Backings = BackingExternal
+	external.Storage = map[string]StorageProfile{}
+	if problems := external.SupersetOf(shapes[ProfileLiteHA]); len(problems) != 0 {
+		t.Fatalf("in-cluster-ha->external must be monotonic: %v", problems)
+	}
+	if problems := shapes[ProfileLiteHA].SupersetOf(external); len(problems) != 0 {
+		t.Fatalf("external->in-cluster-ha must be monotonic: %v", problems)
+	}
+	// A downgrade to bundled is rejected.
+	bundled := shapes[ProfileLiteHA]
+	bundled.Backings = BackingBundled
+	if problems := bundled.SupersetOf(shapes[ProfileLiteHA]); len(problems) == 0 {
+		t.Fatal("in-cluster-ha->bundled must be rejected")
 	}
 }
 
@@ -190,6 +212,33 @@ func TestHAOverlayReplicasMatchShape(t *testing.T) {
 			if spec.Components[name] != replicas || replicas != want {
 				t.Fatalf("%s: shape %s replicas %d, overlay %d, want %d", c.overlay, name, spec.Components[name], replicas, want)
 			}
+		}
+	}
+}
+
+func TestOverlayBackingsMatchShape(t *testing.T) {
+	cases := []struct {
+		overlay string
+		profile Profile
+	}{
+		{"minimal.yaml", ProfileMinimal},
+		{"lite-ha.yaml", ProfileLiteHA},
+		{"standard-ha.yaml", ProfileStandardHA},
+		{"enterprise.yaml", ProfileEnterprise},
+	}
+	shapes := ProfileShapeData()
+	for _, c := range cases {
+		doc := readOverlay(t, c.overlay)
+		global, _ := doc["global"].(map[string]any)
+		if global == nil {
+			t.Fatalf("%s has no global block", c.overlay)
+		}
+		backing, _ := global["backings"].(string)
+		if backing == "" {
+			backing = BackingBundled
+		}
+		if want := shapes[c.profile].Backings; backing != want {
+			t.Fatalf("%s backing %q != shape %q", c.overlay, backing, want)
 		}
 	}
 }

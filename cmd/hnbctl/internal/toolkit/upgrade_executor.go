@@ -14,6 +14,10 @@ type UpgradeSteps struct {
 	Preflight func(ctx context.Context) error
 	Backup    func(ctx context.Context) error
 	Infra     func(ctx context.Context) error
+	// Rebacking provisions the target data-plane backing and verifies it in a
+	// dual-run window before cutover. It is only executed when the plan changes
+	// the backing kind; the original backing is kept until it succeeds.
+	Rebacking func(ctx context.Context) error
 	Migrate   func(ctx context.Context) error
 	Release   func(ctx context.Context) error
 	Verify    func(ctx context.Context) error
@@ -109,6 +113,11 @@ func RunUpgrade(ctx context.Context, in UpgradeExecutionInput) (UpgradeExecution
 	if err := step(PhaseInfraDelta, in.Steps.Infra); err != nil {
 		return fail(err)
 	}
+	if planHasBackingStep(in.Plan) {
+		if err := step(PhaseDataPlaneRebacking, in.Steps.Rebacking); err != nil {
+			return fail(err)
+		}
+	}
 	if err := step(PhaseDatabaseMigrate, in.Steps.Migrate); err != nil {
 		return fail(err)
 	}
@@ -140,6 +149,16 @@ func planBlockedReasons(plan UpgradePlan) []string {
 	return []string{"UPGRADE_PLAN_NOT_AUTHORIZED"}
 }
 
+// planHasBackingStep reports whether a plan changes the data-plane backing kind.
+func planHasBackingStep(plan UpgradePlan) bool {
+	for _, step := range plan.Steps {
+		if step.Kind == "backings" {
+			return true
+		}
+	}
+	return false
+}
+
 // runUpgradePhase records one phase, skipping an already-succeeded phase on
 // resume and refusing to re-run a one-shot phase that already started.
 func runUpgradePhase(ctx context.Context, store RunStore, writer string, epoch int64, name PhaseName, budget time.Duration, fn func(context.Context) error) (bool, error) {
@@ -168,6 +187,8 @@ func PlanRollback(plan UpgradePlan) (UpgradePlan, []string) {
 			blocks = append(blocks, fmt.Sprintf("ROLLBACK_IRREVERSIBLE: migration %s cannot be rolled back", step.Target))
 		case step.Kind == "storage":
 			blocks = append(blocks, fmt.Sprintf("ROLLBACK_STORAGE_IRREVERSIBLE: managed claim %s cannot shrink", step.Target))
+		case step.Kind == "backings":
+			blocks = append(blocks, fmt.Sprintf("ROLLBACK_REBACKING_UNSUPPORTED: data-plane backing %s -> %s was cut over and is not automatically reversible", step.From, step.To))
 		}
 	}
 	rollback := plan

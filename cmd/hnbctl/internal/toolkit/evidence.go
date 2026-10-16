@@ -20,23 +20,35 @@ type EvidenceMatrix struct {
 }
 
 // EvidencePath certifies one from->to profile transition. An empty
-// ProfilePaths set means no upgrade path is certified.
+// ProfilePaths set means no upgrade path is certified. Backings, when set,
+// restricts the transition to those data-plane backing kinds.
 type EvidencePath struct {
-	From    string   `yaml:"from" json:"from"`
-	To      string   `yaml:"to" json:"to"`
-	Status  string   `yaml:"status" json:"status"` // certified | blocked
-	Reasons []string `yaml:"reasons,omitempty" json:"reasons,omitempty"`
-	Report  string   `yaml:"report,omitempty" json:"report,omitempty"`
+	From     string   `yaml:"from" json:"from"`
+	To       string   `yaml:"to" json:"to"`
+	Status   string   `yaml:"status" json:"status"` // certified | blocked
+	Backings []string `yaml:"backings,omitempty" json:"backings,omitempty"`
+	Reasons  []string `yaml:"reasons,omitempty" json:"reasons,omitempty"`
+	Report   string   `yaml:"report,omitempty" json:"report,omitempty"`
 }
 
 // UpgradePathCertified reports whether a from->to profile transition is certified.
 func (m *EvidenceMatrix) UpgradePathCertified(from, to Profile) bool {
+	return m.UpgradePathCertifiedFor(from, to, "")
+}
+
+// UpgradePathCertifiedFor reports whether a from->to transition is certified for
+// a backing kind. An empty backing, or a path without a declared backing set,
+// matches any backing.
+func (m *EvidenceMatrix) UpgradePathCertifiedFor(from, to Profile, backing string) bool {
 	if m == nil {
 		return false
 	}
 	for _, p := range m.ProfilePaths {
 		if p.From == string(from) && p.To == string(to) {
-			return p.Status == "certified"
+			if p.Status != "certified" {
+				return false
+			}
+			return backing == "" || len(p.Backings) == 0 || containsStr(p.Backings, backing)
 		}
 	}
 	return false
@@ -75,9 +87,12 @@ type EvidenceVersion struct {
 }
 
 type EvidenceProfile struct {
-	Name    string   `yaml:"name" json:"name"`
-	Status  string   `yaml:"status" json:"status"`
-	Reasons []string `yaml:"reasons" json:"reasons"`
+	Name   string `yaml:"name" json:"name"`
+	Status string `yaml:"status" json:"status"`
+	// Backings restricts the certification to those data-plane backing kinds.
+	// Empty means the entry certifies the profile regardless of backing.
+	Backings []string `yaml:"backings,omitempty" json:"backings,omitempty"`
+	Reasons  []string `yaml:"reasons" json:"reasons"`
 }
 
 func (m *EvidenceMatrix) VersionCertified(v string) bool {
@@ -102,6 +117,23 @@ func (m *EvidenceMatrix) ProfileCertified(p Profile) bool {
 	for _, pr := range m.Profiles {
 		if pr.Name == string(p) {
 			return pr.Status == "certified"
+		}
+	}
+	return false
+}
+
+// ProfileCertifiedFor reports whether a profile is certified for a backing kind.
+// An empty backing, or an entry without a declared backing set, matches any.
+func (m *EvidenceMatrix) ProfileCertifiedFor(p Profile, backing string) bool {
+	if m == nil {
+		return false
+	}
+	for _, pr := range m.Profiles {
+		if pr.Name == string(p) {
+			if pr.Status != "certified" {
+				return false
+			}
+			return backing == "" || len(pr.Backings) == 0 || containsStr(pr.Backings, backing)
 		}
 	}
 	return false
@@ -186,10 +218,15 @@ var CurrentEvidence = &EvidenceMatrix{
 		{Plugin: "cilium", Version: "1.20.1", Status: "certified", Report: "docs/acceptance/reports/20261011-provider-ssh-ubuntu2404.md (cilium)"},
 	},
 	Profiles: []EvidenceProfile{
-		{Name: "Minimal", Status: "certified", Reasons: []string{"existing-route full platform delivery E2E passed; see docs/acceptance/reports/20261016-existing-minimal-e2e.md. Bootstrap route remains blocked by its own route gate."}},
-		{Name: "LiteHA", Status: "blocked", Reasons: []string{"no failure-domain or PG/JetStream HA drills"}},
-		{Name: "StandardHA", Status: "blocked", Reasons: []string{"no certified HA topology evidence"}},
-		{Name: "Enterprise", Status: "blocked", Reasons: []string{"no capacity or recovery evidence"}},
+		{Name: "Minimal", Status: "certified", Backings: []string{"bundled"}, Reasons: []string{"existing-route bundled full platform delivery E2E passed; see docs/acceptance/reports/20261016-existing-minimal-e2e.md. Bootstrap route remains blocked by its own route gate."}},
+		{Name: "LiteHA", Status: "blocked", Backings: []string{"in-cluster-ha", "external"}, Reasons: []string{"no HA failure-domain, PostgreSQL failover or JetStream node drills; no RPO/RTO", "in-cluster-ha needs >=3 control-plane domains plus a data-plane operator drill"}},
+		{Name: "StandardHA", Status: "blocked", Backings: []string{"in-cluster-ha", "external"}, Reasons: []string{"no certified HA topology evidence"}},
+		{Name: "Enterprise", Status: "blocked", Backings: []string{"in-cluster-ha", "external"}, Reasons: []string{"no capacity or recovery evidence"}},
+	},
+	ProfilePaths: []EvidencePath{
+		{From: "Minimal", To: "LiteHA", Status: "blocked", Backings: []string{"in-cluster-ha", "external"}, Reasons: []string{"no HA failure-domain, PostgreSQL failover or JetStream node drills; no RPO/RTO"}},
+		{From: "LiteHA", To: "StandardHA", Status: "blocked", Reasons: []string{"no HA topology or capacity evidence"}},
+		{From: "StandardHA", To: "Enterprise", Status: "blocked", Reasons: []string{"no capacity or recovery evidence"}},
 	},
 	Routes: []EvidenceProfile{
 		{Name: "existing", Status: "certified", Reasons: []string{"full platform Minimal delivery E2E passed on Ubuntu 26.04 / K3s 1.36.5"}},

@@ -49,6 +49,16 @@ func RenderLockedChart(ctx context.Context, cfg *DeploymentConfig, lock *Release
 	if err := yaml.Unmarshal(bindings, &values); err != nil {
 		return nil, fmt.Errorf("invalid binding values")
 	}
+	if global, ok := values["global"].(map[string]any); ok {
+		if backing, _ := global["backings"].(string); backing != "" {
+			if !knownBacking(backing) {
+				return nil, fmt.Errorf("unknown global.backings %q", backing)
+			}
+			if backing == BackingInClusterHA {
+				return nil, fmt.Errorf("in-cluster-ha backing requires a certified HA profile")
+			}
+		}
+	}
 	// Reject inline connection credentials even if a later override would hide
 	// them: they must never be copied to Helm values or retained output.
 	for _, entry := range values {
@@ -280,4 +290,46 @@ func WriteRenderedManifest(path string, data []byte) error {
 		return fmt.Errorf("render output incomplete")
 	}
 	return nil
+}
+
+// ApplyBackingValue injects the selected data-plane backing into a bindings
+// values document before rendering. External disables the bundled subcharts;
+// bundled re-enables them; in-cluster-ha leaves both enabled (the render-time
+// profile gate still refuses an HA backing for a non-HA profile).
+func ApplyBackingValue(bindings []byte, backing string) ([]byte, error) {
+	if !knownBacking(backing) {
+		return nil, fmt.Errorf("unknown backing %q", backing)
+	}
+	values := map[string]any{}
+	if len(bindings) > 0 {
+		if err := yaml.Unmarshal(bindings, &values); err != nil {
+			return nil, fmt.Errorf("invalid binding values")
+		}
+	}
+	global, _ := values["global"].(map[string]any)
+	if global == nil {
+		global = map[string]any{}
+	}
+	global["backings"] = backing
+	values["global"] = global
+	setEnabled := func(key string, enabled bool) {
+		m, _ := values[key].(map[string]any)
+		if m == nil {
+			m = map[string]any{}
+		}
+		m["enabled"] = enabled
+		values[key] = m
+	}
+	if backing == BackingExternal {
+		setEnabled("postgresql", false)
+		setEnabled("nats", false)
+	} else {
+		setEnabled("postgresql", true)
+		setEnabled("nats", true)
+	}
+	out, err := yaml.Marshal(values)
+	if err != nil {
+		return nil, fmt.Errorf("cannot encode binding values")
+	}
+	return out, nil
 }

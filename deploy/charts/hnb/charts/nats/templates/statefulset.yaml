@@ -1,0 +1,319 @@
+{{- if ne (len .Values.planes) 3 -}}{{ fail "nats requires platform, market and artifact plane bindings" }}{{- end -}}
+{{- $secrets := dict -}}
+{{- range $name := list "platform" "market" "artifact" -}}
+{{- $plane := required (printf "nats.planes.%s is required" $name) (index $.Values.planes $name) -}}
+{{- $secret := required "each NATS plane requires an existingSecret" $plane.existingSecret -}}
+{{- if hasKey $secrets $secret -}}{{ fail "NATS planes must have independent Secret bindings" }}{{- end -}}
+{{- $_ := set $secrets $secret true -}}
+{{- end }}
+{{- $ha := eq ($.Values.global.backings | default "bundled") "in-cluster-ha" -}}
+{{- if $ha }}
+{{/*
+In-cluster HA branch: a 3-node JetStream cluster on the control nodes. Each node
+keeps its own PVC (volumeClaimTemplates) and the nodes form a JetStream cluster
+over headless routes so metadata and replicated streams stay consistent. Streams
+must be created with replica factor 3 (a stream-level setting, not a server one).
+Per-plane accounts are unchanged; credentials stay in existing Secrets.
+*/}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nats-config
+data:
+  nats.conf: |
+    port: 4222
+    http: 8222
+    server_name: $POD_NAME
+    jetstream {
+      store_dir: {{ .Values.jetstream.storeDir | quote }}
+      domain: {{ .Values.jetstream.domain | quote }}
+    }
+    cluster {
+      name: {{ .Values.cluster.name | quote }}
+      port: {{ .Values.cluster.port }}
+      routes: [ tls://nats-headless:{{ .Values.cluster.port }} ]
+    }
+    tls {
+      cert_file: /var/run/nats-tls/tls.crt
+      key_file: /var/run/nats-tls/tls.key
+      ca_file: /var/run/nats-tls/ca.crt
+      verify: true
+    }
+    accounts {
+      {{- range $name := list "platform" "market" "artifact" }}
+      {{ $name }} {
+        jetstream: enabled
+        users: [{ user: {{ $name | quote }}, password: $HNB_{{ upper $name }}_PASSWORD }]
+      }
+      {{- end }}
+    }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nats-headless
+spec:
+  clusterIP: None
+  publishNotReadyAddresses: true
+  selector:
+    app.kubernetes.io/name: nats
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  ports:
+    - name: client
+      port: 4222
+      targetPort: client
+    - name: cluster
+      port: {{ .Values.cluster.port }}
+      targetPort: cluster
+    - name: monitor
+      port: 8222
+      targetPort: monitor
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nats
+spec:
+  selector:
+    app.kubernetes.io/name: nats
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  ports:
+    - name: client
+      port: 4222
+      targetPort: client
+    - name: monitor
+      port: 8222
+      targetPort: monitor
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: nats
+spec:
+  serviceName: nats-headless
+  replicas: {{ .Values.replicas | default 3 }}
+  podManagementPolicy: Parallel
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: nats
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: nats
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      securityContext:
+        {{- toYaml .Values.securityContext | nindent 8 }}
+      {{- if .Values.placement.controlPlane }}
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app.kubernetes.io/name: nats
+                  app.kubernetes.io/instance: {{ .Release.Name }}
+              topologyKey: kubernetes.io/hostname
+        {{- with .Values.placement.nodeSelector }}
+        nodeSelector:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node-role.kubernetes.io/control-plane
+                    operator: Exists
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+        {{- with .Values.placement.tolerations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- end }}
+      containers:
+        - name: nats
+          image: {{ include "hnb.image" . }}
+          imagePullPolicy: {{ include "hnb.imagePullPolicy" . }}
+          args: [--config, /etc/nats/nats.conf]
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            {{- range $name := list "platform" "market" "artifact" }}
+            - name: HNB_{{ upper $name }}_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ (index $.Values.planes $name).existingSecret }}
+                  key: password
+            {{- end }}
+          ports:
+            - containerPort: 4222
+              name: client
+            - containerPort: {{ .Values.cluster.port }}
+              name: cluster
+            - containerPort: 8222
+              name: monitor
+          readinessProbe:
+            httpGet: {path: /healthz, port: monitor}
+            initialDelaySeconds: 5
+          livenessProbe:
+            httpGet: {path: /healthz, port: monitor}
+            initialDelaySeconds: 15
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /etc/nats
+              readOnly: true
+            - name: data
+              mountPath: {{ .Values.jetstream.storeDir }}
+            - name: tls
+              mountPath: /var/run/nats-tls
+              readOnly: true
+      volumes:
+        - name: config
+          configMap: {name: nats-config, defaultMode: 0444}
+        - name: tls
+          secret:
+            secretName: {{ required "nats.tls.existingSecret is required" .Values.tls.existingSecret }}
+            defaultMode: 0440
+{{- if not .Values.storage.existingClaim }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources:
+          requests:
+            storage: {{ .Values.storage.size }}
+        {{- if .Values.storage.className }}
+        storageClassName: {{ .Values.storage.className | quote }}
+        {{- end }}
+{{- end }}
+{{- else }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nats-config
+data:
+  # Each account below is the plane name and authenticates with that plane's own
+  # Secret, so a client certificate alone cannot connect and plane isolation
+  # holds. Credentials stay in Secrets and are never rendered here.
+  nats.conf: |
+    port: 4222
+    http: 8222
+    jetstream { store_dir: {{ .Values.jetstream.storeDir | quote }} }
+    tls {
+      cert_file: /var/run/nats-tls/tls.crt
+      key_file: /var/run/nats-tls/tls.key
+      ca_file: /var/run/nats-tls/ca.crt
+      verify: true
+    }
+    accounts {
+      {{- range $name := list "platform" "market" "artifact" }}
+      {{ $name }} {
+        jetstream: enabled
+        users: [{ user: {{ $name | quote }}, password: $HNB_{{ upper $name }}_PASSWORD }]
+      }
+      {{- end }}
+    }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nats
+spec:
+  selector:
+    app.kubernetes.io/name: nats
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  ports:
+    - name: client
+      port: 4222
+      targetPort: client
+    - name: monitor
+      port: 8222
+      targetPort: monitor
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: nats
+spec:
+  serviceName: nats
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: nats
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: nats
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      securityContext:
+        {{- toYaml .Values.securityContext | nindent 8 }}
+      containers:
+        - name: nats
+          image: {{ include "hnb.image" . }}
+          imagePullPolicy: {{ include "hnb.imagePullPolicy" . }}
+          args: [--config, /etc/nats/nats.conf]
+          ports:
+            - containerPort: 4222
+              name: client
+            - containerPort: 8222
+              name: monitor
+          env:
+            {{- range $name := list "platform" "market" "artifact" }}
+            - name: HNB_{{ upper $name }}_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ (index $.Values.planes $name).existingSecret }}
+                  key: password
+            {{- end }}
+          readinessProbe:
+            httpGet: {path: /healthz, port: monitor}
+            initialDelaySeconds: 5
+          livenessProbe:
+            httpGet: {path: /healthz, port: monitor}
+            initialDelaySeconds: 15
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /etc/nats
+              readOnly: true
+            - name: data
+              mountPath: {{ .Values.jetstream.storeDir }}
+            - name: tls
+              mountPath: /var/run/nats-tls
+              readOnly: true
+      volumes:
+        - name: config
+          configMap: {name: nats-config, defaultMode: 0444}
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ .Values.storage.existingClaim | default "nats-data" }}
+        - name: tls
+          secret:
+            secretName: {{ required "nats.tls.existingSecret is required" .Values.tls.existingSecret }}
+            defaultMode: 0440
+{{- if not .Values.storage.existingClaim }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nats-data
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: {{ .Values.storage.size }}
+  {{- if .Values.storage.className }}
+  storageClassName: {{ .Values.storage.className | quote }}
+  {{- end }}
+{{- end }}
+{{- end }}

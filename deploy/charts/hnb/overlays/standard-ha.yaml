@@ -1,0 +1,13 @@
+# Candidate only: merge after minimal.yaml, lite-ha.yaml.
+global: {deploymentProfile: StandardHA, backings: in-cluster-ha, controlPlaneDomains: 3}
+apiserver: &core
+  replicaCount: 3
+  resources: {requests: {cpu: "1", memory: 1Gi}, limits: {cpu: "2", memory: 2Gi}}
+operation-worker: *core
+platform-api: *core
+tunnel-server: *core
+cluster-router: *core
+plugin-worker:
+  replicaCount: 3
+  resources: {requests: {cpu: 500m, memory: 512Mi}, limits: {cpu: "1", memory: 1Gi}}
+# Pack selection is independent of deployment size; optional Packs stay disabled.

@@ -39,11 +39,13 @@ func (l ProfileLevel) String() string {
 	}
 }
 
-// Backing ranks the data-plane backing kind. External backings are an HA
-// upgrade of bundled single-instance backings, never a downgrade.
+// Backing ranks the data-plane backing kind. bundled is the single-instance
+// Minimal default; in-cluster-ha and external both provide HA and are an
+// upgrade of bundled, never a downgrade, and neither is a downgrade of the other.
 const (
-	BackingBundled  = "bundled"
-	BackingExternal = "external"
+	BackingBundled     = "bundled"
+	BackingInClusterHA = "in-cluster-ha"
+	BackingExternal    = "external"
 )
 
 // Profile capability flags (feature-level, not the HA/resource dimensions which
@@ -101,9 +103,11 @@ type ProfileSpec struct {
 	ResourceTier string                     `json:"resourceTier"`
 }
 
-// backingRank orders backing kinds for superset comparison.
+// backingRank orders backing kinds for superset comparison. bundled is the
+// single-instance baseline (rank 0); in-cluster-ha and external are both HA
+// (rank 1) and equally valid supersets, so neither is a downgrade of the other.
 func backingRank(kind string) int {
-	if kind == BackingExternal {
+	if kind == BackingExternal || kind == BackingInClusterHA {
 		return 1
 	}
 	return 0
@@ -174,7 +178,7 @@ func minimalShape() ProfileSpec {
 func ProfileShapeData() map[Profile]ProfileSpec {
 	minimal := minimalShape()
 
-	// LiteHA: merge minimal.yaml + lite-ha.yaml (external backings, 3 domains).
+	// LiteHA: merge minimal.yaml + lite-ha.yaml (in-cluster HA backings, 3 domains).
 	lite := minimal
 	lite.Name, lite.Level = ProfileLiteHA, LevelLite
 	lite.Components = cloneInts(minimal.Components)
@@ -182,8 +186,10 @@ func ProfileShapeData() map[Profile]ProfileSpec {
 		lite.Components[c] = 3
 	}
 	lite.HA = HAProfile{IndependentDomains: 3, Quorum: 2}
-	lite.Backings = BackingExternal
-	lite.Storage = map[string]StorageProfile{}
+	lite.Backings = BackingInClusterHA
+	// in-cluster HA keeps the bundled PG/NATS footprint (replicated); the size
+	// per instance is inherited from the Minimal overlay.
+	lite.Storage = map[string]StorageProfile{"postgresql": {SizeGi: 2}, "nats": {SizeGi: 1}}
 
 	// StandardHA: merge + standard-ha.yaml (larger cores, plugin-worker replicated).
 	standard := lite

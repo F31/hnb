@@ -20,6 +20,11 @@ type ScaleInput struct {
 	ObservedStorage   map[string]int             // component -> live PVC Gi
 	ObservedResources map[string]ResourceProfile // component -> live requests
 	InFlightUpgrade   bool
+	// ControlPlaneDomains is the observed schedulable control-plane domain count
+	// (0 = not observed). OperatorReady is the observed data-plane operator
+	// readiness (nil = not observed); both gate in-cluster-ha scaling.
+	ControlPlaneDomains int
+	OperatorReady       *bool
 }
 
 // ScalePlan is the side-effect-free result of planning a scale operation.
@@ -33,6 +38,18 @@ type ScalePlan struct {
 // haCriticalComponents are the components that must keep quorum in an HA shape.
 var haCriticalComponents = map[string]bool{"apiserver": true, "operation-worker": true, "platform-api": true}
 
+// dataPlaneComponents maps a replicated in-cluster backing component to the
+// field it scales: PostgreSQL scales the CloudNativePG Cluster instance count,
+// JetStream the StatefulSet replica count. Only valid with in-cluster-ha.
+var dataPlaneComponents = map[string]string{
+	"postgresql": "CloudNativePG Cluster.spec.instances",
+	"nats":       "StatefulSet.spec.replicas",
+}
+
+// inClusterDataPlaneReplicas is the minimum (and default) quorum size of the
+// in-cluster data plane.
+const inClusterDataPlaneReplicas = 3
+
 // maxReplicasPerDomain caps how many replicas of one component may run per
 // independent failure domain (co-location guardrail).
 const maxReplicasPerDomain = 5
@@ -44,6 +61,7 @@ func PlanScale(in ScaleInput) (ScalePlan, error) {
 	if in.InFlightUpgrade {
 		plan.Blocked = append(plan.Blocked, "SCALE_UPGRADE_IN_FLIGHT: a migration or upgrade run is not terminal")
 	}
+	plan.Blocked = append(plan.Blocked, dataPlanePreconditions(in.Shape.Backings, in.ControlPlaneDomains, in.OperatorReady)...)
 
 	names := make([]string, 0, len(in.Replicas))
 	for name := range in.Replicas {
@@ -59,6 +77,26 @@ func PlanScale(in ScaleInput) (ScalePlan, error) {
 		current, known := in.Shape.Components[name]
 		if observed, ok := in.Observed[name]; ok {
 			current, known = observed, true
+		}
+		if field, isDataPlane := dataPlaneComponents[name]; isDataPlane && in.Shape.Backings == BackingInClusterHA {
+			if !known {
+				current, known = inClusterDataPlaneReplicas, true
+			}
+			if current == want {
+				continue
+			}
+			if want < inClusterDataPlaneReplicas {
+				plan.Blocked = append(plan.Blocked, fmt.Sprintf("SCALE_BELOW_QUORUM: data plane %s replicas %d < %d", name, want, inClusterDataPlaneReplicas))
+				continue
+			}
+			if name == "nats" && want%2 == 0 {
+				plan.Blocked = append(plan.Blocked, fmt.Sprintf("SCALE_EVEN_QUORUM: JetStream requires an odd replica count, got %d", want))
+				continue
+			}
+			plan.Steps = append(plan.Steps, UpgradeStep{Kind: "components", Target: name, Detail: "scale data-plane replicas",
+				From: fmt.Sprintf("%d", current), To: fmt.Sprintf("%d", want), Reversible: false,
+				Requires: []string{field, "quorum maintained"}})
+			continue
 		}
 		if !known && want > 0 {
 			plan.Blocked = append(plan.Blocked, fmt.Sprintf("SCALE_UNKNOWN_COMPONENT: %s is not part of profile %s", name, in.Shape.Name))

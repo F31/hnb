@@ -1,0 +1,10 @@
+# Candidate only: merge after minimal.yaml. HA certification remains blocked at
+# install by the capability evidence gate; rendering now defaults to in-cluster
+# backings on the control nodes (CloudNativePG PostgreSQL + 3-node JetStream).
+global: {deploymentProfile: LiteHA, backings: in-cluster-ha, controlPlaneDomains: 3}
+apiserver: {replicaCount: 3}
+operation-worker: {replicaCount: 3}
+platform-api: {replicaCount: 3}
+tunnel-server: {replicaCount: 3}
+cluster-router: {replicaCount: 3}
+portal: {replicaCount: 3}

@@ -147,3 +147,64 @@ func TestPlanScaleUsesObservedResourceBaseline(t *testing.T) {
 		t.Fatalf("observed resource baseline not used: %+v", plan)
 	}
 }
+
+func TestPlanScaleBlocksInClusterHAPreconditions(t *testing.T) {
+	lite := ProfileShapeData()[ProfileLiteHA]
+	plan, err := PlanScale(ScaleInput{Shape: lite, Replicas: map[string]int{"apiserver": 5}, ControlPlaneDomains: 2})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(strings.Join(plan.Blocked, ";"), "HA_CONTROL_NODES_INSUFFICIENT") {
+		t.Fatalf("insufficient control domains must block scale: %v", plan.Blocked)
+	}
+	notReady := false
+	plan, err = PlanScale(ScaleInput{Shape: lite, Replicas: map[string]int{"apiserver": 5}, ControlPlaneDomains: 3, OperatorReady: &notReady})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(strings.Join(plan.Blocked, ";"), "OPERATOR_NOT_INSTALLED") {
+		t.Fatalf("missing operator must block scale: %v", plan.Blocked)
+	}
+}
+
+func TestPlanScaleDataPlaneReplicas(t *testing.T) {
+	lite := ProfileShapeData()[ProfileLiteHA]
+	plan, err := PlanScale(ScaleInput{Shape: lite, Replicas: map[string]int{"nats": 5}, Observed: map[string]int{"nats": 3}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !plan.Authorized || len(plan.Steps) != 1 || plan.Steps[0].Target != "nats" ||
+		!strings.Contains(strings.Join(plan.Steps[0].Requires, ";"), "StatefulSet.spec.replicas") {
+		t.Fatalf("nats data-plane scale not planned/mapped: %+v", plan)
+	}
+	plan, err = PlanScale(ScaleInput{Shape: lite, Replicas: map[string]int{"postgresql": 5}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !plan.Authorized || plan.Steps[0].From != "3" || plan.Steps[0].To != "5" ||
+		!strings.Contains(strings.Join(plan.Steps[0].Requires, ";"), "Cluster.spec.instances") {
+		t.Fatalf("postgresql data-plane scale not planned/mapped: %+v", plan)
+	}
+	plan, err = PlanScale(ScaleInput{Shape: lite, Replicas: map[string]int{"nats": 4}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if plan.Authorized || !strings.Contains(strings.Join(plan.Blocked, ";"), "SCALE_EVEN_QUORUM") {
+		t.Fatalf("even JetStream replica accepted: %v", plan.Blocked)
+	}
+	plan, err = PlanScale(ScaleInput{Shape: lite, Replicas: map[string]int{"postgresql": 1}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if plan.Authorized || !strings.Contains(strings.Join(plan.Blocked, ";"), "SCALE_BELOW_QUORUM") {
+		t.Fatalf("below-quorum data plane accepted: %v", plan.Blocked)
+	}
+	minimal := ProfileShapeData()[ProfileMinimal]
+	plan, err = PlanScale(ScaleInput{Shape: minimal, Replicas: map[string]int{"nats": 3}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if plan.Authorized || !strings.Contains(strings.Join(plan.Blocked, ";"), "SCALE_UNKNOWN_COMPONENT") {
+		t.Fatalf("bundled data-plane scale accepted: %v", plan.Blocked)
+	}
+}

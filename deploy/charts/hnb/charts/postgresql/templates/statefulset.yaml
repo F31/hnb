@@ -1,0 +1,220 @@
+{{- $planes := .Values.planes -}}
+{{- if ne (len $planes) 3 -}}{{ fail "postgresql requires platform, market and artifact plane bindings" }}{{- end -}}
+{{- $ha := eq ($.Values.global.backings | default "bundled") "in-cluster-ha" -}}
+{{- $roles := dict -}}{{- $databases := dict -}}{{- $secrets := dict -}}
+{{- range $name := list "platform" "market" "artifact" -}}
+{{- $plane := required (printf "postgresql.planes.%s is required" $name) (index $planes $name) -}}
+{{- if or (not (regexMatch "^[a-z_][a-z0-9_]{0,62}$" ($plane.database | default ""))) (not (regexMatch "^[a-z_][a-z0-9_]{0,62}$" ($plane.role | default ""))) -}}{{ fail "invalid PostgreSQL plane database/role identifier" }}{{- end -}}
+{{- $secret := required "each PG plane requires an existingSecret" $plane.existingSecret -}}
+{{- if or (hasKey $roles $plane.role) (hasKey $databases $plane.database) (hasKey $secrets $secret) (eq $plane.role $.Values.adminUser) (eq $secret $.Values.adminSecret) -}}{{ fail "PostgreSQL planes must have independent database/role/Secret bindings" }}{{- end -}}
+{{- $_ := set $roles $plane.role true -}}{{- $_ := set $databases $plane.database true -}}{{- $_ := set $secrets $secret true -}}
+{{- end }}
+{{- if $ha }}
+{{/*
+In-cluster HA branch: a CloudNativePG Cluster. Three instances with per-instance
+PVCs and host anti-affinity give a real primary/replica topology with automatic
+failover. Credentials stay in existing Secrets: the admin (superuser) Secret and
+one Secret per owned plane; the operator reconciles the login roles and their
+passwords, and initdb creates the owned plane databases. Control-node placement
+(affinity + taint toleration) is applied so the data plane lives inside the
+control nodes as requested.
+*/}}
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: postgresql
+  labels:
+    app.kubernetes.io/name: postgresql
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  instances: {{ .Values.instances | default 3 }}
+  imageName: {{ include "hnb.image" . }}
+  superuserSecret:
+    name: {{ required "postgresql.adminSecret is required" .Values.adminSecret }}
+  storage:
+    size: {{ .Values.storage.size }}
+    {{- if .Values.storage.className }}
+    storageClass: {{ .Values.storage.className | quote }}
+    {{- end }}
+  bootstrap:
+    initdb:
+      database: postgres
+      owner: {{ required "postgresql.adminUser is required" .Values.adminUser | quote }}
+      secret:
+        name: {{ required "postgresql.adminSecret is required" .Values.adminSecret }}
+      # Databases owned by the plane roles. Role passwords are supplied by the
+      # per-plane Secrets through managed.roles below (never rendered here).
+      postInitApplicationSQL:
+        {{- range $name := list "platform" "market" "artifact" }}
+        {{- $plane := index $planes $name }}
+        - "CREATE DATABASE {{ $plane.database }} OWNER {{ $plane.role }}"
+        {{- end }}
+  managed:
+    roles:
+      {{- range $name := list "platform" "market" "artifact" }}
+      {{- $plane := index $planes $name }}
+      - name: {{ $plane.role }}
+        ensure: present
+        login: true
+        passwordSecret:
+          name: {{ $plane.existingSecret }}
+      {{- end }}
+  {{- if .Values.placement.controlPlane }}
+  affinity:
+    enablePodAntiAffinity: true
+    topologyKey: kubernetes.io/hostname
+    {{- with .Values.placement.nodeSelector }}
+    nodeSelector:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    tolerations:
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+      {{- with .Values.placement.tolerations }}
+      {{- toYaml . | nindent 6 }}
+      {{- end }}
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: node-role.kubernetes.io/control-plane
+                operator: Exists
+  {{- end }}
+{{- else }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgresql-init
+data:
+  10-hnb-planes.sh: |
+    #!/bin/sh
+    set -eu
+    # The official entrypoint invokes this after its temporary PG server starts,
+    # only on a fresh PGDATA volume. Credentials are stable existing Secrets.
+    {{- range $name := list "platform" "market" "artifact" }}
+    {{- $plane := index $planes $name }}
+    psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname postgres \
+      --set=role='{{ $plane.role }}' --set=database='{{ $plane.database }}' \
+      --set=password="$(cat '/var/run/hnb-pg/{{ $name }}/password')" <<'SQL'
+    SELECT format('CREATE ROLE %I LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT PASSWORD %L', :'role', :'password') \gexec
+    SELECT format('CREATE DATABASE %I OWNER %I', :'database', :'role') \gexec
+    SELECT format('REVOKE ALL ON DATABASE %I FROM PUBLIC', :'database') \gexec
+    SELECT format('GRANT CONNECT, TEMPORARY ON DATABASE %I TO %I', :'database', :'role') \gexec
+    SQL
+    {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgresql
+spec:
+  selector:
+    app.kubernetes.io/name: postgresql
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: postgres
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgresql
+spec:
+  serviceName: postgresql
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: postgresql
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: postgresql
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      securityContext:
+        {{- toYaml .Values.securityContext | nindent 8 }}
+      containers:
+        - name: postgres
+          image: {{ include "hnb.image" . }}
+          imagePullPolicy: {{ include "hnb.imagePullPolicy" . }}
+          ports:
+            - containerPort: 5432
+              name: postgres
+          env:
+            - name: POSTGRES_DB
+              value: postgres
+            - name: POSTGRES_USER
+              value: {{ required "postgresql.adminUser is required" .Values.adminUser | quote }}
+            - name: POSTGRES_PASSWORD_FILE
+              value: /var/run/hnb-pg-admin/password
+            - name: POSTGRES_INITDB_ARGS
+              value: --auth-host=scram-sha-256
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", {{ .Values.adminUser | quote }}, "-d", "postgres"]
+            initialDelaySeconds: 5
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", {{ .Values.adminUser | quote }}, "-d", "postgres"]
+            initialDelaySeconds: 30
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+            - name: init-script
+              mountPath: /docker-entrypoint-initdb.d
+              readOnly: true
+            - name: admin-credential
+              mountPath: /var/run/hnb-pg-admin
+              readOnly: true
+            {{- range $name := list "platform" "market" "artifact" }}
+            - name: {{ $name }}-credential
+              mountPath: /var/run/hnb-pg/{{ $name }}
+              readOnly: true
+            {{- end }}
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ .Values.storage.existingClaim | default "postgresql-data" }}
+        - name: init-script
+          configMap:
+            name: postgresql-init
+            defaultMode: 0555
+        - name: admin-credential
+          secret:
+            secretName: {{ required "postgresql.adminSecret is required" .Values.adminSecret }}
+            defaultMode: 0440
+            items:
+              - key: password
+                path: password
+        {{- range $name := list "platform" "market" "artifact" }}
+        - name: {{ $name }}-credential
+          secret:
+            secretName: {{ (index $planes $name).existingSecret }}
+            defaultMode: 0440
+            items:
+              - key: password
+                path: password
+        {{- end }}
+{{- if not .Values.storage.existingClaim }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgresql-data
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: {{ .Values.storage.size }}
+  {{- if .Values.storage.className }}
+  storageClassName: {{ .Values.storage.className | quote }}
+  {{- end }}
+{{- end }}
+{{- end }}

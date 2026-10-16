@@ -20,6 +20,8 @@ import (
 // upgrade executor against the rendered target release.
 func runProfileUpgrade(ctx context.Context, env *Env, args []string) Result {
 	var to, from, configPath, lockPath, format, chartPackage, bindings, migrationsDir, runsDir string
+	var backing, operatorReadyFlag string
+	var controlNodeCount int
 	var allowDowngrade, execute, backupVerified, allowIrreversible bool
 	var workloads stringSlice
 	fs := flag.NewFlagSet("upgrade", flag.ContinueOnError)
@@ -28,6 +30,9 @@ func runProfileUpgrade(ctx context.Context, env *Env, args []string) Result {
 	fs.StringVar(&from, "from", "", "current profile (default: the config profile)")
 	fs.StringVar(&configPath, "f", "", "DeploymentConfig")
 	fs.StringVar(&lockPath, "lock", "", "ReleaseLock override")
+	fs.StringVar(&backing, "backing", "", "data-plane backing override: bundled|in-cluster-ha|external")
+	fs.IntVar(&controlNodeCount, "control-node-count", 0, "observed schedulable control-plane domains (>=3 for in-cluster-ha; 0 = unknown)")
+	fs.StringVar(&operatorReadyFlag, "operator-ready", "", "observed data-plane operator readiness: true|false (omit if unknown)")
 	fs.BoolVar(&allowDowngrade, "allow-downgrade", false, "acknowledge a level-lowering change")
 	fs.BoolVar(&execute, "execute", false, "execute the plan (requires certification and applier inputs)")
 	fs.StringVar(&chartPackage, "chart-package", "", "verified chart package to render for the target profile (--execute)")
@@ -49,6 +54,19 @@ func runProfileUpgrade(ctx context.Context, env *Env, args []string) Result {
 	}
 	if format != "human" && format != "json" {
 		return fail(ReasonInvalidConfig, "--format must be human or json")
+	}
+	if backing != "" && backing != "bundled" && backing != "in-cluster-ha" && backing != "external" {
+		return fail(ReasonInvalidConfig, "--backing must be bundled, in-cluster-ha or external")
+	}
+	if controlNodeCount < 0 {
+		return fail(ReasonInvalidConfig, "--control-node-count must not be negative")
+	}
+	if backing == "in-cluster-ha" && controlNodeCount > 0 && controlNodeCount < 3 {
+		return fail(ReasonInvalidConfig, "HA_CONTROL_NODES_INSUFFICIENT: in-cluster-ha requires at least 3 schedulable control-plane domains")
+	}
+	operatorReady, opRes := parseOperatorReady(operatorReadyFlag)
+	if opRes.ExitCode != ExitSuccess {
+		return opRes
 	}
 	target := toolkit.Profile(to)
 	if _, ok := toolkit.ProfileShape(target); !ok {
@@ -84,6 +102,7 @@ func runProfileUpgrade(ctx context.Context, env *Env, args []string) Result {
 	plan, err := toolkit.PlanUpgrade(toolkit.UpgradeInput{
 		From: source, To: target, AllowDowngrade: allowDowngrade,
 		Lock: lock, Evidence: toolkit.CurrentEvidence,
+		BackingOverride: backing, ControlPlaneDomains: controlNodeCount, OperatorReady: operatorReady,
 	})
 	if err != nil {
 		return failf(ReasonInvalidConfig, "cannot plan upgrade: %v", err)
@@ -165,6 +184,15 @@ func runProfileUpgradeExecution(ctx context.Context, env *Env, plan toolkit.Upgr
 	applier := toolkit.PlatformApplier{Kubeconfig: cfg.Spec.Cluster.KubeconfigFile, Namespace: cfg.Spec.Platform.Namespace,
 		Manifests: rendered, Workloads: wls, Runner: toolkit.KubectlRunner{}, Timeout: cfg.Spec.Timeouts.Readiness}
 	steps := toolkit.UpgradeSteps{Release: applier.Apply, Verify: applier.Verify}
+	for _, s := range plan.Steps {
+		if s.Kind == "backings" {
+			// The rendered target release already carries the new data-plane
+			// backing; apply it in the re-backing phase (idempotent) before the
+			// release phase. Real dual-run/cutover against live backings is a
+			// follow-up that needs the external/in-cluster endpoints.
+			steps.Rebacking = applier.Apply
+		}
+	}
 	if migrationsDir != "" {
 		planes, perr := buildMigrationPlanes(ctx, cfg, migrationsDir)
 		if perr != nil {
@@ -192,15 +220,18 @@ func runProfileUpgradeExecution(ctx context.Context, env *Env, plan toolkit.Upgr
 // run store against the existing cluster.
 func runScale(ctx context.Context, env *Env, args []string) Result {
 	var configPath, profile, component, format, runsDir string
-	var replicas int
+	var operatorReadyFlag string
+	var controlNodeCount, replicas int
 	var storage, current, currentStorage, cpu, memory, currentCPU, currentMemory stringSlice
 	var execute bool
 	fs := flag.NewFlagSet("scale", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 	fs.StringVar(&configPath, "f", "", "DeploymentConfig")
 	fs.StringVar(&profile, "profile", "", "profile to scale (default: the config profile)")
-	fs.StringVar(&component, "component", "", "component to scale")
+	fs.StringVar(&component, "component", "", "component to scale (or postgresql|nats for the in-cluster data plane)")
 	fs.IntVar(&replicas, "replicas", -1, "desired replica count for --component")
+	fs.IntVar(&controlNodeCount, "control-node-count", 0, "observed schedulable control-plane domains (>=3 for in-cluster-ha; 0 = unknown)")
+	fs.StringVar(&operatorReadyFlag, "operator-ready", "", "observed data-plane operator readiness: true|false (omit if unknown)")
 	fs.Var(&storage, "storage", "storage expansion as name=Gi (repeatable)")
 	fs.Var(&current, "current", "observed current replicas as name=N (repeatable; overrides the profile baseline)")
 	fs.Var(&currentStorage, "current-storage", "observed current PVC Gi as name=Gi (repeatable)")
@@ -219,6 +250,13 @@ func runScale(ctx context.Context, env *Env, args []string) Result {
 	}
 	if format != "human" && format != "json" {
 		return fail(ReasonInvalidConfig, "--format must be human or json")
+	}
+	if controlNodeCount < 0 {
+		return fail(ReasonInvalidConfig, "--control-node-count must not be negative")
+	}
+	operatorReady, opRes := parseOperatorReady(operatorReadyFlag)
+	if opRes.ExitCode != ExitSuccess {
+		return opRes
 	}
 	if profile == "" {
 		if configPath == "" {
@@ -328,7 +366,7 @@ func runScale(ctx context.Context, env *Env, args []string) Result {
 		}
 		observedStorage[name] = n
 	}
-	plan, err := toolkit.PlanScale(toolkit.ScaleInput{Shape: shape, Replicas: replicaReq, StorageGi: storageReq, Resources: resReq, Observed: observed, ObservedStorage: observedStorage, ObservedResources: observedRes})
+	plan, err := toolkit.PlanScale(toolkit.ScaleInput{Shape: shape, Replicas: replicaReq, StorageGi: storageReq, Resources: resReq, Observed: observed, ObservedStorage: observedStorage, ObservedResources: observedRes, ControlPlaneDomains: controlNodeCount, OperatorReady: operatorReady})
 	if err != nil {
 		return failf(ReasonInvalidConfig, "cannot plan scale: %v", err)
 	}
@@ -396,25 +434,15 @@ func runScaleExecution(ctx context.Context, env *Env, plan toolkit.ScalePlan, co
 	steps := toolkit.ScaleSteps{
 		Apply: func(ctx context.Context) error {
 			for _, step := range plan.Steps {
-				switch step.Kind {
-				case "components":
-					if _, err := runner.Run(ctx, kubeconfig, nil, "--namespace", namespace, "scale", "deployment/"+step.Target, "--replicas", step.To); err != nil {
-						return fmt.Errorf("scale %s failed", step.Target)
-					}
-				case "storage":
-					gi := strings.TrimSuffix(step.To, "Gi")
-					patch := `{"spec":{"resources":{"requests":{"storage":"` + gi + `Gi"}}}}`
-					if _, err := runner.Run(ctx, kubeconfig, nil, "--namespace", namespace, "patch", "pvc", step.Target+"-data", "--type", "merge", "-p", patch); err != nil {
-						return fmt.Errorf("expand %s failed", step.Target)
-					}
-				case "resources":
-					parts := strings.SplitN(step.To, ",", 2)
-					if len(parts) != 2 {
-						return fmt.Errorf("resources for %s malformed", step.Target)
-					}
-					if _, err := runner.Run(ctx, kubeconfig, nil, "--namespace", namespace, "set", "resources", "deployment/"+step.Target, "--requests=cpu="+parts[0]+",memory="+parts[1]); err != nil {
-						return fmt.Errorf("set resources for %s failed", step.Target)
-					}
+				args, aerr := scaleStepArgs(step)
+				if aerr != nil {
+					return aerr
+				}
+				if args == nil {
+					continue
+				}
+				if _, err := runner.Run(ctx, kubeconfig, nil, append([]string{"--namespace", namespace}, args...)...); err != nil {
+					return fmt.Errorf("%s %s failed", step.Kind, step.Target)
 				}
 			}
 			return nil
@@ -424,8 +452,9 @@ func runScaleExecution(ctx context.Context, env *Env, plan toolkit.ScalePlan, co
 				if step.Kind != "components" {
 					continue
 				}
-				if _, err := runner.Run(ctx, kubeconfig, nil, "--namespace", namespace, "rollout", "status", "deployment/"+step.Target, "--timeout", cfg.Spec.Timeouts.Readiness.String()); err != nil {
-					return fmt.Errorf("rollout failed for %s", step.Target)
+				args := scaleVerifyArgs(step.Target, cfg.Spec.Timeouts.Readiness.String())
+				if _, err := runner.Run(ctx, kubeconfig, nil, append([]string{"--namespace", namespace}, args...)...); err != nil {
+					return fmt.Errorf("readiness failed for %s", step.Target)
 				}
 			}
 			return nil
@@ -437,4 +466,64 @@ func runScaleExecution(ctx context.Context, env *Env, plan toolkit.ScalePlan, co
 	}
 	fmt.Fprintf(env.Stdout, "scale status=%s run=%s applied=%v\n", result.Status, run.RunID, result.Applied)
 	return success("")
+}
+
+// parseOperatorReady parses the tri-state --operator-ready flag: empty means the
+// readiness was not observed (nil), otherwise true/false.
+func parseOperatorReady(value string) (*bool, Result) {
+	switch value {
+	case "":
+		return nil, success("")
+	case "true":
+		ready := true
+		return &ready, success("")
+	case "false":
+		ready := false
+		return &ready, success("")
+	default:
+		return nil, fail(ReasonInvalidConfig, "--operator-ready must be true or false")
+	}
+}
+
+// scaleStepArgs maps a scale step to the kubectl args (without namespace) that
+// apply it. Data-plane components patch the CloudNativePG Cluster instances or
+// scale the JetStream StatefulSet; PostgreSQL storage patches the Cluster
+// storage instead of a PVC.
+func scaleStepArgs(step toolkit.UpgradeStep) ([]string, error) {
+	switch step.Kind {
+	case "components":
+		switch step.Target {
+		case "postgresql":
+			return []string{"patch", "cluster.postgresql.cnpg.io/postgresql", "--type", "merge", "-p", `{"spec":{"instances":` + step.To + `}}`}, nil
+		case "nats":
+			return []string{"scale", "statefulset/nats", "--replicas", step.To}, nil
+		default:
+			return []string{"scale", "deployment/" + step.Target, "--replicas", step.To}, nil
+		}
+	case "storage":
+		gi := strings.TrimSuffix(step.To, "Gi")
+		if step.Target == "postgresql" {
+			return []string{"patch", "cluster.postgresql.cnpg.io/postgresql", "--type", "merge", "-p", `{"spec":{"storage":{"size":"` + gi + `Gi"}}}`}, nil
+		}
+		return []string{"patch", "pvc", step.Target + "-data", "--type", "merge", "-p", `{"spec":{"resources":{"requests":{"storage":"` + gi + `Gi"}}}}`}, nil
+	case "resources":
+		parts := strings.SplitN(step.To, ",", 2)
+		if len(parts) != 2 {
+			return nil, fmt.Errorf("resources for %s malformed", step.Target)
+		}
+		return []string{"set", "resources", "deployment/" + step.Target, "--requests=cpu=" + parts[0] + ",memory=" + parts[1]}, nil
+	}
+	return nil, nil
+}
+
+// scaleVerifyArgs maps a scale target to its readiness check args.
+func scaleVerifyArgs(target, timeout string) []string {
+	switch target {
+	case "postgresql":
+		return []string{"wait", "--for=condition=Ready", "cluster/postgresql", "--timeout", timeout}
+	case "nats":
+		return []string{"rollout", "status", "statefulset/nats", "--timeout", timeout}
+	default:
+		return []string{"rollout", "status", "deployment/" + target, "--timeout", timeout}
+	}
 }

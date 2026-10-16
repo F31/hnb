@@ -39,12 +39,18 @@ type LockProfileContract struct {
 	Name                 string   `yaml:"name" json:"name"`
 	RequiredCapabilities []string `yaml:"requiredCapabilities,omitempty" json:"requiredCapabilities,omitempty"`
 	MinKubernetesVersion string   `yaml:"minKubernetesVersion,omitempty" json:"minKubernetesVersion,omitempty"`
+	// Backings is the allowed data-plane backing set for this profile
+	// (bundled|in-cluster-ha|external); empty means no restriction declared.
+	Backings []string `yaml:"backings,omitempty" json:"backings,omitempty"`
 }
 
 // LockUpgradePath is one allowed from->to transition (profile name or version).
 type LockUpgradePath struct {
 	From string `yaml:"from" json:"from"`
 	To   string `yaml:"to" json:"to"`
+	// BackingChange authorises a data-plane re-backing across a transition whose
+	// source and target profiles use different backings. It defaults to false.
+	BackingChange bool `yaml:"backingChange,omitempty" json:"backingChange,omitempty"`
 }
 
 // MigrationStep is one ordered, owner-scoped schema transition.
@@ -186,6 +192,11 @@ func (l *ReleaseLock) Validate() []string {
 		if p.MinKubernetesVersion != "" && !tagPattern.MatchString(p.MinKubernetesVersion) {
 			problems = append(problems, fmt.Sprintf("profiles[%d] (%s) has an invalid minimum Kubernetes version", i, p.Name))
 		}
+		for _, backing := range p.Backings {
+			if !knownBacking(backing) {
+				problems = append(problems, fmt.Sprintf("profiles[%d] (%s) declares an unknown backing %q", i, p.Name, backing))
+			}
+		}
 	}
 	for i, path := range l.SupportedUpgrades {
 		if strings.TrimSpace(path.From) == "" || strings.TrimSpace(path.To) == "" {
@@ -210,6 +221,16 @@ func (l *ReleaseLock) Validate() []string {
 func knownProfileName(name string) bool {
 	switch Profile(name) {
 	case ProfileMinimal, ProfileLiteHA, ProfileStandardHA, ProfileEnterprise:
+		return true
+	default:
+		return false
+	}
+}
+
+// knownBacking reports whether a name is a valid data-plane backing kind.
+func knownBacking(name string) bool {
+	switch name {
+	case BackingBundled, BackingInClusterHA, BackingExternal:
 		return true
 	default:
 		return false

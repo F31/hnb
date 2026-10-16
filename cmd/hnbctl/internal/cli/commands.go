@@ -89,12 +89,12 @@ func init() {
 		},
 		{
 			Name: "upgrade", Summary: "plan a profile or pinned platform upgrade (kk-style)",
-			Usage: "hnbctl upgrade --to LiteHA|StandardHA|Enterprise [-f hnb.yaml] [--allow-downgrade]\n    or: hnbctl upgrade --current-lock A --release-lock B [--db-compatible] [--api-reachable]",
+			Usage: "hnbctl upgrade --to LiteHA|StandardHA|Enterprise [-f hnb.yaml] [--allow-downgrade] [--backing bundled|in-cluster-ha|external] [--control-node-count N] [--operator-ready true|false]\n    or: hnbctl upgrade --current-lock A --release-lock B [--db-compatible] [--api-reachable]",
 			Run:   runUpgrade,
 		},
 		{
 			Name: "scale", Summary: "plan on-demand horizontal/vertical/storage scaling with guardrails",
-			Usage: "hnbctl scale --component NAME --replicas N [-f hnb.yaml] [--storage NAME=Gi]... [--execute]",
+			Usage: "hnbctl scale --component NAME --replicas N [-f hnb.yaml] [--storage NAME=Gi]... [--component postgresql|nats for the in-cluster data plane] [--control-node-count N] [--operator-ready true|false] [--execute]",
 			Run:   runScale,
 		},
 		{
@@ -139,7 +139,7 @@ func init() {
 		},
 		{
 			Name: "install", Summary: "run the certified install route",
-			Usage: "hnbctl install (-f hnb.yaml | --host IP --user ubuntu --ssh-key PATH | --kubeconfig PATH)\n    Shortcut: --domain HOST --tls-secret NAME --storage-class NAME [--profile Minimal] [--lock PATH]\n    Authentication: --ask-pass | --ssh-password-file PATH; --ask-sudo-pass | --sudo-password-file PATH\n    [--internal-address IP] [--namespace hnb-system] [--name hnb] [--runs-dir DIR] [--plan] [--yes] [--format human|json] [--output plan.json]\n    Execute (gated): --execute [--chart-package PATH --bindings PATH [--workload Kind/name]... [--migrations-dir DIR]]  (existing cluster)\n    Bootstrap execute: --image-repository REF --sandbox-image REF --cni-image-repository REF --chart-repository URL  (blank host)\n    Currently records plans and runs shortcut preflight; --execute enforces the delivery evidence gate and, when certified, applies the rendered release (existing) or runs the Day-0 management bootstrap (blank host).",
+			Usage: "hnbctl install (-f hnb.yaml | --host IP --user ubuntu --ssh-key PATH | --kubeconfig PATH)\n    Shortcut: --domain HOST --tls-secret NAME --storage-class NAME [--profile Minimal] [--lock PATH]\n    Authentication: --ask-pass | --ssh-password-file PATH; --ask-sudo-pass | --sudo-password-file PATH\n    [--internal-address IP] [--namespace hnb-system] [--name hnb] [--runs-dir DIR] [--plan] [--yes] [--format human|json] [--output plan.json]\n    Backing: --backing bundled|in-cluster-ha|external [--control-node-count N]\n    Execute (gated): --execute [--chart-package PATH --bindings PATH [--workload Kind/name]... [--migrations-dir DIR]]  (existing cluster)\n    Bootstrap execute: --image-repository REF --sandbox-image REF --cni-image-repository REF --chart-repository URL  (blank host)\n    Currently records plans and runs shortcut preflight; --execute enforces the delivery evidence gate and, when certified, applies the rendered release (existing) or runs the Day-0 management bootstrap (blank host).",
 			Run:   runInstall,
 		},
 		{

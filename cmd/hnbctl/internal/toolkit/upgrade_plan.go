@@ -39,6 +39,31 @@ type UpgradeInput struct {
 	Lock              *ReleaseLock
 	Evidence          *EvidenceMatrix
 	KubernetesVersion string
+	// ControlPlaneDomains is the observed schedulable control-plane domain count.
+	// 0 means "not observed" and skips the in-cluster-ha minimum check.
+	ControlPlaneDomains int
+	// OperatorReady is the observed data-plane operator readiness. nil means
+	// "not observed" and skips the check.
+	OperatorReady *bool
+	// BackingOverride replaces the target profile's default backing kind
+	// (bundled|in-cluster-ha|external). Empty keeps the profile default.
+	BackingOverride string
+}
+
+// dataPlanePreconditions returns the prerequisite problems for an in-cluster-ha
+// backing that must be satisfied before planning executes.
+func dataPlanePreconditions(backings string, controlPlaneDomains int, operatorReady *bool) []string {
+	if backings != BackingInClusterHA {
+		return nil
+	}
+	var problems []string
+	if controlPlaneDomains > 0 && controlPlaneDomains < 3 {
+		problems = append(problems, "HA_CONTROL_NODES_INSUFFICIENT: in-cluster-ha requires at least 3 schedulable control-plane domains")
+	}
+	if operatorReady != nil && !*operatorReady {
+		problems = append(problems, "OPERATOR_NOT_INSTALLED: the data-plane operator is not ready")
+	}
+	return problems
 }
 
 // PlanUpgrade computes the diff between the current and target profile vectors,
@@ -52,6 +77,15 @@ func PlanUpgrade(in UpgradeInput) (UpgradePlan, error) {
 	}
 	if !okTo {
 		return UpgradePlan{}, fmt.Errorf("unknown target profile %q", in.To)
+	}
+	if in.BackingOverride != "" {
+		if !knownBacking(in.BackingOverride) {
+			return UpgradePlan{}, fmt.Errorf("unknown backing override %q", in.BackingOverride)
+		}
+		to.Backings = in.BackingOverride
+		if to.Backings == BackingExternal {
+			to.Storage = nil
+		}
 	}
 	plan := UpgradePlan{
 		SchemaVersion: ProfileUpgradePlanSchema, From: string(in.From), To: string(in.To),
@@ -70,15 +104,16 @@ func PlanUpgrade(in UpgradeInput) (UpgradePlan, error) {
 		plan.Blocked = append(plan.Blocked, in.Lock.CheckProfileContract(in.To, in.KubernetesVersion)...)
 	}
 	if in.Evidence != nil {
-		if !in.Evidence.ProfileCertified(in.To) {
-			plan.Blocked = append(plan.Blocked, fmt.Sprintf("TARGET_PROFILE_NOT_CERTIFIED: %s has no full delivery evidence", in.To))
+		if !in.Evidence.ProfileCertifiedFor(in.To, to.Backings) {
+			plan.Blocked = append(plan.Blocked, fmt.Sprintf("TARGET_PROFILE_NOT_CERTIFIED: %s has no full delivery evidence for backing %s", in.To, to.Backings))
 		}
-		if len(in.Evidence.ProfilePaths) > 0 && !in.Evidence.UpgradePathCertified(in.From, in.To) {
+		if in.From != in.To && len(in.Evidence.ProfilePaths) > 0 && !in.Evidence.UpgradePathCertifiedFor(in.From, in.To, to.Backings) {
 			plan.Blocked = append(plan.Blocked, fmt.Sprintf("UPGRADE_PATH_NOT_CERTIFIED: %s -> %s has no acceptance evidence", in.From, in.To))
 		}
 	}
 
 	plan.Steps = planUpgradeSteps(from, to, in.Lock)
+	plan.Blocked = append(plan.Blocked, dataPlanePreconditions(to.Backings, in.ControlPlaneDomains, in.OperatorReady)...)
 	plan.Authorized = len(plan.Blocked) == 0
 	return plan, nil
 }
@@ -151,8 +186,15 @@ func planUpgradeSteps(from, to ProfileSpec, lock *ReleaseLock) []UpgradeStep {
 	}
 
 	if from.Backings != to.Backings {
-		steps = append(steps, UpgradeStep{Kind: "backings", Target: "postgresql+nats", Detail: "switch data-plane backing",
-			From: from.Backings, To: to.Backings, Reversible: false, Requires: []string{"external backings reachable", "data migration"}})
+		requires := []string{"data migration", "backup verified"}
+		switch to.Backings {
+		case BackingExternal:
+			requires = append([]string{"external backings reachable"}, requires...)
+		case BackingInClusterHA:
+			requires = append([]string{"at least 3 schedulable control-plane domains", "data-plane operator ready"}, requires...)
+		}
+		steps = append(steps, UpgradeStep{Kind: "backings", Target: "postgresql+nats", Detail: "re-backing (data-plane-rebacking)",
+			From: from.Backings, To: to.Backings, Reversible: false, Requires: requires})
 	}
 
 	// Owner-ordered schema migrations.

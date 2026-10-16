@@ -14,17 +14,30 @@ func (l *ReleaseLock) ValidateUpgrade(from, to Profile) []string {
 	if len(l.SupportedUpgrades) == 0 {
 		return []string{"UPGRADE_PATH_UNDECLARED: lock declares no supported upgrades"}
 	}
-	declared := false
-	for _, path := range l.SupportedUpgrades {
-		if path.From == string(from) && path.To == string(to) {
-			declared = true
+	var matched *LockUpgradePath
+	for i := range l.SupportedUpgrades {
+		if l.SupportedUpgrades[i].From == string(from) && l.SupportedUpgrades[i].To == string(to) {
+			matched = &l.SupportedUpgrades[i]
 			break
 		}
 	}
-	if !declared {
+	if matched == nil {
 		problems = append(problems, fmt.Sprintf("UPGRADE_PATH_UNDECLARED: %s -> %s is not declared", from, to))
+	} else if backingChangeRequired(from, to) && !matched.BackingChange {
+		problems = append(problems, fmt.Sprintf("BACKING_CHANGE_NOT_SUPPORTED: %s -> %s changes the data-plane backing but the lock path does not set backingChange", from, to))
 	}
 	return append(problems, l.validateMigrationChain()...)
+}
+
+// backingChangeRequired reports whether a from->to profile transition changes
+// the data-plane backing kind, per the shape vectors.
+func backingChangeRequired(from, to Profile) bool {
+	fs, okF := ProfileShape(from)
+	ts, okT := ProfileShape(to)
+	if !okF || !okT {
+		return false
+	}
+	return fs.Backings != ts.Backings
 }
 
 // validateMigrationChain checks that each owner's schema transitions form a
@@ -69,6 +82,9 @@ func (l *ReleaseLock) CheckProfileContract(p Profile, kubernetesVersion string) 
 			if !have[required] {
 				problems = append(problems, "lock requires capability "+required+" not provided by profile "+string(p))
 			}
+		}
+		if len(contract.Backings) > 0 && shape.Backings != "" && !containsStr(contract.Backings, shape.Backings) {
+			problems = append(problems, fmt.Sprintf("lock profile %s does not allow backing %s", p, shape.Backings))
 		}
 	}
 	if contract.MinKubernetesVersion != "" && kubernetesVersion != "" && compareDottedVersions(kubernetesVersion, contract.MinKubernetesVersion) < 0 {

@@ -1,11 +1,55 @@
 global:
+  # startup is an opt-in initial composition, not complete Minimal acceptance.
+  deploymentStage: full
+  # imageRegistry retargets every component at once (for example at Harbor).
+  # There is deliberately no imageTag: every image must be pinned by digest, and
+  # a mutable tag is not an artifact identity a release lock can verify.
   imageRegistry: ""
-  imageTag: "latest"
+  # Name of an existing Secret holding platform credentials (tunnel/API tokens).
+  # The chart never creates or defaults it: a shipped default would be a shared
+  # secret in every installation, and would end up in release values metadata.
+  existingSecretName: ""
   imagePullPolicy: IfNotPresent
+  # backings selects the data-plane backing: bundled (single-instance PostgreSQL
+  # and file JetStream, the Minimal default), in-cluster-ha (control-node
+  # replicated PostgreSQL via CloudNativePG plus a 3-node JetStream cluster) or
+  # external (managed outside the cluster). This is a render-time choice only:
+  # install still passes the capability evidence gate, so an HA profile stays
+  # uncertified until it has its own failure, failover and recovery drills.
+  backings: bundled
+  # controlPlaneDomains is the operator-declared number of independent schedulable
+  # control-plane domains. in-cluster-ha requires at least 3.
+  controlPlaneDomains: 1
   nats:
     url: tls://nats:4222
+    # Plane whose NATS account each component authenticates as. The bundled
+    # server declares one username/password user per plane, so a client
+    # certificate alone cannot authenticate. Set per component with
+    # <component>.nats.existingAccountSecret.
+    plane: ""
+    # Secret name prefix; the plane Secret is <prefix>-<plane>.
+    accountSecretPrefix: hnb
   postgresql:
     dsn: postgres://postgres:postgres@postgres:5432/hnb?sslmode=disable
+
+# Bundled infrastructure for the Minimal profile. Each owned plane gets its own
+# database/role and Secret; credentials are generated at install time and are
+# never values. With global.backings=in-cluster-ha the same subcharts render the
+# control-node HA topology (CloudNativePG Cluster, 3-node JetStream); with
+# external, disable both and bind externally managed backings instead.
+postgresql:
+  enabled: true
+  adminSecret: ""
+nats:
+  enabled: true
+
+# Candidate components: opt in with verified images and required Secret refs.
+plugin-worker:
+  enabled: false
+runtime-target-lifecycle-provider:
+  enabled: false
+portal:
+  enabled: false
 
 apiserver:
   enabled: true
@@ -26,11 +70,11 @@ apiserver:
     privateKeyKey: "tls.key"
   resources:
     requests:
-      cpu: 500m
-      memory: 512Mi
+      cpu: 125m
+      memory: 256Mi
     limits:
-      cpu: 1000m
-      memory: 1Gi
+      cpu: 400m
+      memory: 512Mi
 
 operation-worker:
   enabled: true
@@ -43,11 +87,11 @@ operation-worker:
   serviceTokenSecret: ""
   resources:
     requests:
-      cpu: 500m
-      memory: 512Mi
+      cpu: 125m
+      memory: 256Mi
     limits:
-      cpu: 1000m
-      memory: 1Gi
+      cpu: 400m
+      memory: 512Mi
 
 extension-controller:
   enabled: true
@@ -58,11 +102,11 @@ extension-controller:
     existingClientTLSSecret: nats-extension-controller-client-tls
   resources:
     requests:
-      cpu: 200m
-      memory: 256Mi
+      cpu: 100m
+      memory: 128Mi
     limits:
-      cpu: 500m
-      memory: 512Mi
+      cpu: 250m
+      memory: 256Mi
 
 tunnel-server:
   enabled: true
@@ -78,11 +122,11 @@ tunnel-server:
     manifestKey: manifest.json
   resources:
     requests:
-      cpu: 300m
-      memory: 512Mi
+      cpu: 100m
+      memory: 128Mi
     limits:
-      cpu: 1000m
-      memory: 1Gi
+      cpu: 250m
+      memory: 256Mi
 
 cluster-router:
   enabled: true
@@ -93,11 +137,11 @@ cluster-router:
     port: 8080
   resources:
     requests:
-      cpu: 300m
-      memory: 512Mi
+      cpu: 100m
+      memory: 128Mi
     limits:
-      cpu: 1000m
-      memory: 1Gi
+      cpu: 250m
+      memory: 256Mi
 
 cluster-agent:
   enabled: false
@@ -106,11 +150,11 @@ cluster-agent:
     repository: hnb/cluster-agent
   resources:
     requests:
-      cpu: 200m
-      memory: 256Mi
+      cpu: 50m
+      memory: 64Mi
     limits:
-      cpu: 500m
-      memory: 512Mi
+      cpu: 100m
+      memory: 128Mi
 
 gateway-provider:
   enabled: true
@@ -121,11 +165,11 @@ gateway-provider:
     existingClientTLSSecret: nats-gateway-provider-client-tls
   resources:
     requests:
-      cpu: 200m
-      memory: 256Mi
+      cpu: 100m
+      memory: 128Mi
     limits:
-      cpu: 500m
-      memory: 512Mi
+      cpu: 250m
+      memory: 256Mi
 
 cilium-provider:
   enabled: false
@@ -136,11 +180,11 @@ cilium-provider:
     existingClientTLSSecret: nats-cilium-provider-client-tls
   resources:
     requests:
-      cpu: 200m
-      memory: 256Mi
+      cpu: 50m
+      memory: 64Mi
     limits:
-      cpu: 500m
-      memory: 512Mi
+      cpu: 100m
+      memory: 128Mi
 
 calico-provider:
   enabled: false
@@ -196,11 +240,11 @@ network-registry:
     existingClientTLSSecret: nats-network-registry-client-tls
   resources:
     requests:
-      cpu: 200m
-      memory: 256Mi
+      cpu: 50m
+      memory: 64Mi
     limits:
-      cpu: 500m
-      memory: 512Mi
+      cpu: 100m
+      memory: 128Mi
 
 kubernetes-provider:
   enabled: true
@@ -214,11 +258,11 @@ kubernetes-provider:
     manifestKey: manifest.json
   resources:
     requests:
-      cpu: 200m
-      memory: 256Mi
+      cpu: 100m
+      memory: 128Mi
     limits:
-      cpu: 500m
-      memory: 512Mi
+      cpu: 250m
+      memory: 256Mi
 
 karmada-provider:
   enabled: false
@@ -265,11 +309,11 @@ app-market:
     manifestKey: manifest.json
   resources:
     requests:
-      cpu: 200m
-      memory: 256Mi
+      cpu: 100m
+      memory: 128Mi
     limits:
-      cpu: 500m
-      memory: 512Mi
+      cpu: 250m
+      memory: 256Mi
 
 gslb-controller:
   enabled: false
@@ -291,11 +335,11 @@ rbac-syncer:
     repository: hnb/rbac-syncer
   resources:
     requests:
-      cpu: 200m
-      memory: 256Mi
+      cpu: 50m
+      memory: 64Mi
     limits:
-      cpu: 500m
-      memory: 512Mi
+      cpu: 100m
+      memory: 128Mi
 
 platform-api:
   enabled: true
@@ -311,11 +355,11 @@ platform-api:
     manifestKey: manifest.json
   resources:
     requests:
-      cpu: 300m
-      memory: 512Mi
+      cpu: 125m
+      memory: 256Mi
     limits:
-      cpu: 1000m
-      memory: 1Gi
+      cpu: 400m
+      memory: 512Mi
 
 alert-manager:
   enabled: false
@@ -326,8 +370,8 @@ alert-manager:
     existingClientTLSSecret: nats-alert-manager-client-tls
   resources:
     requests:
-      cpu: 200m
-      memory: 256Mi
+      cpu: 50m
+      memory: 64Mi
     limits:
-      cpu: 500m
-      memory: 512Mi
+      cpu: 100m
+      memory: 128Mi

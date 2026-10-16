@@ -84,10 +84,11 @@ func InstallPhaseOrder() []PhaseName {
 }
 
 // UpgradePhaseOrder is the ordered phase pipeline of a profile upgrade run. It
-// reuses the install phases (so resume semantics are shared) with a backup gate
-// and an infra-delta step.
+// reuses the install phases (so resume semantics are shared) with a backup gate,
+// an infra-delta step and a data-plane re-backing step (only present when the
+// plan changes the backing kind).
 func UpgradePhaseOrder() []PhaseName {
-	return []PhaseName{PhasePreflight, PhaseBackup, PhaseInfraDelta, PhaseDatabaseMigrate,
+	return []PhaseName{PhasePreflight, PhaseBackup, PhaseInfraDelta, PhaseDataPlaneRebacking, PhaseDatabaseMigrate,
 		PhasePlatformRelease, PhasePlatformVerified}
 }
 

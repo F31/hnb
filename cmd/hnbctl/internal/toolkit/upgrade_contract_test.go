@@ -27,7 +27,7 @@ func TestLockV1WithoutTrainFieldsRemainsReadable(t *testing.T) {
 func TestLockV2TrainFieldsValidate(t *testing.T) {
 	train := "profiles:\n  - name: Minimal\n    requiredCapabilities: [core, portal, market]\n    minKubernetesVersion: 1.30.0\n" +
 		"  - name: LiteHA\n    requiredCapabilities: [core, portal, market, routing]\n" +
-		"supportedUpgrades:\n  - {from: Minimal, to: LiteHA}\n  - {from: LiteHA, to: StandardHA}\n" +
+		"supportedUpgrades:\n  - {from: Minimal, to: LiteHA, backingChange: true}\n  - {from: LiteHA, to: StandardHA}\n" +
 		"migrationChain:\n  - {owner: platform, name: 001-init, fromSchema: \"0\", toSchema: \"1\", checksum: " + strings.Repeat("b", 64) + "}\n" +
 		"  - {owner: platform, name: 002-add, fromSchema: \"1\", toSchema: \"2\", checksum: " + strings.Repeat("c", 64) + "}\n"
 	lock, err := DecodeReleaseLock([]byte(trainLock(train)))
@@ -90,5 +90,63 @@ func TestCompareDottedVersions(t *testing.T) {
 	}
 	if compareDottedVersions("1.30", "1.30.0") != 0 {
 		t.Fatal("1.30 should equal 1.30.0")
+	}
+}
+
+func TestValidateUpgradeRequiresBackingChange(t *testing.T) {
+	undeclared := "supportedUpgrades:\n  - {from: Minimal, to: LiteHA}\n"
+	lock, err := DecodeReleaseLock([]byte(trainLock(undeclared)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if problems := lock.ValidateUpgrade(ProfileMinimal, ProfileLiteHA); !strings.Contains(strings.Join(problems, ";"), "BACKING_CHANGE_NOT_SUPPORTED") {
+		t.Fatalf("backing change without a declaration must be refused: %v", problems)
+	}
+	declared := "supportedUpgrades:\n  - {from: Minimal, to: LiteHA, backingChange: true}\n"
+	lock, err = DecodeReleaseLock([]byte(trainLock(declared)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if problems := lock.ValidateUpgrade(ProfileMinimal, ProfileLiteHA); len(problems) != 0 {
+		t.Fatalf("declared backing change refused: %v", problems)
+	}
+	// Same-kind HA transition needs no backingChange.
+	sameKind := "supportedUpgrades:\n  - {from: LiteHA, to: StandardHA}\n"
+	lock, err = DecodeReleaseLock([]byte(trainLock(sameKind)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if problems := lock.ValidateUpgrade(ProfileLiteHA, ProfileStandardHA); len(problems) != 0 {
+		t.Fatalf("same-backing HA transition refused: %v", problems)
+	}
+}
+
+func TestLockRejectsUnknownBacking(t *testing.T) {
+	train := "profiles:\n  - name: LiteHA\n    backings: [in-cluster-ha, on-prem]\n"
+	lock, err := DecodeReleaseLock([]byte(trainLock(train)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if problems := lock.Validate(); !strings.Contains(strings.Join(problems, ";"), "unknown backing") {
+		t.Fatalf("unknown backing accepted: %v", problems)
+	}
+}
+
+func TestCheckProfileContractRejectsDisallowedBacking(t *testing.T) {
+	train := "profiles:\n  - name: LiteHA\n    backings: [external]\n"
+	lock, err := DecodeReleaseLock([]byte(trainLock(train)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if problems := lock.CheckProfileContract(ProfileLiteHA, ""); !strings.Contains(strings.Join(problems, ";"), "does not allow backing in-cluster-ha") {
+		t.Fatalf("disallowed backing accepted: %v", problems)
+	}
+	allowed := "profiles:\n  - name: LiteHA\n    backings: [in-cluster-ha, external]\n"
+	lock, err = DecodeReleaseLock([]byte(trainLock(allowed)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if problems := lock.CheckProfileContract(ProfileLiteHA, ""); len(problems) != 0 {
+		t.Fatalf("allowed backing refused: %v", problems)
 	}
 }

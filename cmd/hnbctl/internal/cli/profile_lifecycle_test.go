@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/F31/hnb/cmd/hnbctl/internal/toolkit"
 )
 
 func TestUpgradeToPlansProfileTransition(t *testing.T) {
@@ -188,5 +190,78 @@ func TestScaleExecuteAppliesWithFixtureCluster(t *testing.T) {
 	}
 	if !strings.Contains(out, "status=succeeded") {
 		t.Fatalf("scale did not report success: %s", out)
+	}
+}
+
+func TestUpgradeControlDomainPrecondition(t *testing.T) {
+	_, configPath := writeExistingFixture(t)
+	if code, _, errOut := runCLI(t, "upgrade", "-f", configPath, "--to", "LiteHA", "--backing", "in-cluster-ha", "--control-node-count", "1"); code != ExitUsage || !strings.Contains(errOut, "HA_CONTROL_NODES_INSUFFICIENT") {
+		t.Fatalf("insufficient control domains not refused: %d %s", code, errOut)
+	}
+	code, out, errOut := runCLI(t, "upgrade", "-f", configPath, "--to", "LiteHA", "--control-node-count", "2", "--format", "json")
+	if code != ExitSuccess {
+		t.Fatalf("plan should compute: %d %s %s", code, out, errOut)
+	}
+	if !strings.Contains(out, "HA_CONTROL_NODES_INSUFFICIENT") {
+		t.Fatalf("control-domain precondition missing from plan: %s", out)
+	}
+}
+
+func TestUpgradeBackingOverrideAndUnknown(t *testing.T) {
+	_, configPath := writeExistingFixture(t)
+	if code, _, _ := runCLI(t, "upgrade", "-f", configPath, "--to", "LiteHA", "--backing", "on-prem"); code != ExitUsage {
+		t.Fatalf("unknown backing accepted: %d", code)
+	}
+	code, out, errOut := runCLI(t, "upgrade", "-f", configPath, "--to", "LiteHA", "--backing", "external", "--control-node-count", "3", "--format", "json")
+	if code != ExitSuccess {
+		t.Fatalf("external backing plan failed: %d %s %s", code, out, errOut)
+	}
+	if strings.Contains(out, "HA_CONTROL_NODES_INSUFFICIENT") || strings.Contains(out, "OPERATOR_NOT_INSTALLED") {
+		t.Fatalf("external backing must not require in-cluster preconditions: %s", out)
+	}
+}
+
+func TestScaleDataPlaneComponentMapping(t *testing.T) {
+	_, configPath := writeExistingFixture(t)
+	code, out, _ := runCLI(t, "scale", "-f", configPath, "--component", "nats", "--replicas", "3", "--format", "json")
+	if code != ExitSuccess || !strings.Contains(out, "SCALE_UNKNOWN_COMPONENT") {
+		t.Fatalf("bundled data-plane scale not refused: %d %s", code, out)
+	}
+	code, out, _ = runCLI(t, "scale", "--profile", "LiteHA", "--component", "nats", "--replicas", "5", "--control-node-count", "2", "--format", "json")
+	if code != ExitSuccess || !strings.Contains(out, "HA_CONTROL_NODES_INSUFFICIENT") {
+		t.Fatalf("control-domain precondition missing from scale: %d %s", code, out)
+	}
+	code, out, _ = runCLI(t, "scale", "--profile", "LiteHA", "--component", "postgresql", "--replicas", "5", "--control-node-count", "3", "--format", "json")
+	if code != ExitSuccess || !strings.Contains(out, "Cluster.spec.instances") {
+		t.Fatalf("postgresql data-plane mapping missing: %d %s", code, out)
+	}
+}
+
+func TestScaleStepArgsMapDataPlane(t *testing.T) {
+	args, err := scaleStepArgs(toolkit.UpgradeStep{Kind: "components", Target: "postgresql", To: "5"})
+	if err != nil || strings.Join(args, " ") != `patch cluster.postgresql.cnpg.io/postgresql --type merge -p {"spec":{"instances":5}}` {
+		t.Fatalf("postgresql scale args wrong: %v %v", args, err)
+	}
+	args, _ = scaleStepArgs(toolkit.UpgradeStep{Kind: "components", Target: "nats", To: "5"})
+	if strings.Join(args, " ") != "scale statefulset/nats --replicas 5" {
+		t.Fatalf("nats scale args wrong: %v", args)
+	}
+	args, _ = scaleStepArgs(toolkit.UpgradeStep{Kind: "components", Target: "apiserver", To: "3"})
+	if strings.Join(args, " ") != "scale deployment/apiserver --replicas 3" {
+		t.Fatalf("deployment scale args wrong: %v", args)
+	}
+	args, _ = scaleStepArgs(toolkit.UpgradeStep{Kind: "storage", Target: "postgresql", To: "10Gi"})
+	if !strings.Contains(strings.Join(args, " "), `"storage":{"size":"10Gi"}`) {
+		t.Fatalf("postgresql storage args wrong: %v", args)
+	}
+	args, _ = scaleStepArgs(toolkit.UpgradeStep{Kind: "storage", Target: "nats", To: "10Gi"})
+	if !strings.Contains(strings.Join(args, " "), "pvc nats-data") {
+		t.Fatalf("nats storage args wrong: %v", args)
+	}
+	if _, err := scaleStepArgs(toolkit.UpgradeStep{Kind: "resources", Target: "portal", To: "bad"}); err == nil {
+		t.Fatal("malformed resources accepted")
+	}
+	if got := scaleVerifyArgs("nats", "5m"); strings.Join(got, " ") != "rollout status statefulset/nats --timeout 5m" {
+		t.Fatalf("nats verify args wrong: %v", got)
 	}
 }

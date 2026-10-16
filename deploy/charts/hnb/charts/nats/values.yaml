@@ -1,0 +1,41 @@
+# JetStream file persistence and existing per-account Secret bindings.
+image:
+  repository: nats
+  tag: "2.11.1-scratch"
+  digest: ""
+  pullPolicy: ""
+tls:
+  existingSecret: ""
+# Explicit non-root identity for the scratch image and its persistent data.
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+  fsGroupChangePolicy: OnRootMismatch
+jetstream:
+  storeDir: /data/jetstream
+  domain: hnb
+# HA topology for the in-cluster-ha backing (global.backings). The bundled
+# single-instance branch ignores replicas/cluster/placement.
+replicas: 3
+cluster:
+  name: hnb
+  port: 6222
+placement:
+  controlPlane: true
+  nodeSelector: {}
+  tolerations: []
+storage:
+  size: 10Gi
+  existingClaim: ""
+  className: ""
+# Each plane requires existingSecret (key: password).
+planes: {}
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+  limits:
+    cpu: 250m
+    memory: 256Mi

@@ -1,0 +1,9 @@
+# Candidate only: merge after minimal.yaml, lite-ha.yaml, standard-ha.yaml.
+global: {deploymentProfile: Enterprise, backings: in-cluster-ha, controlPlaneDomains: 3}
+apiserver: &core
+  replicaCount: 5
+  resources: {requests: {cpu: "2", memory: 2Gi}, limits: {cpu: "4", memory: 4Gi}}
+operation-worker: *core
+platform-api: *core
+plugin-worker: *core
+# Enterprise is not permission to automatically enable Edge/AI/network Packs.
