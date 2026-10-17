@@ -65,8 +65,11 @@
   - 2026-10-17 complete：既有 import/handoff 链路复用受限 RuntimeIntent+delegation、lifecycle Provider、S1 Agent tunnel/session 与 observer；新增 `ClusterAcceptance`（accepted/available/observationState/acceptedAt），List/Detail 同源，OpenAPI 增量生成。单元 + 真实 PostgreSQL 16 查询测试验证 `REGISTERING+pending` 不显示可用、观测后 `ACTIVE+FRESH` 才 available；契约 28/28、门禁 81 schemas。独立集群实机 import、真实 Agent handoff 与 3.2 乱序/generation 仍待后续；见 `docs/acceptance/reports/20261017-s2-import-acceptance.md`。
 
 - [ ] 3.3 在独立业务集群执行正式 CLI/API import 及幂等重放，验证唯一目标、真实 Agent 认证、能力/节点清单和新鲜度，不直写数据库或使用自导入。（RTLOOP-001、PREADY-001）
+  - 2026-10-17 blocked：无独立业务集群/授权，当前仅同集群管理基座；自导入禁止。解除条件见 `docs/deployment/independent-target-baseline.md`，状态见 `docs/acceptance/reports/20261017-s2-remaining-blockers.md`。
 - [ ] 3.4 注入 Agent 断连与重连，验证旧状态保留、陈旧提示、持续身份、目标不重复及观测恢复；保留时间线和重放结果。（RTLOOP-001、IDENT-001、IDENT-002）
+  - 2026-10-17 partial：本地 2.8（跨 TTL/重启恢复/撤销）与 3.2（重复/缺口/旧 generation/跨租户/跨目标）已通过；独立目标上的断连时间线、STALE 提示、恢复后新鲜观测与目标不重复仍未执行。
 - [ ] 3.5 在实际 Portal 与 CLI 复验同一纳管旅程、跨租户拒绝和迟到响应隔离，登记 S2 证据；Portal 缺失则 UI 验收保持 blocked。（RTLOOP-001、UXLOOP-001、PREADY-001）
+  - 2026-10-17 blocked：Portal 同仓可用、CLI 入口存在，但无独立目标；跨租户/迟到隔离仅 handler/projector 层验证，未做真实 Portal/CLI E2E。
 
 退出条件：独立目标正式纳管并持续观测，执行成功与目标可用两个维度均可验证。
 
