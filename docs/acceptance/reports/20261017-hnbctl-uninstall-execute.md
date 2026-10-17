@@ -59,4 +59,4 @@ sudo /tmp/hnbctl uninstall \
 | `cmd/hnbctl/internal/toolkit/removal_executor_test.go` | `4141a2e1ba89ece17bacd2140234b6e7a808e2b4b32aae13093cb6e1910f6e70` |
 | `cmd/hnbctl/internal/cli/uninstall.go` | `9159c49ba0b47dfe8a0974353e2a652314e074349aaa0172a470e299e1a01e94` |
 | `cmd/hnbctl/internal/cli/platform.go` | `25eadf8040d0db2b23f98dcca210363f448d5306a2be8ea0222a5da258b16d40` |
-| `docs/acceptance/reports/20261017-hnbctl-uninstall-execute.json` | `d87abb2755f3802e75082e6e5aa595d437480844edba3e94644d8c533a44e4bd` |
+| `docs/acceptance/reports/20261017-hnbctl-uninstall-execute.json` | `395222e113605eb3229071292f328698dfd893cb4d4028426312962cc0fd2811` |

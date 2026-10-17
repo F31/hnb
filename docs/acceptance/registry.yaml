@@ -220,7 +220,7 @@ features:
     unit:
       status: passed
       run_id: hnbctl-uninstall-execute-20261017
-      commit: 0d783e3
+      commit: 2897430
       report: reports/20261017-hnbctl-uninstall-execute.md
       commands: ["go test ./cmd/hnbctl/internal/toolkit/ -run TestRemovalExecutor -count=1", "go test ./cmd/hnbctl/internal/cli/ -count=1"]
       scope: "local uninstall-hnb executor tests; retains PVC/Secret/namespace/StorageClass; no data deletion or topolvm removal"
@@ -229,7 +229,7 @@ features:
     real_e2e:
       status: passed
       run_id: hnbctl-uninstall-execute-20261017
-      commit: 0d783e3
+      commit: 2897430
       report: reports/20261017-hnbctl-uninstall-execute.md
       artifacts: reports/20261017-hnbctl-uninstall-execute.json
       commands: ["sudo /tmp/hnbctl uninstall --run-dir /home/ubuntu/e2e/runs/5b88c013669545032676b42dcee0a64a -f /home/ubuntu/e2e/hnb.yaml --execute --yes --kubeconfig /etc/rancher/k3s/k3s.yaml --instance-label hnb --format json"]
