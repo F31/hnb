@@ -4,6 +4,7 @@ import Dashboard from './pages/Dashboard.vue'
 import ApprovalList from './pages/ApprovalList.vue'
 import RecentOps from './pages/RecentOps.vue'
 import messages from './locales'
+import { setDashboardApiClient } from './api'
 
 const plugin: HNBPlugin = definePlugin({
   name: 'dashboard',
@@ -20,6 +21,7 @@ const plugin: HNBPlugin = definePlugin({
   },
 
   async create(ctx: PluginContext) {
+    setDashboardApiClient(ctx.apiClient)
     ctx.i18n.registerMessages(messages)
     const t = ctx.i18n.t
 

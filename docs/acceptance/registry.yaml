@@ -6,6 +6,19 @@ policy:
   report_fields: [run_id, commit, command, environment, started_at, finished_at, exit_code, assertions, artifact_digests]
   legacy_results: "Prior chat/log summaries are historical traces only; do not promote without retained reports."
 features:
+  s0_portal_api_boundary:
+    unit:
+      status: passed
+      run_id: s0-portal-api-boundary-20261017
+      commit: 51ab3c4
+      report: reports/20261017-s0-portal-api-boundary.md
+      commands: ["pnpm -C web typecheck", "pnpm -C web test:run", "pnpm -C web build", "pnpm -C web boundary:check"]
+      scope: "Portal repository/owner/version/test entry and static API entry boundary; web unit/typecheck/build only; Playwright E2E, Portal image/deploy and CODEOWNERS not executed; no S2/S3 UI or production acceptance"
+      assertions: [portal_repo_confirmed, maintainer_recorded, web_version_fixed, typecheck_passed, sixty_five_test_files_342_tests_passed, web_build_passed, dashboard_direct_fetch_removed, business_fetch_boundary_guard_passed]
+      notes: "commit is the baseline; boundary docs/guard/ApprovalList changes are after the commit and retained in the working tree"
+    db_integration: {status: not_run}
+    real_e2e: {status: not_run}
+    production_ha: {status: not_run}
   product_loop_readiness_validation:
     unit:
       status: passed

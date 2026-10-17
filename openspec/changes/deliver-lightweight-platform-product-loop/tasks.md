@@ -4,20 +4,25 @@
 
 - [x] 1.1 盘点已有 registry、实际实现及两个依赖 change 的任务/Requirement，产出“复用/缺口/owner/证据”表；核对已勾选任务与业务验收范围，禁止重复实现或自动提升认证。（PREADY-001、PREADY-006）
   - 2026-10-16：`docs/acceptance/product-loop-baseline.md` 已逐项关联源码、registry 条目、原 change 任务与新增差额；核对正式包 fixture、自导入/手工 token、HA hook 与真实迁移、PG round-trip 与整站恢复的边界，不变更认证。
-- [ ] 1.2 确认 Portal 仓库、维护者、构建版本与跨仓测试入口，固定后端/前端/CLI 的公开 API 边界；缺仓库时记录阻塞及可独立推进项。（UXLOOP-001、DEVEX-001）
+- [x] 1.2 确认 Portal 仓库、维护者、构建版本与跨仓测试入口，固定后端/前端/CLI 的公开 API 边界；缺仓库时记录阻塞及可独立推进项。（UXLOOP-001、DEVEX-001）
   - 2026-10-16 partial：已确认本仓库 `web/` workspace、Shell 0.1.0、共享 API client、Vitest/Playwright 与 BFF/领域边界，详见基线清单；不存在“缺前端仓库”阻塞。人员维护者、实际构建物料和真实联调入口尚未固定，不将源码或测试入口存在视为验收通过。
+  - 2026-10-17 complete：`docs/deployment/portal-api-boundary.md` 固定仓库/维护者/版本/构建/测试/API 边界；`pnpm -C web typecheck`、**65 files/342 tests**、`build`、`boundary:check` 通过；移除 dashboard 直接 `fetch`，新增静态守卫。Playwright E2E、Portal 镜像/部署和 CODEOWNERS 未做，保留为 UI/发布后续，不据此提升 S2/S3 或生产认证。见 `docs/acceptance/reports/20261017-s0-portal-api-boundary.md`。
 - [ ] 1.3 固定管理基座、独立业务目标及一个真实 CSI/SC、Gateway controller 的版本/物料/网络条件，登记首轮兼容矩阵和 ≥3 故障域演练环境需求。（RTLOOP-001、DEVEX-002、OBSLOOP-002）
   - 2026-10-16 blocked：基线文档已固定历史报告范围；未获独立业务集群、实际 CSI/Gateway/TLS 与三故障域环境，不从历史管理基座或 Provider 存在推导可用。
+  - 2026-10-17 partial/blocked：只读观察到管理基座 K3s v1.36.5+k3s1、真实 TopoLVM CSI 0.42.0（digest `sha256:719a…ce4b`）与 SC `hnb-topolvm`（Retain/WFFC/expand）；Gateway API/controller、外部入口/TLS、Snapshot、独立业务集群和 ≥3 故障域均缺失。兼容矩阵/环境需求见 `docs/deployment/independent-target-baseline.md`，报告 `docs/acceptance/reports/20261017-s0-target-baseline.md`。不完成本任务，S2/S3 实机保持 blocked。
 - [ ] 1.4 批准版本化预算：TTL/续期/撤销传播、应用验证超时、冷安装/就绪、API/Operation/投影延迟、各组合资源/每目标增量、稳定性窗口与 RTO/RPO；每项注明数值、单位、负载、窗口和通过规则，未批准项阻断对应认证。（IDENT-001、ADL-002、PREADY-004、OBSLOOP-002）
   - 2026-10-16 pending decision：数值预算尚未批准。1.8 为预算提供严格字段、单位/窗口/样本校验，测试数值不是产品承诺，不填入虚构的 approved 计划。
   - 2026-10-17 proposed：`docs/deployment/decision-baseline.md` 修订 0.1 整理 A1–A17 默认值、量测条件、故障边界与分组批准方式；S1 身份预算可先批，容量绝对值/生产恢复仍需绑定实际环境。本文尚非批准记录，不生成假摘要/approved ReadinessPlan，本任务保持未完成。
   - 2026-10-17 S1 development adopted：用户指示“按规划继续执行”，据此采纳 S1-IDENTITY 为本批开发/测试输入，记录及原基线摘要见 `docs/deployment/service-credential-renewal.md`；生产组和环境绑定仍 pending，不据此完成全项或提升认证。
+  - 2026-10-17 status：`docs/deployment/budget-approval-status.md` 明确 S1 仅作开发/测试输入，APP-OPERATIONS、PRODUCTION-BUDGETS、RECOVERY、CAPACITY 仍未批准；缺批准方/有效期/环境条件，不生成 approved ReadinessPlan。
 - [ ] 1.5 冻结服务身份/入网、typed 应用组合/动作、旅程 Read Model、统一能力目录/组合/实际安装态及原因字典的增量 Schema/API/事件；分开 releaseVersion/profile/selectedCapabilities/backing，列出兼容规则、owning-plane 数据迁移清单，运行契约/漂移检查。（IDENT-001、IDENT-002、ADL-001、UXLOOP-001、PREADY-002、PUPG-006）
   - 2026-10-16 partial：本批仅新增离线 readiness 计划/预算/证据 Schema，复用现有 identity、console、RuntimeTarget 契约和 BFF delegation；在线身份发行/入网及 typed 应用动作仍需独立冻结，不以离线 Schema 替代本任务。
   - 2026-10-17 proposed：上述决策基线 B1–B11 与 §6.2 列明建议采纳项和实际冻结包；按现有 apiserver/IAM owner 复用签发，conditions 增量兼容摘要，typed union 仅后续 PoC。批准方向不等于 Schema/API/事件/迁移已冻结，本任务保持未完成。
   - 2026-10-17 partial：新增 `service-credential-scope.schema.json`，固定精确 subject/audience/permission、消费者 issuer 接口、验签/范围/有效期与失效恢复语义；契约单测 26/26、全契约兼容/漂移门通过。在线发行/撤销/入网 API、持久化与事件仍在后续 S1 任务，不以消费者契约替代全项冻结。
+  - 2026-10-17 partial：S1 身份/入网增量（7 个 identity Schema）与 Console BFF cluster/Operation 契约已冻结，摘要见 `docs/deployment/contract-freeze-status.md`；typed 应用组合/动作、旅程 Read Model、统一能力目录/组合/安装态/原因字典仍未冻结。1.5 保持未完成，不以 S1 子集宣称全量冻结。
 - [ ] 1.6 固定参考应用的 v1/v2/故障版本真实 digest、卷读写探针与外部探针并关联可执行发布物料；证据基础设施独立拆到 1.8/1.9，不以 fixture 摘要替代实际应用。（ADL-002、ADL-003、PREADY-001、PREADY-006）
   - 2026-10-16 blocked：未固定实际参考应用物料及外部数据路径；1.8/1.9 的 synthetic fixture 仅验证校验器，不登记为平台或应用 E2E。
+  - 2026-10-17 blocked：`docs/deployment/reference-application-baseline.md` 固定所需 v1/v2/故障 digest、卷读写/外部探针与发布物料；仓库仍无真实参考应用 digest，未执行应用 E2E，不把 fixture 当实际应用。
 - [x] 1.7 固定统一底座与四档推荐预设矩阵、产品名/既有标识映射和跨档选装/升级断言；核实任何可选能力都不以档位名作功能授权，T0/T1/T2/T3 不映射为 edition，差异只表达默认配置、规模与保障。（GOV-002、PREADY-007、PSHAPE-002）
   - 2026-10-16：`docs/deployment/profile-composition-contract.md` 固定四档/既有标识与 overlay 映射，统一目录、三类演进和八项跨入口断言；核对现有向量共享基础能力而不自动加载 Pack。实际安装态求解与全档位加载仍归 5.3–5.6/6.10/7.9，不以本项替代实现认证。
 - [x] 1.8 建立版本化阶段计划、数值预算与证据 manifest Schema，以及只读本地校验入口；绑定预期发布身份/范围、批准预算、报告内容摘要与实际测量，不写 registry 或授予安装资格。（PREADY-001、PREADY-004、PREADY-006）

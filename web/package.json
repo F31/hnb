@@ -12,7 +12,8 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:e2e": "playwright test",
-    "clean": "pnpm -r clean"
+    "clean": "pnpm -r clean",
+    "boundary:check": "node scripts/check-api-boundary.mjs"
   },
   "engines": {
     "node": ">=22.12.0"

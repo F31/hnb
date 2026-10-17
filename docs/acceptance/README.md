@@ -7,6 +7,10 @@
 [`统一底座与四档组装契约`](../deployment/profile-composition-contract.md)、
 [`阶段计划/预算/证据校验`](product-readiness-manifests.md)。这些建设记录不提升既有认证。
 
+2026-10-17 新增：[`S0 1.2 Portal/API/CLI 边界`](reports/20261017-s0-portal-api-boundary.md)
+（同仓 Portal、维护者/版本/构建/测试入口、`@hnb/api-client` 边界与静态守卫；
+不含 Playwright E2E、Portal 镜像部署或 S2/S3 UI 验收）。
+
 2026-10-17 新增：[`S1 服务身份生命周期`](reports/20261017-service-identity-lifecycle.md)
 （受限 issue/renew/revoke、原子消费/撤销、actor/service subject 审计；本地 unit/竞态 +
 独立 PostgreSQL 16.15 集成；不含真实部署、HA 或 5s/60s 撤销时延认证）。
@@ -17,7 +21,7 @@
 （session/generation、50% TTL 轮换、精确 tenant/target 关闭、撤销后停止重连；
 不含 5s/60s 实测、身份服务故障演练或 HA）。
 同日新增：[`2.8 真实身份演练`](reports/20261017-identity-drill.md)
-（本地真实 HTTP/WebSocket/PostgreSQL 链路：跨 >2 TTL、Agent 重启恢复、撤销关闭 3.19ms；
+（本地真实 HTTP/WebSocket/PostgreSQL 链路：跨 >2 TTL、Agent 重启恢复、撤销关闭 3.95ms；
 不含生产 5min soak、云主机/HA、真实断网或 60s 多连接传播测量）。
 
 2026-10-15 新增：[`Ubuntu 26.04 OS 适配与 19 工作负载部署复验`](reports/20261015-ubuntu2604-adaptation.md)。

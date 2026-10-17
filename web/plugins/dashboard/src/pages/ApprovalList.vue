@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { dashboardApiClient } from '../api'
 
 const pendingCount = ref(0)
 const loading = ref(true)
@@ -8,8 +9,10 @@ const router = useRouter()
 
 onMounted(async () => {
   try {
-    const res = await fetch('/api/v1/operations?status=pending_approval&pageSize=1')
-    const json = await res.json()
+    const json = await dashboardApiClient().get<{ pagination?: { total?: number } }>(
+      '/api/v1/operations',
+      { params: { status: 'pending_approval', pageSize: 1 } },
+    )
     pendingCount.value = json?.pagination?.total ?? 0
   } catch {
     pendingCount.value = 0
