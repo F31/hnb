@@ -1,11 +1,17 @@
 package main
 
 import (
+	"context"
 	"database/sql"
+	"errors"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
+	"github.com/F31/hnb/pkg/iam"
 	"github.com/F31/hnb/pkg/kms"
 	_ "github.com/lib/pq"
 
@@ -39,7 +45,12 @@ func main() {
 			log.Fatal("MANAGEMENT_KUBECONFIG cannot be used by the SSH provisioner: CAPI lifecycle provider is not yet implemented")
 		}
 		provisioner := provision.New(opts...)
-		manager = provider.NewKubernetesManagerWithProvisioner(profile, provisioner)
+		manager = provider.NewKubernetesManagerWithProvisionerAndLoader(profile, provisioner,
+			func(ctx context.Context, tenantID string, ref provision.SecretReference) ([]byte, error) {
+				return provider.NewPGSecretResolver(db, cipher).Resolve(ctx, tenantID, profile.ProviderID, "kubeconfig", provider.SecretReference{
+					Provider: ref.Provider, Scope: ref.Scope, Name: ref.Name, Version: ref.Version,
+				})
+			})
 		log.Printf("using real Kubernetes lifecycle manager (self-hosted provisioning enabled)")
 	case "runtime-target.lifecycle.edge":
 		manager = provider.NewEdgeManager(profile)
@@ -49,8 +60,24 @@ func main() {
 	}
 	server := provider.NewServer(profile, manager, buildSecretResolver(db), provider.NewPGObserverRegistry(db))
 	addr := getEnv("LISTEN_ADDRESS", ":18082")
+	// Only /healthz is unauthenticated; every execution request must carry a
+	// platform service token for this exact audience.
+	authenticator, err := loadServiceAuthenticator(provider.Audience)
+	if err != nil {
+		log.Fatalf("service identity: %v", err)
+	}
+	handler := iam.RequireServiceIdentity(authenticator, iam.ActionExecute, iam.RuntimeExecutionScope(provider.ExecuteBodyLimit), "/healthz")(server.Handler())
+	httpServer := &http.Server{Addr: addr, Handler: handler, ReadHeaderTimeout: 5 * time.Second}
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+	go func() {
+		<-ctx.Done()
+		shutdown, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = httpServer.Shutdown(shutdown)
+	}()
 	log.Printf("runtime-target lifecycle provider %s listening on %s", profile.ProviderID, addr)
-	if err := http.ListenAndServe(addr, server.Handler()); err != nil {
+	if err := httpServer.ListenAndServe(); err != nil {
 		log.Fatal(err)
 	}
 }
@@ -88,4 +115,44 @@ func getEnv(key, fallback string) string {
 		return value
 	}
 	return fallback
+}
+
+// loadServiceAuthenticator builds the platform service-identity verifier for the
+// step execution endpoint. The lifecycle provider provisions real clusters, so an
+// unauthenticated caller must never reach it; the pattern mirrors
+// cmd/kubernetes-provider so every HNB provider enforces the same contract.
+func loadServiceAuthenticator(expectedAudience string) (*iam.ServiceAuthenticator, error) {
+	issuer := os.Getenv("API_TOKEN_ISSUER")
+	audience := os.Getenv("API_TOKEN_AUDIENCE")
+	if issuer == "" || audience != expectedAudience {
+		return nil, errors.New("API_TOKEN_ISSUER and the exact provider API_TOKEN_AUDIENCE are required")
+	}
+	manifestPath := os.Getenv("API_TOKEN_KEY_MANIFEST_FILE")
+	if manifestPath == "" {
+		return nil, errors.New("API_TOKEN_KEY_MANIFEST_FILE is required")
+	}
+	interval, err := iam.ParseKeyReloadInterval(getEnv("API_TOKEN_KEY_RELOAD_INTERVAL", "5s"))
+	if err != nil {
+		return nil, err
+	}
+	keys, err := iam.LoadReloadingKeySet(context.Background(), iam.ReloadingKeySetConfig{
+		ManifestPath: manifestPath,
+		Issuer:       issuer,
+		OnSuccess: func(stats iam.KeyReloadStats) {
+			log.Printf("identity key manifest generation %d loaded", stats.Generation)
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+	if err := keys.StartPolling(context.Background(), interval, func(err error) {
+		log.Printf("identity key manifest reload failed: %v", err)
+	}); err != nil {
+		return nil, err
+	}
+	verifier, err := iam.NewTokenVerifier(iam.TokenManagerConfig{Issuer: issuer, Audience: audience, AccessTTL: iam.MaxAccessTokenTTL}, keys)
+	if err != nil {
+		return nil, err
+	}
+	return iam.NewServiceAuthenticator(verifier)
 }

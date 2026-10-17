@@ -206,12 +206,12 @@ const lifecycleMatrix = {
   KubernetesTarget: {
     providerId: "runtime-target.lifecycle.kubernetes",
     observationSource: "Agent",
-    actions: { create: "REQUIRED", import: "REQUIRED", upgrade: "REQUIRED", unmanage: "REQUIRED" },
+    actions: { create: "REQUIRED", import: "REQUIRED", upgrade: "REQUIRED", unmanage: "REQUIRED", "node-add": "UNSUPPORTED" },
   },
   EdgeRuntimeTarget: {
     providerId: "runtime-target.lifecycle.edge",
     observationSource: "CloudCore",
-    actions: { create: "UNSUPPORTED", import: "REQUIRED", upgrade: "REQUIRED", unmanage: "REQUIRED" },
+    actions: { create: "UNSUPPORTED", import: "REQUIRED", upgrade: "REQUIRED", unmanage: "REQUIRED", "node-add": "UNSUPPORTED" },
   },
 };
 

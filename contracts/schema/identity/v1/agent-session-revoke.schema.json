@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.hnb.cloud/identity/v1/agent-session-revoke.schema.json",
+  "title": "AgentSessionRevokeResult",
+  "description": "Number of active agent sessions revoked for one tenant target. Revocation is idempotent; zero means no active session remained.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["revoked"],
+  "properties": {
+    "revoked": { "type": "integer", "minimum": 0 }
+  }
+}

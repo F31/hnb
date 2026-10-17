@@ -9,7 +9,7 @@ import (
 	"syscall"
 	"time"
 
-	_ "github.com/lib/pq"
+	"github.com/lib/pq"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -87,6 +87,13 @@ func main() {
 }
 
 func openDB(cfg *config.Config) (*sql.DB, error) {
+	if cfg.DBDSN != "" {
+		// Preserve the Secret-bound URL, including its TLS/query options.
+		if _, err := pq.ParseURL(cfg.DBDSN); err != nil {
+			return nil, fmt.Errorf("invalid DB_DSN")
+		}
+		return openPostgres(cfg.DBDSN)
+	}
 	dsn := fmt.Sprintf(
 		"host=%s port=%d user=%s dbname=%s sslmode=disable",
 		cfg.DBHost, cfg.DBPort, cfg.DBUser, cfg.DBName,
@@ -95,15 +102,22 @@ func openDB(cfg *config.Config) (*sql.DB, error) {
 		dsn += fmt.Sprintf(" password=%s", cfg.DBPassword)
 	}
 
+	return openPostgres(dsn)
+}
+
+func openPostgres(dsn string) (*sql.DB, error) {
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("sql open: %w", err)
 	}
 
-	db.SetMaxOpenConns(10)
-	db.SetMaxIdleConns(5)
+	db.SetMaxOpenConns(5)
+	db.SetMaxIdleConns(2)
+	db.SetConnMaxLifetime(5 * time.Minute)
+	db.SetConnMaxIdleTime(time.Minute)
 
 	if err := db.Ping(); err != nil {
+		db.Close()
 		return nil, fmt.Errorf("db ping: %w", err)
 	}
 	return db, nil

@@ -24,6 +24,13 @@ type Config struct {
 	ObserverTokenFile    string
 	ObserverGeneration   int64
 	ObservationInterval  time.Duration
+
+	EnrollmentSecretFile  string
+	AgentSessionFile      string
+	ExchangeURL           string
+	AgentTokenKeyManifest string
+	AgentTokenIssuer      string
+	AgentTokenAudience    string
 }
 
 func Load() (*Config, error) {
@@ -43,6 +50,12 @@ func Load() (*Config, error) {
 	flag.StringVar(&cfg.ObserverTokenFile, "observer-token-file", os.Getenv("OBSERVER_TOKEN_FILE"), "Signed observer identity token file")
 	flag.Int64Var(&cfg.ObserverGeneration, "observer-generation", envOrDefaultInt64("OBSERVER_GENERATION", 1), "Initial observer generation")
 	flag.DurationVar(&cfg.ObservationInterval, "observation-interval", envOrDefaultDuration("OBSERVATION_INTERVAL", 60*time.Second), "Observation report interval")
+	flag.StringVar(&cfg.EnrollmentSecretFile, "enrollment-secret-file", os.Getenv("AGENT_ENROLLMENT_SECRET_FILE"), "Single-use enrollment secret file")
+	flag.StringVar(&cfg.AgentSessionFile, "agent-session-file", os.Getenv("AGENT_SESSION_FILE"), "Private file for the renewable agent session (restart recovery)")
+	flag.StringVar(&cfg.ExchangeURL, "exchange-url", os.Getenv("AGENT_EXCHANGE_URL"), "Platform base URL for enrollment exchange and session renewal")
+	flag.StringVar(&cfg.AgentTokenKeyManifest, "agent-token-key-manifest-file", os.Getenv("AGENT_TOKEN_KEY_MANIFEST_FILE"), "Public key manifest for verifying renewed agent sessions")
+	flag.StringVar(&cfg.AgentTokenIssuer, "agent-token-issuer", os.Getenv("AGENT_TOKEN_ISSUER"), "Expected issuer of agent session tokens")
+	flag.StringVar(&cfg.AgentTokenAudience, "agent-token-audience", envOrDefault("AGENT_TOKEN_AUDIENCE", "hnb-apiserver-tunnel"), "Expected audience of agent session tokens")
 
 	flag.Parse()
 	if cfg.KubeTokenFile != "" {
@@ -53,8 +66,12 @@ func Load() (*Config, error) {
 		cfg.KubeToken = token
 	}
 
-	if cfg.TokenFile == "" {
-		return nil, fmt.Errorf("AGENT_TOKEN_FILE is required")
+	if cfg.EnrollmentSecretFile != "" {
+		if cfg.AgentSessionFile == "" || cfg.ExchangeURL == "" || cfg.AgentTokenIssuer == "" || cfg.AgentTokenKeyManifest == "" {
+			return nil, fmt.Errorf("AGENT_SESSION_FILE, AGENT_EXCHANGE_URL, AGENT_TOKEN_ISSUER, and AGENT_TOKEN_KEY_MANIFEST_FILE are required with AGENT_ENROLLMENT_SECRET_FILE")
+		}
+	} else if cfg.TokenFile == "" {
+		return nil, fmt.Errorf("AGENT_TOKEN_FILE or AGENT_ENROLLMENT_SECRET_FILE is required")
 	}
 	if cfg.TenantID == "" || cfg.TenantID == "*" || cfg.ClusterID == "" || cfg.ClusterID == "*" {
 		return nil, fmt.Errorf("explicit TENANT_ID and CLUSTER_ID are required")

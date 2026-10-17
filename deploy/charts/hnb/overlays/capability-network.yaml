@@ -1,0 +1,9 @@
+# Select one concrete CNI implementation together with its message router.
+network-registry: {enabled: true, replicaCount: 1}
+cilium-provider: {enabled: true, replicaCount: 1}
+gateway-provider: {enabled: true, replicaCount: 1}
+
+# Each NATS client authenticates as the platform plane account; the Secret must
+# carry user/password keys and never appears in values.
+nats:
+  existingAccountSecret: hnb-platform-nats

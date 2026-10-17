@@ -208,6 +208,9 @@ func inputMap(input LifecycleInput) map[string]any {
 	if input.CredentialSecretRef != nil {
 		out["credentialSecretRef"] = map[string]any{"provider": input.CredentialSecretRef.Provider, "scope": input.CredentialSecretRef.Scope, "name": input.CredentialSecretRef.Name, "version": input.CredentialSecretRef.Version}
 	}
+	if input.SSHSecretRef != nil {
+		out["sshSecretRef"] = map[string]any{"provider": input.SSHSecretRef.Provider, "scope": input.SSHSecretRef.Scope, "name": input.SSHSecretRef.Name, "version": input.SSHSecretRef.Version}
+	}
 	return out
 }
 

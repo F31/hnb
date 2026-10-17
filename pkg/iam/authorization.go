@@ -35,6 +35,7 @@ const (
 	ResourceRetainedVolume            AuthorizationResource = "retainedVolume"
 	ResourceStorageAlertRule          AuthorizationResource = "storageAlertRule"
 	ResourceSecret                    AuthorizationResource = "secret"
+	ResourceServiceIdentity           AuthorizationResource = "serviceIdentity"
 )
 
 const (
@@ -122,7 +123,7 @@ func ClusterActionForIntentKind(kind string) (AuthorizationAction, bool) {
 	switch kind {
 	case "CreateKubernetesTarget", "ImportRuntimeTarget":
 		return ActionCreate, true
-	case "UpgradeRuntimeTarget":
+	case "UpgradeRuntimeTarget", "AddNodesRuntimeTarget":
 		return ActionUpdate, true
 	case "DeleteRuntimeTarget":
 		return ActionDelete, true

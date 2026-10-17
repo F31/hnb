@@ -1,0 +1,53 @@
+# Merge after release/identity bindings: helm template -f bindings.yaml -f this.yaml
+# Small-install candidate budgets, not a certified production capacity. Keep all
+# 19 workloads; retain subchart burst limits. Requests are not measured peak usage.
+# 2Gi/1Gi PVCs apply to new installations only: never shrink existing claims.
+global:
+  deploymentStage: full
+  deploymentProfile: Minimal
+postgresql:
+  enabled: true
+  storage: {size: 2Gi}
+nats:
+  enabled: true
+  storage: {size: 1Gi}
+apiserver: &core
+  enabled: true
+  replicaCount: 1
+  resources:
+    requests: {cpu: 100m, memory: 192Mi}
+operation-worker: *core
+platform-api: *core
+tunnel-server: &service
+  enabled: true
+  replicaCount: 1
+  resources:
+    requests: {cpu: 75m, memory: 96Mi}
+cluster-router: *service
+extension-controller: *service
+app-market: *service
+plugin-worker: *service
+runtime-target-lifecycle-provider: *service
+gateway-provider: *service
+kubernetes-provider: *service
+rbac-syncer: &light
+  enabled: true
+  replicaCount: 1
+  resources:
+    requests: {cpu: 25m, memory: 48Mi}
+alert-manager: *light
+cluster-agent: *light
+network-registry: *light
+cilium-provider: *light
+portal:
+  enabled: true
+  replicaCount: 1
+  resources:
+    requests: {cpu: 25m, memory: 64Mi}
+# Independent optional Packs; not needed for the Minimal business chain.
+calico-provider: {enabled: false}
+kube-ovn-provider: {enabled: false}
+network-provider: {enabled: false}
+karmada-provider: {enabled: false}
+edge-provider: {enabled: false}
+gslb-controller: {enabled: false}

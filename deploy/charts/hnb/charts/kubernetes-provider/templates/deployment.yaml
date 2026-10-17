@@ -15,11 +15,23 @@ spec:
       labels:
         app.kubernetes.io/name: {{ .Chart.Name }}
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: {{ .Values.runAsUser | default 65532 }}
+        runAsGroup: {{ .Values.runAsUser | default 65532 }}
+        fsGroup: {{ .Values.runAsUser | default 65532 }}
+        fsGroupChangePolicy: OnRootMismatch
       containers:
         - name: {{ .Chart.Name }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default $.Values.global.imageTag }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy | default $.Values.global.imagePullPolicy }}
+          image: {{ include "hnb.image" . }}
+          imagePullPolicy: {{ include "hnb.imagePullPolicy" . }}
           env:
+            - name: LISTEN_ADDRESS
+              value: {{ .Values.listenAddress | quote }}
+            - name: ALLOWED_NAMESPACES
+              value: {{ required "kubernetes-provider.allowedNamespaces is required" (join "," .Values.allowedNamespaces) | quote }}
+            - name: MAX_REPLICAS
+              value: {{ .Values.maxReplicas | quote }}
             - name: API_TOKEN_ISSUER
               value: {{ required "kubernetes-provider.identity.issuer is required" .Values.identity.issuer | quote }}
             - name: API_TOKEN_AUDIENCE
@@ -31,6 +43,10 @@ spec:
           ports:
             - containerPort: 8080
               name: http
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
@@ -41,4 +57,4 @@ spec:
         - name: identity-public-key
           secret:
             secretName: {{ required "kubernetes-provider.identity.existingManifestSecret is required" .Values.identity.existingManifestSecret }}
-            defaultMode: 0400
+            defaultMode: 0440

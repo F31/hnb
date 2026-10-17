@@ -28,6 +28,7 @@ export type { ScopedPermission } from './models/ScopedPermission';
 export type { secret_reference_schema } from './models/secret_reference_schema';
 export type { tenant_switch_schema } from './models/tenant_switch_schema';
 export type { TenantSwitch } from './models/TenantSwitch';
+export type { workerNodes } from './models/workerNodes';
 
 export { RuntimeIntentsService } from './services/RuntimeIntentsService';
 export { SessionService } from './services/SessionService';

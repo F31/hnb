@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.hnb.cloud/identity/v1/agent-enrollment-exchange.schema.json",
+  "title": "AgentEnrollmentExchange",
+  "description": "Single-use enrollment exchange request. A token bound to target A cannot enroll target B or another tenant; successful exchange is atomic and yields at most one session.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["enrollmentSecret", "tenantId", "targetId"],
+  "properties": {
+    "enrollmentSecret": { "type": "string", "minLength": 43, "maxLength": 512 },
+    "tenantId": { "type": "string", "minLength": 1, "maxLength": 128, "not": { "const": "*" } },
+    "targetId": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "subject": { "const": "cluster-agent" }
+  }
+}

@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Chart.Name }}
+  labels:
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ .Chart.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ .Chart.Name }}
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: {{ .Values.runAsUser | default 65532 }}
+        runAsGroup: {{ .Values.runAsUser | default 65532 }}
+        fsGroup: {{ .Values.runAsUser | default 65532 }}
+        fsGroupChangePolicy: OnRootMismatch
+      containers:
+        - name: {{ .Chart.Name }}
+          image: {{ include "hnb.image" . }}
+          imagePullPolicy: {{ include "hnb.imagePullPolicy" . }}
+          env:
+            - name: PROVIDER_ID
+              value: {{ required "runtime-target-lifecycle-provider.providerId is required" .Values.providerId | quote }}
+            - name: LISTEN_ADDRESS
+              value: {{ required "runtime-target-lifecycle-provider.listenAddress is required" .Values.listenAddress | quote }}
+            - name: DB_DSN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ required "runtime-target-lifecycle-provider.db.existingSecret is required" .Values.db.existingSecret }}
+                  key: {{ .Values.db.secretKey | quote }}
+            - name: HNB_MASTER_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ required "runtime-target-lifecycle-provider.masterKeySecret is required" .Values.masterKeySecret }}
+                  key: key
+            # Service identity for step execution. The provider refuses to start
+            # without these, so an unauthenticated caller can never provision.
+            - name: API_TOKEN_ISSUER
+              value: {{ required "runtime-target-lifecycle-provider.identity.issuer is required" .Values.identity.issuer | quote }}
+            - name: API_TOKEN_AUDIENCE
+              value: {{ required "runtime-target-lifecycle-provider.identity.audience is required" .Values.identity.audience | quote }}
+            - name: API_TOKEN_KEY_MANIFEST_FILE
+              value: /var/run/hnb-identity/{{ .Values.identity.manifestKey }}
+          ports:
+            - containerPort: 18082
+              name: http
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: identity-keys
+              mountPath: /var/run/hnb-identity
+              readOnly: true
+      volumes:
+        - name: identity-keys
+          secret:
+            secretName: {{ required "runtime-target-lifecycle-provider.identity.existingManifestSecret is required" .Values.identity.existingManifestSecret }}
+            defaultMode: 0440

@@ -1,12 +1,27 @@
 replicaCount: 1
+probes:
+  enabled: true
 image:
   repository: hnb/{{ .Chart.Name }}
-  tag: ""
+  digest: ""
   pullPolicy: ""
 nats:
   url: ""
+  # Plane account Secret providing user/password for NATS authentication.
+  existingAccountSecret: ""
 db:
+  existingSecret: ""
+  secretKey: dsn
   dsn: ""
+# AES-256-GCM master key (32 bytes of hex, key "key") sealing SecretReference
+# payloads. Without it secrets:register cannot seal credentials, so it must be
+# the same Secret the lifecycle providers use to unseal them.
+masterKeySecret: ""
+# Independent conformance runner public keys, JSON signer ID -> hex Ed25519 key.
+# Empty means the qualification endpoint fails closed; no signing key is mounted.
+conformance:
+  existingTrustSecret: ""
+  trustKey: keys.json
 identity:
   issuer: ""
   reloadInterval: 5s
@@ -20,8 +35,8 @@ staleChallenge:
   unmanagePolicy: require_approval
 resources:
   requests:
-    cpu: 200m
+    cpu: 125m
     memory: 256Mi
   limits:
-    cpu: 500m
+    cpu: 400m
     memory: 512Mi

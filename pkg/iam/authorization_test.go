@@ -168,6 +168,7 @@ func TestClusterActionMappings(t *testing.T) {
 		{kind: "CreateKubernetesTarget", want: ActionCreate},
 		{kind: "ImportRuntimeTarget", want: ActionCreate},
 		{kind: "UpgradeRuntimeTarget", want: ActionUpdate},
+		{kind: "AddNodesRuntimeTarget", want: ActionUpdate},
 		{kind: "DeleteRuntimeTarget", want: ActionDelete},
 	}
 	for _, test := range tests {

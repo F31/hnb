@@ -220,7 +220,12 @@ func (r *HTTPRunner) Execute(
 	if err != nil {
 		return nil, "", fmt.Errorf("encode runtime provider request: %w", err)
 	}
-	token, err := provider.TokenSource.Token(ctx)
+	var token string
+	if tenantSource, ok := provider.TokenSource.(iam.TenantTokenSource); ok {
+		token, err = tenantSource.TokenForTenant(ctx, execution.TenantID)
+	} else {
+		token, err = provider.TokenSource.Token(ctx)
+	}
 	if err != nil {
 		return nil, "", &ProviderError{Code: ErrorTargetUnavailable, Message: fmt.Sprintf("load credential for runtime provider %q: %v", execution.ProviderID, err), Retryable: true}
 	}

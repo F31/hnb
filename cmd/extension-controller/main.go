@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -16,6 +17,7 @@ import (
 	"github.com/F31/hnb/cmd/extension-controller/internal/config"
 	"github.com/F31/hnb/cmd/extension-controller/internal/metrics"
 	"github.com/F31/hnb/cmd/extension-controller/internal/nats"
+	dbpkg "github.com/F31/hnb/pkg/db"
 	"github.com/F31/hnb/pkg/extension"
 	"github.com/F31/hnb/pkg/messaging"
 )
@@ -32,7 +34,7 @@ func main() {
 	}
 	defer db.Close()
 
-	if err := db.Ping(); err != nil {
+	if err := dbpkg.WaitForReady(context.Background(), db); err != nil {
 		log.Fatalf("db ping: %v", err)
 	}
 
@@ -53,6 +55,14 @@ func main() {
 	extReconciler := extension.NewExtensionReconciler(extManager, extStore, time.Duration(cfg.ReconcileInterval)*time.Second)
 
 	metrics.Serve(cfg.ListenAddr)
+	healthServer := &http.Server{Addr: ":8081", ReadHeaderTimeout: 5 * time.Second,
+		Handler: dbpkg.WithHealth(http.NotFoundHandler(), db, nc.IsConnected)}
+	defer healthServer.Close()
+	go func() {
+		if err := healthServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("health server: %v", err)
+		}
+	}()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

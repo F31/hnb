@@ -25,4 +25,17 @@ validated by the owning service, and all target mutations still require an Opera
 - `schema/storage/v1/` owns storage inventory, backend, offering, binding, and condition domain shapes.
 - `STORAGE_API_AUTHORIZATION.md` defines resource-ID scoping and deprecates the generic Kubernetes proxy for storage management.
 - Storage mutations are intentionally absent until typed intent, ExecutionPlan, and Operation contracts are introduced.
+
+## Service Credential Consumers
+
+- Service credential consumers bind one subject/audience/permission with `schema/identity/v1/service-credential-scope.schema.json`; the scope is not workload authentication.
+- Owning-plane registration uses `schema/identity/v1/service-identity-create.schema.json`; issuance/renewal responses use `schema/identity/v1/service-credential.schema.json`, whose credential value is `writeOnly` and must never be persisted or audited.
+- The apiserver exposes restricted issue/renew/revoke endpoints with `serviceIdentity` authorization tuples. The BFF continues per-request delegation; worker/Provider deployment wiring and real cross-TTL drills remain pending. See `docs/deployment/service-credential-renewal.md`.
+- Agent onboarding uses `schema/identity/v1/agent-enrollment-create.schema.json` (single-use secret, `writeOnly`), `agent-enrollment-exchange.schema.json`, `agent-session.schema.json` (session ID/generation), and `agent-session-revoke.schema.json`. The exchange is atomic and bound to the exact tenant/target; renewal keeps the session/generation and revocation closes the exact tunnel connection.
+
+## Product Readiness Evidence
+
+- `schema/readiness/v1/product-readiness.schema.json` owns offline stage plans, approved numeric budgets, release/environment identity, and retained run evidence.
+- `node scripts/validate-product-readiness.mjs --plan PLAN --evidence RUN --root ARTIFACT_ROOT` verifies schema, scope, stage minima, report bytes, and budget observations without changing the registry or granting execution authority.
+- See `docs/acceptance/product-readiness-manifests.md` for the trust boundary and `npm run readiness:test` for refusal-path tests. This is an offline JSON contract; it does not add an HTTP API or generated transport client.
 - `APP_MARKET_ARTIFACT_STORAGE.md` defines the ownership boundary: workload offerings/bindings are only Kubernetes persistent-volume/StorageClass contracts and never object buckets or App Market `ArtifactStorageProfile` records.

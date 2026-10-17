@@ -17,6 +17,7 @@ export type compatibility_matrix_schema = {
             import: 'REQUIRED' | 'UNSUPPORTED';
             upgrade: 'REQUIRED' | 'UNSUPPORTED';
             unmanage: 'REQUIRED' | 'UNSUPPORTED';
+            'node-add': 'REQUIRED' | 'UNSUPPORTED';
         };
     }>;
 };

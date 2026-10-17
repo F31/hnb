@@ -13,7 +13,8 @@
         "create": "REQUIRED",
         "import": "REQUIRED",
         "upgrade": "REQUIRED",
-        "unmanage": "REQUIRED"
+        "unmanage": "REQUIRED",
+        "node-add": "UNSUPPORTED"
       }
     },
     {
@@ -24,7 +25,8 @@
         "create": "UNSUPPORTED",
         "import": "REQUIRED",
         "upgrade": "REQUIRED",
-        "unmanage": "REQUIRED"
+        "unmanage": "REQUIRED",
+        "node-add": "UNSUPPORTED"
       }
     }
   ]

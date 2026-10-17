@@ -29,6 +29,12 @@ const (
 	operationConsumer     = "operation-worker"
 	maxDeliveries         = 10
 	consumerMaxDeliveries = maxDeliveries + 1
+	// Per-stream byte cap. MaxBytes is a ceiling, not a reservation, but JetStream
+	// rejects a ceiling larger than the store it was given, and it withholds about
+	// a quarter of the volume as headroom, so these stay well under a small
+	// install's usable store. MaxAge below is what actually bounds growth.
+	smallInstallStreamBytes = 128 << 20
+	domainEventStreamBytes  = 256 << 20
 )
 
 var operationBackoff = []time.Duration{
@@ -122,7 +128,7 @@ func (w *Worker) ensureStreams(ctx context.Context) error {
 		Storage:    jetstream.FileStorage,
 		Retention:  jetstream.WorkQueuePolicy,
 		MaxAge:     7 * 24 * time.Hour,
-		MaxBytes:   1 << 30,
+		MaxBytes:   smallInstallStreamBytes,
 		MaxMsgSize: 2 << 20,
 		Discard:    jetstream.DiscardOld,
 		Duplicates: 2 * time.Minute,
@@ -136,7 +142,7 @@ func (w *Worker) ensureStreams(ctx context.Context) error {
 		Storage:    jetstream.FileStorage,
 		Retention:  jetstream.LimitsPolicy,
 		MaxAge:     30 * 24 * time.Hour,
-		MaxBytes:   1 << 30,
+		MaxBytes:   smallInstallStreamBytes,
 		MaxMsgSize: 2 << 20,
 		Discard:    jetstream.DiscardOld,
 		Duplicates: 2 * time.Minute,

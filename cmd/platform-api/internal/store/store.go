@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"time"
+
+	"github.com/F31/hnb/pkg/core"
 )
 
 var (
@@ -246,6 +248,7 @@ type ManifestStore interface {
 	ExpireConformance(ctx context.Context) ([]string, error)
 	CheckProviderConformance(ctx context.Context, providerID string) error
 	UpdateConformanceLevel(ctx context.Context, providerID, level string, expiresAt *time.Time) error
+	RegisterConformance(ctx context.Context, report core.SignedConformanceReport) error
 }
 
 // OperationStore defines the operation engine data-access contract.
@@ -306,4 +309,5 @@ type Store interface {
 	ManifestStore
 	SecretMetadataStore
 	SecurityAuditStore
+	ReleaseCatalogStore
 }

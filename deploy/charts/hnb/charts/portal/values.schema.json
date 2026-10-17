@@ -1,0 +1,22 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "image": {
+      "type": "object",
+      "properties": {
+        "repository": {"type": "string", "minLength": 1},
+        "digest": {"type": "string", "pattern": "^$|^sha256:[0-9a-f]{64}$"}
+      }
+    },
+    "apiBaseURL": {"type": "string", "pattern": "^https?://[a-zA-Z0-9.-]+(:[0-9]+)?$"},
+    "ingress": {
+      "type": "object",
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "host": {"type": "string"},
+        "tlsSecret": {"type": "string"}
+      }
+    }
+  }
+}

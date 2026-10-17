@@ -15,10 +15,16 @@ spec:
       labels:
         app.kubernetes.io/name: {{ .Chart.Name }}
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: {{ .Values.runAsUser | default 65532 }}
+        runAsGroup: {{ .Values.runAsUser | default 65532 }}
+        fsGroup: {{ .Values.runAsUser | default 65532 }}
+        fsGroupChangePolicy: OnRootMismatch
       containers:
         - name: {{ .Chart.Name }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default $.Values.global.imageTag }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy | default $.Values.global.imagePullPolicy }}
+          image: {{ include "hnb.image" . }}
+          imagePullPolicy: {{ include "hnb.imagePullPolicy" . }}
           env:
             - name: NATS_URL
               value: {{ .Values.nats.url | default $.Values.global.nats.url }}
@@ -28,19 +34,29 @@ spec:
               value: /var/run/hnb-nats/tls.key
             - name: NATS_TLS_CA_FILE
               value: /var/run/hnb-nats/ca.crt
+            {{- include "network-registry.natsAccountEnv" (dict "root" $ "component" .Values.nats) | nindent 12 }}
             - name: DB_DSN
-              value: {{ .Values.db.dsn | default $.Values.global.postgresql.dsn }}
+              {{- if .Values.db.existingSecret }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.db.existingSecret | quote }}
+                  key: {{ .Values.db.secretKey | default "dsn" | quote }}
+              {{- else }}
+              value: {{ .Values.db.dsn | default $.Values.global.postgresql.dsn | quote }}
+              {{- end }}
           ports:
             - containerPort: 8080
               name: http
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
+{{- include "network-registry.natsAccountMounts" (dict "root" $ "component" .Values.nats) | nindent 12 }}
             - name: nats-client-tls
               mountPath: /var/run/hnb-nats
               readOnly: true
       volumes:
+{{- include "network-registry.natsAccountVolumes" (dict "root" $ "component" .Values.nats) | nindent 8 }}
         - name: nats-client-tls
           secret:
             secretName: {{ required "network-registry.nats.existingClientTLSSecret is required" .Values.nats.existingClientTLSSecret }}
-            defaultMode: 0400
+            defaultMode: 0440

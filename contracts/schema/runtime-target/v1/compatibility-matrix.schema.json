@@ -26,12 +26,13 @@
           "actions": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["create", "import", "upgrade", "unmanage"],
+            "required": ["create", "import", "upgrade", "unmanage", "node-add"],
             "properties": {
               "create": { "enum": ["REQUIRED", "UNSUPPORTED"] },
               "import": { "enum": ["REQUIRED", "UNSUPPORTED"] },
               "upgrade": { "enum": ["REQUIRED", "UNSUPPORTED"] },
-              "unmanage": { "enum": ["REQUIRED", "UNSUPPORTED"] }
+              "unmanage": { "enum": ["REQUIRED", "UNSUPPORTED"] },
+              "node-add": { "enum": ["REQUIRED", "UNSUPPORTED"] }
             }
           }
         }

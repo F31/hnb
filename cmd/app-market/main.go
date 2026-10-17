@@ -30,6 +30,7 @@ import (
 	"github.com/F31/hnb/pkg/appstore/security"
 	"github.com/F31/hnb/pkg/appstore/storage"
 	"github.com/F31/hnb/pkg/appstore/store"
+	dbpkg "github.com/F31/hnb/pkg/db"
 	"github.com/F31/hnb/pkg/iam"
 	"github.com/F31/hnb/pkg/messaging"
 )
@@ -188,6 +189,14 @@ func loadConfig() (*Config, error) {
 		TransferReplicaCount: getInt("ARTIFACT_TRANSFER_REPLICA_COUNT", 1),
 		TrivyEndpoint:        getEnv("TRIVY_ENDPOINT", ""),
 	}
+	if !cfg.TransferReadOnly && cfg.TransferStagingDir == defaultTransferDir {
+		// A scratch image ships no writable /tmp, so the default path would fail
+		// on every deploy that does not mount one. Fall back to the first
+		// writable location instead of refusing to start.
+		if resolved, ok := resolveDefaultStagingDir(); ok {
+			cfg.TransferStagingDir = resolved
+		}
+	}
 	if cfg.TokenIssuer == "" || cfg.TokenAudience != "hnb-app-market" || cfg.TokenKeyManifestPath == "" {
 		return nil, errors.New("API_TOKEN_ISSUER, API_TOKEN_AUDIENCE=hnb-app-market, and API_TOKEN_KEY_MANIFEST_FILE are required")
 	}
@@ -200,6 +209,28 @@ func loadConfig() (*Config, error) {
 		return nil, err
 	}
 	return cfg, nil
+}
+
+// resolveDefaultStagingDir returns the first writable staging root. A scratch
+// image has no /tmp, so a hard-coded default would make the service refuse to
+// start on any deployment that does not mount one.
+func resolveDefaultStagingDir() (string, bool) {
+	for _, candidate := range []string{os.TempDir(), "/tmp", "/var/tmp", "/dev/shm"} {
+		if candidate == "" {
+			continue
+		}
+		probe, err := os.CreateTemp(candidate, ".hnb-staging-probe-*")
+		if err != nil {
+			continue
+		}
+		name := probe.Name()
+		if err := probe.Close(); err == nil {
+			if err := os.Remove(name); err == nil {
+				return candidate, true
+			}
+		}
+	}
+	return "", false
 }
 
 func validateTransferConfig(cfg *Config) error {
@@ -350,7 +381,7 @@ func main() {
 	}
 	defer db.Close()
 
-	if err := db.Ping(); err != nil {
+	if err := dbpkg.WaitForReady(context.Background(), db); err != nil {
 		log.Fatalf("db ping: %v", err)
 	}
 
@@ -1109,7 +1140,7 @@ func main() {
 				log.Printf("[app-market] scan worker claim: %v", err)
 				continue
 			}
-scanner := security.NewScannerFromHarbor(cfg.HarborURL, cfg.HarborUser, cfg.HarborPass)
+			scanner := security.NewScannerFromHarbor(cfg.HarborURL, cfg.HarborUser, cfg.HarborPass)
 			for _, report := range reports {
 				_ = securityRepo.UpdateReportState(report.ID, report.TenantID, "running", nil, nil, "")
 				artifact, err := artifactRepo.Get(report.ArtifactID, report.TenantID)
@@ -1503,7 +1534,7 @@ scanner := security.NewScannerFromHarbor(cfg.HarborURL, cfg.HarborUser, cfg.Harb
 		http.ListenAndServe(cfg.MetricsAddr, promhttp.Handler())
 	}()
 
-	httpServer := &http.Server{Addr: cfg.ListenAddr, Handler: appMarketHTTPHandler(verifier, mux)}
+	httpServer := &http.Server{Addr: cfg.ListenAddr, Handler: dbpkg.WithHealth(appMarketHTTPHandler(verifier, mux), db, nc.IsConnected)}
 
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)

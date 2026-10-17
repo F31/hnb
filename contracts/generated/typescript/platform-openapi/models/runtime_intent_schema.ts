@@ -4,9 +4,10 @@
 /* eslint-disable */
 import type { retainedVolumeResource } from './retainedVolumeResource';
 import type { secret_reference_schema } from './secret_reference_schema';
+import type { workerNodes } from './workerNodes';
 export type runtime_intent_schema = {
     apiVersion: any;
-    kind: 'InstallRelease' | 'UninstallRelease' | 'UpgradeRelease' | 'RollbackRelease' | 'ChangeConfiguration' | 'CreateKubernetesTarget' | 'ImportRuntimeTarget' | 'UpgradeRuntimeTarget' | 'DeleteRuntimeTarget' | 'ImportStorageClassBinding' | 'ReconcileStorageClassBinding' | 'InstallStorageDriver' | 'UpgradeStorageDriver' | 'UninstallStorageDriver' | 'ReleaseRetainedVolume' | 'SanitizeRetainedVolume';
+    kind: 'InstallRelease' | 'UninstallRelease' | 'UpgradeRelease' | 'RollbackRelease' | 'ChangeConfiguration' | 'CreateKubernetesTarget' | 'ImportRuntimeTarget' | 'UpgradeRuntimeTarget' | 'DeleteRuntimeTarget' | 'AddNodesRuntimeTarget' | 'ImportStorageClassBinding' | 'ReconcileStorageClassBinding' | 'InstallStorageDriver' | 'UpgradeStorageDriver' | 'UninstallStorageDriver' | 'ReleaseRetainedVolume' | 'SanitizeRetainedVolume';
     metadata: {
         idempotencyKey: string;
         correlationId: string;
@@ -36,7 +37,9 @@ export type runtime_intent_schema = {
         statefulSetDependencies?: any[];
         targetRef?: string;
         scopeRef?: string;
-        parameters?: Record<string, (string | number | boolean | null)>;
+        parameters?: {
+            nodes?: workerNodes;
+        };
         secretReferences?: Array<secret_reference_schema>;
         credentialSecretRef?: secret_reference_schema;
         sshSecretRef?: secret_reference_schema;

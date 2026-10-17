@@ -1,22 +1,34 @@
 replicaCount: 1
+probes:
+  enabled: true
 image:
   repository: hnb/{{ .Chart.Name }}
-  tag: ""
+  digest: ""
   pullPolicy: ""
 nats:
   url: ""
+  # Plane account Secret providing user/password for NATS authentication.
+  existingAccountSecret: ""
   existingClientTLSSecret: ""
 db:
+  existingSecret: ""
+  secretKey: dsn
+  # Legacy inline DSN; existingSecret takes precedence.
   dsn: ""
 identity:
   issuer: ""
   reloadInterval: 5s
   existingManifestSecret: ""
   manifestKey: manifest.json
+transfer:
+  # A scratch image has no writable /tmp, so artifact transfer staging is an
+  # explicit bounded volume rather than a host path.
+  stagingDir: /var/lib/hnb/transfer
+  stagingSizeLimit: 1Gi
 resources:
   requests:
-    cpu: 200m
-    memory: 256Mi
+    cpu: 100m
+    memory: 128Mi
   limits:
-    cpu: 500m
-    memory: 512Mi
+    cpu: 250m
+    memory: 256Mi

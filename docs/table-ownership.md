@@ -52,6 +52,10 @@
 | `signing_key_lifecycle_events` | iam | `apiserver` | — | 所有其他服务 |
 | `users` | iam | `apiserver` | — | 所有其他服务 |
 | `auth_refresh_tokens` | iam | `apiserver` | — | 所有其他服务 |
+| `service_identities` | iam | `apiserver` | — | 所有其他服务 |
+| `service_credentials` | iam | `apiserver` | — | 所有其他服务 |
+| `service_enrollment_credentials` | iam | `apiserver` | — | 所有其他服务 |
+| `agent_sessions` | iam | `apiserver` | — | 所有其他服务 |
 
 ## 4. 操作引擎（008, 013, 016）
 

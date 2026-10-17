@@ -1,0 +1,12 @@
+schemaVersion: migration-renumbering/v1
+# An identity mapping, not evidence that these migrations ran in a database.
+# SQL bytes (including the legacy header comments) are intentionally unchanged.
+entries:
+  - legacyName: 066_tenant_cluster_allocations.sql
+    name: 102_tenant_cluster_allocations.sql
+    version: 102
+    checksum: ff238feb6dec923245acd13843b7d92e4a1bf962aa9b6df34d65567ad13af144
+  - legacyName: 067_operation_batches_and_platform_extensions.sql
+    name: 103_operation_batches_and_platform_extensions.sql
+    version: 103
+    checksum: 4f28e972f4f96399b438293b3950e7c6f1b3841de3280ee37af796f4b85053b7

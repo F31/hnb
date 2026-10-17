@@ -1,0 +1,46 @@
+# Opt-in initial composition. Merge after digest/identity/Secret bindings.
+# No complete Minimal certification; add capability overlays as needed.
+# Each NATS client authenticates as its plane account; bind the plane account
+# Secret (keys: user, password) so the credential stays out of values.
+global:
+  deploymentStage: startup
+  deploymentProfile: ""
+postgresql:
+  enabled: true
+  # Fresh installations only; never use this overlay to shrink an existing PVC.
+  storage: {size: 10Gi}
+nats:
+  enabled: true
+  storage: {size: 5Gi}
+apiserver: &core
+  enabled: true
+  replicaCount: 1
+  nats:
+    existingAccountSecret: hnb-platform-nats
+operation-worker: *core
+platform-api: *core
+extension-controller: *core
+app-market:
+  enabled: true
+  replicaCount: 1
+  nats:
+    existingAccountSecret: hnb-market-nats
+cluster-router: *core
+tunnel-server: *core
+portal: *core
+# Implementations stay independent; enabling a capability does not rebuild Core.
+plugin-worker: {enabled: false}
+runtime-target-lifecycle-provider: {enabled: false}
+kubernetes-provider: {enabled: false}
+gateway-provider: {enabled: false}
+network-registry: {enabled: false}
+cilium-provider: {enabled: false}
+cluster-agent: {enabled: false}
+rbac-syncer: {enabled: false}
+alert-manager: {enabled: false}
+calico-provider: {enabled: false}
+kube-ovn-provider: {enabled: false}
+network-provider: {enabled: false}
+karmada-provider: {enabled: false}
+edge-provider: {enabled: false}
+gslb-controller: {enabled: false}

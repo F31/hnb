@@ -161,6 +161,18 @@ var apiserverRoutes = []iam.RouteMetadata{
 	{Method: http.MethodPut, Pattern: "/api/v1/market/{path...}", ResourceKind: "market", Action: iam.ActionExecute},
 	{Method: http.MethodPatch, Pattern: "/api/v1/market/{path...}", ResourceKind: "market", Action: iam.ActionExecute},
 	{Method: http.MethodDelete, Pattern: "/api/v1/market/{path...}", ResourceKind: "market", Action: iam.ActionExecute},
+	{Method: http.MethodPost, Pattern: "/api/v1/service-identities", ResourceKind: string(iam.ResourceServiceIdentity), Action: iam.ActionCreate},
+	{Method: http.MethodGet, Pattern: "/api/v1/service-identities", ResourceKind: string(iam.ResourceServiceIdentity), Action: iam.ActionList},
+	{Method: http.MethodGet, Pattern: "/api/v1/service-identities/{id}", ResourceKind: string(iam.ResourceServiceIdentity), ResourceIDParam: "id", Action: iam.ActionRead},
+	{Method: http.MethodPost, Pattern: "/api/v1/service-identities/{id}/credentials", ResourceKind: string(iam.ResourceServiceIdentity), ResourceIDParam: "id", Action: iam.ActionUpdate},
+	{Method: http.MethodDelete, Pattern: "/api/v1/service-identities/{id}", ResourceKind: string(iam.ResourceServiceIdentity), ResourceIDParam: "id", Action: iam.ActionDelete},
+	{Method: http.MethodPost, Pattern: "/api/v1/service-identities/{id}/credentials/{credentialId}:revoke", ResourceKind: string(iam.ResourceServiceIdentity), ResourceIDParam: "id", Action: iam.ActionDelete},
+	{Method: http.MethodPost, Pattern: "/api/v1/service-credentials:renew", Public: true},
+	{Method: http.MethodPost, Pattern: "/api/v1/resources/clusters/{id}/agent-enrollments", ResourceKind: string(iam.ResourceCluster), ResourceIDParam: "id", Action: iam.ActionRead},
+	{Method: http.MethodPost, Pattern: "/api/v1/agent-enrollments:exchange", Public: true},
+	{Method: http.MethodDelete, Pattern: "/api/v1/resources/clusters/{id}/agent-enrollments/{enrollmentId}", ResourceKind: string(iam.ResourceCluster), ResourceIDParam: "id", Action: iam.ActionUpdate},
+	{Method: http.MethodPost, Pattern: "/api/v1/agent-sessions:renew", Public: true},
+	{Method: http.MethodDelete, Pattern: "/api/v1/resources/clusters/{id}/agent-session", ResourceKind: string(iam.ResourceCluster), ResourceIDParam: "id", Action: iam.ActionUpdate},
 }
 
 type AuthzMW struct {

@@ -41,4 +41,4 @@ Allocation 写入示例：
 
 `cluster_shares` 与 `/api/v1/workspaces/{workspace_id}/bind-cluster` 暂时保留，以兼容已部署的工作空间绑定。新建租户用量应改走 allocation API；Workspace 是可选的 `workspace_id`，不能再作为共享集群访问或容量分配的唯一依据。
 
-执行数据库迁移 `066_tenant_cluster_allocations.sql` 后，`namespaces.workspace_id` 可为 NULL，命名空间名称在同一 `tenant + cluster` 内唯一，因此同一租户可在不同集群都使用 `prod`。
+执行数据库迁移 `102_tenant_cluster_allocations.sql` 后，`namespaces.workspace_id` 可为 NULL，命名空间名称在同一 `tenant + cluster` 内唯一，因此同一租户可在不同集群都使用 `prod`。该文件原名为 `066_tenant_cluster_allocations.sql`；重编号仅改变文件身份，SQL 字节保持不变，已应用环境须按审核后的基线回填记录，不应重复执行。

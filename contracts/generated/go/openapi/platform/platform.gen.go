@@ -128,49 +128,37 @@ type RuntimeIntentSchema struct {
 		IdempotencyKey string             `json:"idempotencyKey"`
 	} `json:"metadata"`
 	Spec struct {
-		BindingId                   *openapi_types.UUID                                                   `json:"bindingId,omitempty"`
-		BindingVersion              *int                                                                  `json:"bindingVersion,omitempty"`
-		CredentialSecretRef         *SecretReferenceSchema                                                `json:"credentialSecretRef,omitempty"`
-		CurrentVersion              *string                                                               `json:"currentVersion,omitempty"`
-		ExpectedVersion             *int                                                                  `json:"expectedVersion,omitempty"`
-		InstallationId              *openapi_types.UUID                                                   `json:"installationId,omitempty"`
-		KubernetesVersion           *string                                                               `json:"kubernetesVersion,omitempty"`
-		OfferingId                  *openapi_types.UUID                                                   `json:"offeringId,omitempty"`
-		OfferingVersion             *int                                                                  `json:"offeringVersion,omitempty"`
-		PackageId                   *string                                                               `json:"packageId,omitempty"`
-		PackageVersion              *string                                                               `json:"packageVersion,omitempty"`
-		Parameters                  *map[string]*RuntimeIntentSchema_Spec_Parameters_AdditionalProperties `json:"parameters,omitempty"`
-		PersistentVolume            *RetainedVolumeResource                                               `json:"persistentVolume,omitempty"`
-		PersistentVolumeClaim       *RetainedVolumeResource                                               `json:"persistentVolumeClaim,omitempty"`
-		PodDependencies             *[]interface{}                                                        `json:"podDependencies,omitempty"`
-		ReleaseId                   *string                                                               `json:"releaseId,omitempty"`
-		ScopeRef                    *string                                                               `json:"scopeRef,omitempty"`
-		SecretReferences            *[]SecretReferenceSchema                                              `json:"secretReferences,omitempty"`
-		SshSecretRef                *SecretReferenceSchema                                                `json:"sshSecretRef,omitempty"`
-		StatefulSetDependencies     *[]interface{}                                                        `json:"statefulSetDependencies,omitempty"`
-		StorageClassName            *string                                                               `json:"storageClassName,omitempty"`
-		StorageClassResourceVersion *string                                                               `json:"storageClassResourceVersion,omitempty"`
-		StorageClassUid             *string                                                               `json:"storageClassUid,omitempty"`
-		TargetId                    *openapi_types.UUID                                                   `json:"targetId,omitempty"`
-		TargetKind                  interface{}                                                           `json:"targetKind,omitempty"`
-		TargetRef                   *string                                                               `json:"targetRef,omitempty"`
-		VolumeId                    *string                                                               `json:"volumeId,omitempty"`
-		WorkflowProviderRef         *string                                                               `json:"workflowProviderRef,omitempty"`
+		BindingId           *openapi_types.UUID    `json:"bindingId,omitempty"`
+		BindingVersion      *int                   `json:"bindingVersion,omitempty"`
+		CredentialSecretRef *SecretReferenceSchema `json:"credentialSecretRef,omitempty"`
+		CurrentVersion      *string                `json:"currentVersion,omitempty"`
+		ExpectedVersion     *int                   `json:"expectedVersion,omitempty"`
+		InstallationId      *openapi_types.UUID    `json:"installationId,omitempty"`
+		KubernetesVersion   *string                `json:"kubernetesVersion,omitempty"`
+		OfferingId          *openapi_types.UUID    `json:"offeringId,omitempty"`
+		OfferingVersion     *int                   `json:"offeringVersion,omitempty"`
+		PackageId           *string                `json:"packageId,omitempty"`
+		PackageVersion      *string                `json:"packageVersion,omitempty"`
+		Parameters          *struct {
+			Nodes *WorkerNodes `json:"nodes,omitempty"`
+		} `json:"parameters,omitempty"`
+		PersistentVolume            *RetainedVolumeResource  `json:"persistentVolume,omitempty"`
+		PersistentVolumeClaim       *RetainedVolumeResource  `json:"persistentVolumeClaim,omitempty"`
+		PodDependencies             *[]interface{}           `json:"podDependencies,omitempty"`
+		ReleaseId                   *string                  `json:"releaseId,omitempty"`
+		ScopeRef                    *string                  `json:"scopeRef,omitempty"`
+		SecretReferences            *[]SecretReferenceSchema `json:"secretReferences,omitempty"`
+		SshSecretRef                *SecretReferenceSchema   `json:"sshSecretRef,omitempty"`
+		StatefulSetDependencies     *[]interface{}           `json:"statefulSetDependencies,omitempty"`
+		StorageClassName            *string                  `json:"storageClassName,omitempty"`
+		StorageClassResourceVersion *string                  `json:"storageClassResourceVersion,omitempty"`
+		StorageClassUid             *string                  `json:"storageClassUid,omitempty"`
+		TargetId                    *openapi_types.UUID      `json:"targetId,omitempty"`
+		TargetKind                  interface{}              `json:"targetKind,omitempty"`
+		TargetRef                   *string                  `json:"targetRef,omitempty"`
+		VolumeId                    *string                  `json:"volumeId,omitempty"`
+		WorkflowProviderRef         *string                  `json:"workflowProviderRef,omitempty"`
 	} `json:"spec"`
-}
-
-// RuntimeIntentSchemaSpecParameters0 defines model for RuntimeIntentSchema.Spec.Parameters.0.
-type RuntimeIntentSchemaSpecParameters0 = string
-
-// RuntimeIntentSchemaSpecParameters1 defines model for RuntimeIntentSchema.Spec.Parameters.1.
-type RuntimeIntentSchemaSpecParameters1 = float32
-
-// RuntimeIntentSchemaSpecParameters2 defines model for RuntimeIntentSchema.Spec.Parameters.2.
-type RuntimeIntentSchemaSpecParameters2 = bool
-
-// RuntimeIntentSchema_Spec_Parameters_AdditionalProperties defines model for RuntimeIntentSchema.Spec.Parameters.AdditionalProperties.
-type RuntimeIntentSchema_Spec_Parameters_AdditionalProperties struct {
-	union json.RawMessage
 }
 
 // ScopedPermissionSchema defines model for scoped-permission.schema.
@@ -195,6 +183,12 @@ type SecretReferenceSchema struct {
 // TenantSwitchSchema defines model for tenant-switch.schema.
 type TenantSwitchSchema struct {
 	TenantId string `json:"tenantId"`
+}
+
+// WorkerNodes defines model for workerNodes.
+type WorkerNodes = []struct {
+	Name string      `json:"name"`
+	Role interface{} `json:"role"`
 }
 
 // CorrelationId defines model for CorrelationId.
@@ -240,94 +234,6 @@ type SubmitRuntimeIntentJSONRequestBody = RuntimeIntentSchema
 
 // SwitchSessionTenantJSONRequestBody defines body for SwitchSessionTenant for application/json ContentType.
 type SwitchSessionTenantJSONRequestBody = TenantSwitchSchema
-
-// AsRuntimeIntentSchemaSpecParameters0 returns the union data inside the RuntimeIntentSchema_Spec_Parameters_AdditionalProperties as a RuntimeIntentSchemaSpecParameters0
-func (t RuntimeIntentSchema_Spec_Parameters_AdditionalProperties) AsRuntimeIntentSchemaSpecParameters0() (RuntimeIntentSchemaSpecParameters0, error) {
-	var body RuntimeIntentSchemaSpecParameters0
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromRuntimeIntentSchemaSpecParameters0 overwrites any union data inside the RuntimeIntentSchema_Spec_Parameters_AdditionalProperties as the provided RuntimeIntentSchemaSpecParameters0
-func (t *RuntimeIntentSchema_Spec_Parameters_AdditionalProperties) FromRuntimeIntentSchemaSpecParameters0(v RuntimeIntentSchemaSpecParameters0) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeRuntimeIntentSchemaSpecParameters0 performs a merge with any union data inside the RuntimeIntentSchema_Spec_Parameters_AdditionalProperties, using the provided RuntimeIntentSchemaSpecParameters0
-func (t *RuntimeIntentSchema_Spec_Parameters_AdditionalProperties) MergeRuntimeIntentSchemaSpecParameters0(v RuntimeIntentSchemaSpecParameters0) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsRuntimeIntentSchemaSpecParameters1 returns the union data inside the RuntimeIntentSchema_Spec_Parameters_AdditionalProperties as a RuntimeIntentSchemaSpecParameters1
-func (t RuntimeIntentSchema_Spec_Parameters_AdditionalProperties) AsRuntimeIntentSchemaSpecParameters1() (RuntimeIntentSchemaSpecParameters1, error) {
-	var body RuntimeIntentSchemaSpecParameters1
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromRuntimeIntentSchemaSpecParameters1 overwrites any union data inside the RuntimeIntentSchema_Spec_Parameters_AdditionalProperties as the provided RuntimeIntentSchemaSpecParameters1
-func (t *RuntimeIntentSchema_Spec_Parameters_AdditionalProperties) FromRuntimeIntentSchemaSpecParameters1(v RuntimeIntentSchemaSpecParameters1) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeRuntimeIntentSchemaSpecParameters1 performs a merge with any union data inside the RuntimeIntentSchema_Spec_Parameters_AdditionalProperties, using the provided RuntimeIntentSchemaSpecParameters1
-func (t *RuntimeIntentSchema_Spec_Parameters_AdditionalProperties) MergeRuntimeIntentSchemaSpecParameters1(v RuntimeIntentSchemaSpecParameters1) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsRuntimeIntentSchemaSpecParameters2 returns the union data inside the RuntimeIntentSchema_Spec_Parameters_AdditionalProperties as a RuntimeIntentSchemaSpecParameters2
-func (t RuntimeIntentSchema_Spec_Parameters_AdditionalProperties) AsRuntimeIntentSchemaSpecParameters2() (RuntimeIntentSchemaSpecParameters2, error) {
-	var body RuntimeIntentSchemaSpecParameters2
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromRuntimeIntentSchemaSpecParameters2 overwrites any union data inside the RuntimeIntentSchema_Spec_Parameters_AdditionalProperties as the provided RuntimeIntentSchemaSpecParameters2
-func (t *RuntimeIntentSchema_Spec_Parameters_AdditionalProperties) FromRuntimeIntentSchemaSpecParameters2(v RuntimeIntentSchemaSpecParameters2) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeRuntimeIntentSchemaSpecParameters2 performs a merge with any union data inside the RuntimeIntentSchema_Spec_Parameters_AdditionalProperties, using the provided RuntimeIntentSchemaSpecParameters2
-func (t *RuntimeIntentSchema_Spec_Parameters_AdditionalProperties) MergeRuntimeIntentSchemaSpecParameters2(v RuntimeIntentSchemaSpecParameters2) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-func (t RuntimeIntentSchema_Spec_Parameters_AdditionalProperties) MarshalJSON() ([]byte, error) {
-	b, err := t.union.MarshalJSON()
-	return b, err
-}
-
-func (t *RuntimeIntentSchema_Spec_Parameters_AdditionalProperties) UnmarshalJSON(b []byte) error {
-	err := t.union.UnmarshalJSON(b)
-	return err
-}
 
 // RequestEditorFn is the function signature for the RequestEditor callback function
 type RequestEditorFn func(ctx context.Context, req *http.Request) error

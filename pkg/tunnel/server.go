@@ -230,6 +230,18 @@ func (ac *AgentConnection) Close() {
 	})
 }
 
+func (ac *AgentConnection) CloseRevoked() {
+	ac.closeOnce.Do(func() {
+		ac.mu.Lock()
+		defer ac.mu.Unlock()
+		deadline := time.Now().Add(time.Second)
+		_ = ac.Conn.WriteControl(websocket.CloseMessage,
+			websocket.FormatCloseMessage(websocket.ClosePolicyViolation, "agent session revoked"), deadline)
+		_ = ac.Conn.Close()
+		close(ac.closed)
+	})
+}
+
 func (ac *AgentConnection) CloseExpired() {
 	ac.closeOnce.Do(func() {
 		ac.mu.Lock()

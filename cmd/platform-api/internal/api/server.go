@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"crypto/ed25519"
 	"crypto/sha256"
 	"encoding/json"
 	"errors"
@@ -43,6 +44,7 @@ type Server struct {
 	observerIngest     http.Handler
 	secretCipher       secretCipher
 	startupTime        time.Time
+	conformanceKeys    map[string]ed25519.PublicKey
 }
 
 type currentPermissionResolver interface {
@@ -103,10 +105,13 @@ var platformRoutes = []platformRoute{
 	{Method: http.MethodPost, Pattern: "/v1/targets/{id}/kubeconfig:issue", ResourceKind: "runtimeTarget", ResourceIDParam: "id", Action: iam.ActionRead},
 	{Method: http.MethodDelete, Pattern: "/v1/targets/{id}", ResourceKind: "runtimeTarget", ResourceIDParam: "id", Action: iam.ActionDelete},
 	{Method: http.MethodPost, Pattern: "/v1/providers/{id}/manifest", ResourceKind: "provider", Action: iam.ActionExecute},
+	{Method: http.MethodPost, Pattern: "/v1/providers/{id}/conformance", ResourceKind: "provider", Action: iam.ActionExecute},
 	{Method: http.MethodGet, Pattern: "/v1/providers/{id}/manifest", ResourceKind: "provider", Action: iam.ActionRead},
 	{Method: http.MethodDelete, Pattern: "/v1/providers/{id}/manifest", ResourceKind: "provider", Action: iam.ActionDelete},
 	{Method: http.MethodPost, Pattern: "/v1/compatibility", ResourceKind: "provider", Action: iam.ActionExecute},
 	{Method: http.MethodGet, Pattern: "/v1/compatibility", ResourceKind: "provider", Action: iam.ActionRead},
+	{Method: http.MethodPost, Pattern: "/v1/releases", ResourceKind: "releaseCatalog", Action: iam.ActionExecute},
+	{Method: http.MethodGet, Pattern: "/v1/releases", ResourceKind: "releaseCatalog", Action: iam.ActionList},
 }
 
 type platformRoute struct {
@@ -153,10 +158,13 @@ func NewServer(st store.Store, authenticator iam.AccessAuthenticator, permission
 	s.mux.HandleFunc("POST /v1/targets/{id}/kubeconfig:issue", s.handleIssueRuntimeTargetKubeconfig)
 	s.mux.HandleFunc("DELETE /v1/targets/{id}", s.handleDeleteRuntimeTarget)
 	s.mux.HandleFunc("POST /v1/providers/{id}/manifest", s.handleSaveManifest)
+	s.mux.HandleFunc("POST /v1/providers/{id}/conformance", s.handleRegisterConformance)
 	s.mux.HandleFunc("GET /v1/providers/{id}/manifest", s.handleGetManifest)
 	s.mux.HandleFunc("DELETE /v1/providers/{id}/manifest", s.handleDeleteManifest)
 	s.mux.HandleFunc("POST /v1/compatibility", s.handleSaveCompatibility)
 	s.mux.HandleFunc("GET /v1/compatibility", s.handleCheckCompatibility)
+	s.mux.HandleFunc("POST /v1/releases", s.handleRegisterReleaseMaterial)
+	s.mux.HandleFunc("GET /v1/releases", s.handleListReleaseMaterials)
 	return s
 }
 
@@ -1685,6 +1693,7 @@ func (s *Server) handleSaveManifest(w http.ResponseWriter, r *http.Request) {
 		Capabilities         []string                   `json:"capabilities"`
 		Actions              []string                   `json:"actions"`
 		StorageDriverPackage *core.StorageDriverPackage `json:"storageDriverPackage,omitempty"`
+		ArtifactDigest       string                     `json:"artifactDigest,omitempty"`
 	}
 	if err := decodeJSON(w, r, &req); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid_request", err.Error())
@@ -1696,6 +1705,10 @@ func (s *Server) handleSaveManifest(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	if req.ArtifactDigest != "" && !core.IsConformanceDigest(req.ArtifactDigest) {
+		writeError(w, http.StatusBadRequest, "invalid_artifact_digest", "artifactDigest must be a sha256 manifest digest")
+		return
+	}
 	manifest := &store.ProviderManifest{
 		ProviderID:           providerID,
 		Name:                 req.Name,
@@ -1706,10 +1719,14 @@ func (s *Server) handleSaveManifest(w http.ResponseWriter, r *http.Request) {
 		StorageDriverPackage: req.StorageDriverPackage,
 		ConformanceLevel:     "none",
 	}
+	if req.ArtifactDigest != "" {
+		manifest.Compatibility = map[string]any{"artifactDigest": req.ArtifactDigest}
+	}
 	if err := s.store.SaveManifest(r.Context(), manifest); err != nil {
 		writeError(w, http.StatusInternalServerError, "save_failed", err.Error())
 		return
 	}
+	w.Header().Set("X-Manifest-Identity-Digest", store.ManifestIdentityDigest(manifest))
 	writeJSON(w, http.StatusCreated, manifest)
 }
 
@@ -1724,9 +1741,17 @@ func (s *Server) handleGetManifest(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusNotFound, "not_found", "manifest not found")
 			return
 		}
-		writeError(w, http.StatusInternalServerError, "fetch_failed", err.Error())
+		log.Printf("platform-api: read provider manifest: %v", err)
+		writeError(w, http.StatusInternalServerError, "fetch_failed", "manifest lookup failed")
 		return
 	}
+	w.Header().Set("X-Manifest-Identity-Digest", store.ManifestIdentityDigest(manifest))
+	document, err := json.Marshal(manifest)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "manifest_encoding_failed", "manifest encoding failed")
+		return
+	}
+	w.Header().Set("X-Provider-Manifest-Digest", fmt.Sprintf("sha256:%x", sha256.Sum256(document)))
 	writeJSON(w, http.StatusOK, manifest)
 }
 

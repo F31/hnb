@@ -1045,6 +1045,7 @@ var clusterIntentKinds = map[string]bool{
 	"ImportRuntimeTarget":    true,
 	"UpgradeRuntimeTarget":   true,
 	"DeleteRuntimeTarget":    true,
+	"AddNodesRuntimeTarget":  true,
 }
 
 type bffIntentEnvelope struct {
@@ -1250,9 +1251,12 @@ func bffIntentSemanticDigest(envelope bffIntentEnvelope) string {
 		PackageVersion: envelope.Spec.PackageVersion, CurrentVersion: envelope.Spec.CurrentVersion,
 		DesiredVersion: envelope.Spec.DesiredVersion, DisplayName: envelope.Spec.DisplayName,
 		KubernetesVersion: envelope.Spec.KubernetesVersion, CloudCoreEndpoint: envelope.Spec.CloudCoreEndpoint,
-		VolumeID: envelope.Spec.VolumeID, WorkflowProviderRef: envelope.Spec.WorkflowProviderRef, PersistentVolume: envelope.Spec.PersistentVolume,
-		PersistentVolumeClaim: envelope.Spec.PersistentVolumeClaim, PodDependencies: envelope.Spec.PodDependencies, StatefulSetDependencies: envelope.Spec.StatefulSetDependencies,
 		NodeGroupMappings: envelope.Spec.NodeGroupMappings, Parameters: envelope.Spec.Parameters,
+	}
+	if envelope.Kind == "ReleaseRetainedVolume" || envelope.Kind == "SanitizeRetainedVolume" {
+		document.VolumeID, document.WorkflowProviderRef = envelope.Spec.VolumeID, envelope.Spec.WorkflowProviderRef
+		document.PersistentVolume, document.PersistentVolumeClaim = envelope.Spec.PersistentVolume, envelope.Spec.PersistentVolumeClaim
+		document.PodDependencies, document.StatefulSetDependencies = envelope.Spec.PodDependencies, envelope.Spec.StatefulSetDependencies
 	}
 	if envelope.Spec.CredentialSecretRef != nil {
 		ref := bffCanonicalSecretReference(*envelope.Spec.CredentialSecretRef)
@@ -1285,7 +1289,7 @@ func validateBFFClusterIntent(envelope bffIntentEnvelope) error {
 	switch envelope.Kind {
 	case "ImportRuntimeTarget":
 		return nil
-	case "UpgradeRuntimeTarget", "DeleteRuntimeTarget":
+	case "UpgradeRuntimeTarget", "DeleteRuntimeTarget", "AddNodesRuntimeTarget":
 		if !uuidStr(envelope.Spec.TargetID) {
 			return errors.New("spec.targetId must be a valid UUID")
 		}
@@ -1294,6 +1298,17 @@ func validateBFFClusterIntent(envelope bffIntentEnvelope) error {
 		}
 		if envelope.Kind == "UpgradeRuntimeTarget" && strings.TrimSpace(envelope.Spec.DesiredVersion) == "" {
 			return errors.New("spec.desiredVersion required")
+		}
+		if envelope.Kind == "AddNodesRuntimeTarget" {
+			if envelope.Spec.SSHSecretRef == nil {
+				return errors.New("spec.sshSecretRef required for node add")
+			}
+			if len(envelope.Spec.Parameters) != 1 {
+				return errors.New("spec.parameters must contain exactly the nodes parameter")
+			}
+			if _, ok := envelope.Spec.Parameters["nodes"]; !ok {
+				return errors.New("spec.parameters.nodes is required")
+			}
 		}
 	}
 	return nil

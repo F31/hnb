@@ -127,7 +127,7 @@ func (s *PGStore) SubmitOperation(ctx context.Context, cmd SubmitCommand) (*Oper
 		stepIDs[i] = stepID
 		planStepID := planStepID(step, i)
 		inputsJSON, err := marshalStepInputs(step)
-		if err != nil {
+		if err := ValidateStepIdempotencyKey(cmd.IdempotencyKey, planStepID); err != nil {
 			return nil, false, err
 		}
 		_, err = tx.ExecContext(ctx, `
@@ -1107,6 +1107,8 @@ func intentKindToOperationType(kind engine.IntentKind) string {
 		return "upgrade"
 	case engine.IntentDeleteRuntimeTarget:
 		return "delete"
+	case engine.IntentAddNodesRuntimeTarget:
+		return "deploy"
 	case engine.IntentImportStorageClassBinding, engine.IntentReconcileStorageClassBinding:
 		return "config_change"
 	case engine.IntentInstallStorageDriver:

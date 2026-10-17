@@ -1,0 +1,23 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "image": {
+      "type": "object",
+      "properties": {
+        "repository": {"type": "string", "minLength": 1},
+        "digest": {"type": "string", "pattern": "^$|^sha256:[0-9a-f]{64}$"}
+      }
+    },
+    "providerId": {"enum": ["runtime-target.lifecycle.kubernetes", "runtime-target.lifecycle.edge"]},
+    "listenAddress": {"const": ":18082"},
+    "db": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "existingSecret": {"type": "string"},
+        "secretKey": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

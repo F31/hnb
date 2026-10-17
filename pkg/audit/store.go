@@ -7,25 +7,26 @@ import (
 )
 
 type Event struct {
-	ID           string    `json:"id"`
-	Timestamp    time.Time `json:"timestamp"`
-	UserID       string    `json:"user_id"`
-	Username     string    `json:"username,omitempty"`
-	TenantID     string    `json:"tenant_id,omitempty"`
-	WorkspaceID  string    `json:"workspace_id,omitempty"`
-	Action       string    `json:"action"`
-	ResourceType string    `json:"resource_type"`
-	ResourceID   string    `json:"resource_id,omitempty"`
-	ResourceName string    `json:"resource_name,omitempty"`
-	StatusCode   int       `json:"status_code"`
-	Method       string    `json:"method,omitempty"`
-	Path         string    `json:"path,omitempty"`
-	RemoteAddr   string    `json:"remote_addr,omitempty"`
-	UserAgent    string    `json:"user_agent,omitempty"`
-	RequestBody  string    `json:"request_body,omitempty"`
-	ResponseBody string    `json:"response_body,omitempty"`
-	Error        string    `json:"error,omitempty"`
-	Duration     int64     `json:"duration_ms"`
+	ID               string    `json:"id"`
+	Timestamp        time.Time `json:"timestamp"`
+	UserID           string    `json:"user_id"`
+	Username         string    `json:"username,omitempty"`
+	TenantID         string    `json:"tenant_id,omitempty"`
+	WorkspaceID      string    `json:"workspace_id,omitempty"`
+	Action           string    `json:"action"`
+	ResourceType     string    `json:"resource_type"`
+	ResourceID       string    `json:"resource_id,omitempty"`
+	ResourceName     string    `json:"resource_name,omitempty"`
+	StatusCode       int       `json:"status_code"`
+	Method           string    `json:"method,omitempty"`
+	Path             string    `json:"path,omitempty"`
+	RemoteAddr       string    `json:"remote_addr,omitempty"`
+	UserAgent        string    `json:"user_agent,omitempty"`
+	RequestBody      string    `json:"request_body,omitempty"`
+	ResponseBody     string    `json:"response_body,omitempty"`
+	Error            string    `json:"error,omitempty"`
+	Duration         int64     `json:"duration_ms"`
+	ServiceSubjectID string    `json:"service_subject_id,omitempty"`
 }
 
 type Store struct {
@@ -42,25 +43,25 @@ func (s *Store) Create(event *Event) error {
 			id, timestamp, user_id, username, tenant_id, workspace_id,
 			action, resource_type, resource_id, resource_name,
 			status_code, method, path, remote_addr, user_agent,
-			request_body, response_body, error, duration_ms
+			request_body, response_body, error, duration_ms, service_subject_id
 		) VALUES (
 			$1, $2, $3, NULLIF($4,''), NULLIF($5,''), NULLIF($6,''),
 			$7, $8, NULLIF($9,''), NULLIF($10,''),
 			$11, NULLIF($12,''), NULLIF($13,''), NULLIF($14,''), NULLIF($15,''),
-			NULLIF($16,''), NULLIF($17,''), NULLIF($18,''), $19
+			NULLIF($16,''), NULLIF($17,''), NULLIF($18,''), $19, NULLIF($20,'')
 		)`,
 		event.ID, event.Timestamp, event.UserID, event.Username,
 		event.TenantID, event.WorkspaceID,
 		event.Action, event.ResourceType, event.ResourceID, event.ResourceName,
 		event.StatusCode, event.Method, event.Path, event.RemoteAddr, event.UserAgent,
-		event.RequestBody, event.ResponseBody, event.Error, event.Duration)
+		event.RequestBody, event.ResponseBody, event.Error, event.Duration, event.ServiceSubjectID)
 	return err
 }
 
 func (s *Store) List(limit, offset int, filters map[string]string) ([]Event, error) {
 	query := `SELECT id, timestamp, user_id, username, tenant_id, workspace_id,
 		action, resource_type, resource_id, resource_name,
-		status_code, method, path, remote_addr, user_agent, duration_ms, error
+		status_code, method, path, remote_addr, user_agent, duration_ms, error, service_subject_id
 		FROM audit_logs WHERE 1=1`
 	args := []any{}
 	argIdx := 1
@@ -109,13 +110,13 @@ func (s *Store) List(limit, offset int, filters map[string]string) ([]Event, err
 	for rows.Next() {
 		var e Event
 		var username, tenantID, workspaceID, resourceID, resourceName sql.NullString
-		var method, path, remoteAddr, userAgent, errorStr sql.NullString
+		var method, path, remoteAddr, userAgent, errorStr, serviceSubjectID sql.NullString
 
 		if err := rows.Scan(&e.ID, &e.Timestamp, &e.UserID, &username,
 			&tenantID, &workspaceID,
 			&e.Action, &e.ResourceType, &resourceID, &resourceName,
 			&e.StatusCode, &method, &path, &remoteAddr, &userAgent,
-			&e.Duration, &errorStr); err != nil {
+			&e.Duration, &errorStr, &serviceSubjectID); err != nil {
 			continue
 		}
 		if username.Valid {
@@ -148,6 +149,9 @@ func (s *Store) List(limit, offset int, filters map[string]string) ([]Event, err
 		if errorStr.Valid {
 			e.Error = errorStr.String
 		}
+		if serviceSubjectID.Valid {
+			e.ServiceSubjectID = serviceSubjectID.String
+		}
 		events = append(events, e)
 	}
 	return events, nil
@@ -156,13 +160,13 @@ func (s *Store) List(limit, offset int, filters map[string]string) ([]Event, err
 func (s *Store) Get(id string, tenantIDs ...string) (*Event, error) {
 	var e Event
 	var username, tenantID, workspaceID, resourceID, resourceName sql.NullString
-	var method, path, remoteAddr, userAgent, requestBody, responseBody, errorStr sql.NullString
+	var method, path, remoteAddr, userAgent, requestBody, responseBody, errorStr, serviceSubjectID sql.NullString
 
 	query := `
 		SELECT id, timestamp, user_id, username, tenant_id, workspace_id,
 			action, resource_type, resource_id, resource_name,
 			status_code, method, path, remote_addr, user_agent,
-			request_body, response_body, error, duration_ms
+			request_body, response_body, error, duration_ms, service_subject_id
 		FROM audit_logs WHERE id = $1`
 	args := []any{id}
 	if len(tenantIDs) > 0 {
@@ -174,7 +178,7 @@ func (s *Store) Get(id string, tenantIDs ...string) (*Event, error) {
 			&tenantID, &workspaceID,
 			&e.Action, &e.ResourceType, &resourceID, &resourceName,
 			&e.StatusCode, &method, &path, &remoteAddr, &userAgent,
-			&requestBody, &responseBody, &errorStr, &e.Duration)
+			&requestBody, &responseBody, &errorStr, &e.Duration, &serviceSubjectID)
 	if err != nil {
 		return nil, err
 	}
@@ -214,6 +218,9 @@ func (s *Store) Get(id string, tenantIDs ...string) (*Event, error) {
 	if errorStr.Valid {
 		e.Error = errorStr.String
 	}
+	if serviceSubjectID.Valid {
+		e.ServiceSubjectID = serviceSubjectID.String
+	}
 	return &e, nil
 }
 
@@ -238,12 +245,15 @@ func (s *Store) Migrate() error {
 			request_body TEXT,
 			response_body TEXT,
 			error TEXT,
-			duration_ms BIGINT NOT NULL DEFAULT 0
+			duration_ms BIGINT NOT NULL DEFAULT 0,
+			service_subject_id TEXT
 		);
+		ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS service_subject_id TEXT;
 		CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_logs(timestamp DESC);
 		CREATE INDEX IF NOT EXISTS idx_audit_user ON audit_logs(user_id);
 		CREATE INDEX IF NOT EXISTS idx_audit_action ON audit_logs(action);
 		CREATE INDEX IF NOT EXISTS idx_audit_resource ON audit_logs(resource_type, resource_id);
+		CREATE INDEX IF NOT EXISTS idx_audit_service_subject ON audit_logs(service_subject_id);
 	`)
 	return err
 }

@@ -17,6 +17,7 @@ import (
 	"github.com/F31/hnb/cmd/platform-api/internal/observer"
 	stalepolicy "github.com/F31/hnb/cmd/platform-api/internal/stale"
 	"github.com/F31/hnb/cmd/platform-api/internal/store"
+	dbpkg "github.com/F31/hnb/pkg/db"
 	"github.com/F31/hnb/pkg/iam"
 	"github.com/F31/hnb/pkg/kms"
 )
@@ -62,7 +63,7 @@ func main() {
 	}
 	defer db.Close()
 
-	if err := db.Ping(); err != nil {
+	if err := dbpkg.WaitForReady(context.Background(), db); err != nil {
 		log.Fatalf("db ping: %v", err)
 	}
 
@@ -85,6 +86,13 @@ func main() {
 	}
 	apiHandler := api.NewServer(st, verifier, permissionResolver)
 	apiHandler.ConfigureIntentDelegation(delegationVerifier)
+	if path := os.Getenv("CONFORMANCE_TRUST_FILE"); path != "" {
+		keys, err := api.LoadConformanceKeys(path)
+		if err != nil {
+			log.Fatalf("conformance trust: %v", err)
+		}
+		apiHandler.ConfigureConformanceKeys(keys)
+	}
 	apiHandler.ConfigureStaleAdmission(challengeSigner, stalePolicy)
 	if keyHex := os.Getenv("HNB_MASTER_KEY"); keyHex != "" {
 		cipher, err := kms.NewAESGCMFromHex(keyHex)
@@ -108,7 +116,7 @@ func main() {
 
 	server := &http.Server{
 		Addr:              cfg.ListenAddr,
-		Handler:           apiHandler,
+		Handler:           dbpkg.WithHealth(apiHandler, db),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       15 * time.Second,
 		WriteTimeout:      30 * time.Second,

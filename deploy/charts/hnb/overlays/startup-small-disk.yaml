@@ -1,0 +1,7 @@
+# Fresh-install small-data evaluation only. Merge AFTER startup.yaml.
+# Pair with capacity node reserveDiskGi: 6, startup scope and external
+# cache/backup. Does not configure external storage or shrink existing PVCs.
+postgresql:
+  storage: {size: 2Gi}
+nats:
+  storage: {size: 1Gi}

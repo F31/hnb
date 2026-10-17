@@ -3,6 +3,7 @@ module github.com/F31/hnb/cmd/extension-controller
 go 1.24.0
 
 require (
+	github.com/F31/hnb/pkg/db v0.0.0-00010101000000-000000000000
 	github.com/F31/hnb/pkg/extension v0.0.0-00010101000000-000000000000
 	github.com/F31/hnb/pkg/messaging v0.0.0-00010101000000-000000000000
 	github.com/lib/pq v1.10.9
@@ -29,6 +30,7 @@ require (
 )
 
 replace (
+	github.com/F31/hnb/pkg/db => ../../pkg/db
 	github.com/F31/hnb/pkg/core => ../../pkg/core
 	github.com/F31/hnb/pkg/extension => ../../pkg/extension
 	github.com/F31/hnb/pkg/messaging => ../../pkg/messaging

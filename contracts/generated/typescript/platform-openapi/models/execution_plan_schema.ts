@@ -22,7 +22,7 @@ export type execution_plan_schema = {
         matrixVersion: string;
         providerProtocolVersion: string;
         targetKind: 'KubernetesTarget' | 'EdgeRuntimeTarget';
-        action: 'create' | 'import' | 'upgrade' | 'unmanage';
+        action: 'create' | 'import' | 'upgrade' | 'unmanage' | 'node-add';
         status: string;
         providerId: string;
         observationSource: 'Agent' | 'CloudCore';

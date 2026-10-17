@@ -23,9 +23,13 @@ func (r *PGObserverRegistry) Register(ctx context.Context, tenantID, targetID, t
 		UPDATE runtime_targets
 		SET observation_source = $4,
 			observation_source_id = $5,
-			observation_generation = COALESCE(observation_generation, 0) + 1,
-			observation_revision = 0,
-			updated_at = now()
+			observation_generation = CASE
+				WHEN observation_source = $4 AND observation_source_id = $5 THEN COALESCE(observation_generation, 0)
+				ELSE COALESCE(observation_generation, 0) + 1 END,
+			observation_revision = CASE
+				WHEN observation_source = $4 AND observation_source_id = $5 THEN observation_revision ELSE 0 END,
+			updated_at = CASE
+				WHEN observation_source = $4 AND observation_source_id = $5 THEN updated_at ELSE now() END
 		WHERE id = $1::uuid AND tenant_id = $2 AND target_type = $3`,
 		targetID, tenantID, targetTypeForKind(targetKind), observationSource(observerKind), observerKind+":"+targetID,
 	)
@@ -50,9 +54,13 @@ func (r *PGObserverRegistry) Unregister(ctx context.Context, tenantID, targetID 
 		UPDATE runtime_targets
 		SET observation_source = NULL,
 			observation_source_id = NULL,
-			observation_generation = COALESCE(observation_generation, 0) + 1,
-			observation_revision = 0,
-			updated_at = now()
+			observation_generation = CASE
+				WHEN observation_source IS NULL AND observation_source_id IS NULL THEN COALESCE(observation_generation, 0)
+				ELSE COALESCE(observation_generation, 0) + 1 END,
+			observation_revision = CASE
+				WHEN observation_source IS NULL AND observation_source_id IS NULL THEN observation_revision ELSE 0 END,
+			updated_at = CASE
+				WHEN observation_source IS NULL AND observation_source_id IS NULL THEN updated_at ELSE now() END
 		WHERE id = $1::uuid AND tenant_id = $2`,
 		targetID, tenantID,
 	)

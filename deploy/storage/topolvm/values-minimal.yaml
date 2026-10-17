@@ -1,0 +1,61 @@
+# Candidate single-node storage backing for HNB Minimal.
+# Upstream Helm chart 17.3.0 / app 0.42.0; not an HA or capacity certification.
+image:
+  repository: ghcr.io/topolvm/topolvm-with-sidecar
+  reference: 0.42.0@sha256:719ab11d974af827d12ab148ca9c070babcb21980b8c7f30497c6bde81cdce4b
+  pullPolicy: IfNotPresent
+controller:
+  replicaCount: 1
+  storageCapacityTracking:
+    enabled: true
+  podDisruptionBudget:
+    enabled: false
+lvmd:
+  managed: false
+  deviceClasses:
+    - name: hnb
+      volume-group: hnb-vg
+      default: true
+      spare-gb: 1
+node:
+  lvmdEmbedded: true
+  kubeletWorkDirectory: /var/lib/kubelet
+scheduler:
+  enabled: false
+snapshot:
+  enabled: false
+webhook:
+  certManager: false
+  podMutatingWebhook:
+    enabled: false
+cert-manager:
+  enabled: false
+storageClasses:
+  - name: hnb-topolvm
+    storageClass:
+      fsType: ext4
+      reclaimPolicy: Retain
+      isDefaultClass: false
+      volumeBindingMode: WaitForFirstConsumer
+      allowVolumeExpansion: true
+      additionalParameters:
+        topolvm.io/device-class: hnb
+resources:
+  topolvm_node:
+    requests: {cpu: 50m, memory: 96Mi}
+    limits: {cpu: 500m, memory: 256Mi}
+  topolvm_controller:
+    requests: {cpu: 25m, memory: 48Mi}
+    limits: {cpu: 250m, memory: 256Mi}
+  csi_provisioner:
+    requests: {cpu: 10m, memory: 24Mi}
+    limits: {cpu: 200m, memory: 128Mi}
+  csi_resizer:
+    requests: {cpu: 10m, memory: 24Mi}
+    limits: {cpu: 200m, memory: 128Mi}
+  csi_registrar:
+    requests: {cpu: 5m, memory: 16Mi}
+    limits: {cpu: 100m, memory: 64Mi}
+  liveness_probe:
+    requests: {cpu: 5m, memory: 16Mi}
+    limits: {cpu: 100m, memory: 64Mi}

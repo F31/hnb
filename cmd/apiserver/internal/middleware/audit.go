@@ -179,7 +179,12 @@ func extractIntentEvent(body []byte) *IntentAuditLog {
 }
 
 func isCredentialEndpoint(path string) bool {
-	return path == "/api/v1/auth/login" || path == "/api/v1/auth/refresh"
+	return path == "/api/v1/auth/login" || path == "/api/v1/auth/refresh" ||
+		path == "/api/v1/service-credentials:renew" ||
+		strings.HasPrefix(path, "/api/v1/service-identities") ||
+		strings.HasPrefix(path, "/api/v1/agent-enrollments") ||
+		strings.Contains(path, "/agent-enrollments") ||
+		strings.HasPrefix(path, "/api/v1/agent-sessions")
 }
 
 func redactJSONBody(body []byte) string {
@@ -243,6 +248,12 @@ func classifyAction(method string) string {
 }
 
 func classifyResource(path string) string {
+	if strings.HasPrefix(path, "/api/v1/service-identities") || strings.HasPrefix(path, "/api/v1/service-credentials") {
+		return "serviceIdentity"
+	}
+	if strings.HasPrefix(path, "/api/v1/agent-enrollments") || strings.HasPrefix(path, "/api/v1/agent-sessions") {
+		return "agent"
+	}
 	parts := splitPath(path)
 	if strings.Contains(path, "/storage/") && strings.Contains(path, "binding") {
 		return "storageClassBinding"
@@ -269,6 +280,7 @@ func classifyResource(path string) string {
 			return "proxy"
 		case "audit-logs":
 			return "audit"
+
 		case "storage":
 			if len(parts) > 3 {
 				switch parts[3] {

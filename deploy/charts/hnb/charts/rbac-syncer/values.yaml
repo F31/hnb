@@ -1,16 +1,20 @@
 replicaCount: 1
 image:
   repository: hnb/{{ .Chart.Name }}
-  tag: ""
+  digest: ""
   pullPolicy: ""
 nats:
   url: ""
+  # Plane account Secret providing user/password for NATS authentication.
+  existingAccountSecret: ""
 db:
+  existingSecret: ""
+  secretKey: dsn
   dsn: ""
 resources:
   requests:
-    cpu: 200m
-    memory: 256Mi
+    cpu: 50m
+    memory: 64Mi
   limits:
-    cpu: 500m
-    memory: 512Mi
+    cpu: 100m
+    memory: 128Mi

@@ -383,7 +383,7 @@ func lifecycleSteps(intent *RuntimeIntent, tenantID string, decision Compatibili
 		kind = "edge"
 		inputSchema = "https://schemas.hnb.cloud/runtime-target/v1/edge-lifecycle-step-input.schema.json"
 	}
-	operation := map[string]string{"create": "provision-and-register", "import": "register", "upgrade": "upgrade", "unmanage": "unregister"}[decision.Action]
+	operation := map[string]string{"create": "provision-and-register", "import": "register", "upgrade": "upgrade", "unmanage": "unregister", "node-add": "add-nodes"}[decision.Action]
 	compensation := &CompensationPolicy{Type: "none", OwnershipScope: "none"}
 	if decision.Action == "create" {
 		compensation = &CompensationPolicy{Type: "unregister", OwnershipScope: "operation-owned-only"}
@@ -400,7 +400,7 @@ func lifecycleSteps(intent *RuntimeIntent, tenantID string, decision Compatibili
 		FencingPolicy: "monotonic-worker-lease-v2", RetryPolicy: &RetryPolicy{MaxAttempts: 3, Backoff: "exponential"},
 		TimeoutSeconds: 900, Compensation: compensation,
 	}
-	if decision.Action == "create" {
+	if decision.Action == "create" || decision.Action == "node-add" {
 		step.TimeoutSeconds = 1800
 	}
 	return []Step{step}, snapshot

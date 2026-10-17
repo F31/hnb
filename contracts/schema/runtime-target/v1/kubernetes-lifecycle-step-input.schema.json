@@ -10,11 +10,12 @@
     "schemaVersion": { "const": "1.0.0" },
     "targetId": { "type": "string", "format": "uuid" },
     "targetKind": { "const": "KubernetesTarget" },
-    "action": { "enum": ["create", "import", "upgrade", "unmanage"] },
+    "action": { "enum": ["create", "import", "upgrade", "unmanage", "node-add"] },
     "displayName": { "type": "string", "minLength": 1, "maxLength": 256 },
     "desiredVersion": { "type": "string", "minLength": 1, "maxLength": 128 },
     "credentialSecretRef": { "$ref": "../../common/v1/secret-reference.schema.json" },
     "sshSecretRef": { "$ref": "../../common/v1/secret-reference.schema.json" },
+    "parameters": { "type": "object" },
     "idempotencyKey": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[!-~]+$" },
     "fencingGeneration": { "type": "integer", "minimum": 1 },
     "observationVersion": { "type": "integer", "minimum": 0 }
@@ -33,6 +34,35 @@
     {
       "if": { "properties": { "action": { "const": "upgrade" } }, "required": ["action"] },
       "then": { "required": ["desiredVersion"] }
+    },
+    {
+      "if": { "properties": { "action": { "const": "node-add" } }, "required": ["action"] },
+      "then": {
+        "required": ["sshSecretRef"],
+        "properties": {
+          "parameters": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["nodes"],
+            "properties": {
+              "nodes": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 100,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["name", "role"],
+                  "properties": {
+                    "name": { "type": "string", "minLength": 1, "maxLength": 253 },
+                    "role": { "const": "worker" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   ]
 }

@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -310,9 +311,16 @@ func loadKeyManifest(path, issuer string, now time.Time) (KeyManifest, []byte, e
 		if !validManifestKeyID(kid) || entry.NotBefore.IsZero() || entry.NotAfter.IsZero() || !entry.NotAfter.After(entry.NotBefore) {
 			return KeyManifest{}, nil, fmt.Errorf("key manifest entry %q has an invalid identity or time window", kid)
 		}
-		if err := validateAbsolutePath(entry.PublicKeyPath, "public key"); err != nil {
+		// A manifest is generated on the operator host and then mounted into a
+		// container, so an absolute path recorded at generation time does not
+		// exist for any component that verifies it. Resolve the key relative to
+		// the manifest itself, which keeps the host and container paths equal.
+		resolved, err := resolvePublicKeyPath(path, entry.PublicKeyPath)
+		if err != nil {
 			return KeyManifest{}, nil, fmt.Errorf("key manifest entry %q: %w", kid, err)
 		}
+		entry.PublicKeyPath = resolved
+		manifest.Keys[kid] = entry
 		switch entry.Status {
 		case KeyPending:
 			if !now.Before(entry.NotAfter) {
@@ -417,6 +425,32 @@ func validateAbsolutePath(path, label string) error {
 		return fmt.Errorf("%s path must be a clean absolute path", label)
 	}
 	return nil
+}
+
+// resolvePublicKeyPath accepts a key path relative to the manifest and resolves
+// it against the manifest's own directory. A relative path is what a chart mounts
+// into every component, so the same manifest verifies on the operator host and
+// inside a container. An absolute path must still be clean; a traversal that
+// escapes the manifest directory is rejected.
+func resolvePublicKeyPath(manifestPath, keyPath string) (string, error) {
+	if keyPath == "" {
+		return "", errors.New("public key path must not be empty")
+	}
+	if filepath.IsAbs(keyPath) {
+		if err := validateAbsolutePath(keyPath, "public key"); err != nil {
+			return "", err
+		}
+		return keyPath, nil
+	}
+	if filepath.Clean(keyPath) != keyPath || keyPath == ".." || strings.HasPrefix(keyPath, "../") {
+		return "", errors.New("public key path must not traverse outside the manifest directory")
+	}
+	directory := filepath.Dir(manifestPath)
+	resolved := filepath.Join(directory, keyPath)
+	if err := validateAbsolutePath(resolved, "public key"); err != nil {
+		return "", err
+	}
+	return resolved, nil
 }
 
 func readBoundedRegularFile(path string, maxSize int64, private bool) ([]byte, error) {

@@ -15,17 +15,35 @@ spec:
       labels:
         app.kubernetes.io/name: {{ .Chart.Name }}
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: {{ .Values.runAsUser | default 65532 }}
+        runAsGroup: {{ .Values.runAsUser | default 65532 }}
+        fsGroup: {{ .Values.runAsUser | default 65532 }}
+        fsGroupChangePolicy: OnRootMismatch
       containers:
         - name: {{ .Chart.Name }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default $.Values.global.imageTag }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy | default $.Values.global.imagePullPolicy }}
+          image: {{ include "hnb.image" . }}
+          imagePullPolicy: {{ include "hnb.imagePullPolicy" . }}
           env:
             - name: NATS_URL
               value: {{ .Values.nats.url | default $.Values.global.nats.url }}
+            {{- include "platform-api.natsAccountEnv" (dict "root" $ "component" .Values.nats) | nindent 12 }}
             - name: DB_DSN
-              value: {{ .Values.db.dsn | default $.Values.global.postgresql.dsn }}
+              {{- if .Values.db.existingSecret }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.db.existingSecret | quote }}
+                  key: {{ .Values.db.secretKey | default "dsn" | quote }}
+              {{- else }}
+              value: {{ .Values.db.dsn | default $.Values.global.postgresql.dsn | quote }}
+              {{- end }}
             - name: API_TOKEN_ISSUER
               value: {{ required "platform-api.identity.issuer is required" .Values.identity.issuer | quote }}
+            {{- if .Values.conformance.existingTrustSecret }}
+            - name: CONFORMANCE_TRUST_FILE
+              value: /var/run/hnb-conformance/{{ .Values.conformance.trustKey }}
+            {{- end }}
             - name: API_TOKEN_AUDIENCE
               value: "hnb-platform-api"
             - name: API_TOKEN_KEY_MANIFEST_FILE
@@ -40,24 +58,64 @@ spec:
               value: {{ .Values.staleChallenge.upgradePolicy | quote }}
             - name: STALE_UNMANAGE_POLICY
               value: {{ .Values.staleChallenge.unmanagePolicy | quote }}
+            # Seals SecretReference payloads for providers; required so runtime
+            # target credentials can be stored and decrypted by the providers.
+            - name: HNB_MASTER_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ required "platform-api.masterKeySecret is required" .Values.masterKeySecret | quote }}
+                  key: key
           ports:
             - containerPort: 8080
               name: http
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+          {{- if .Values.probes.enabled }}
+          startupProbe:
+            httpGet: {path: /livez, port: http}
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 60
+          readinessProbe:
+            httpGet: {path: /readyz, port: http}
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 2
+          livenessProbe:
+            httpGet: {path: /livez, port: http}
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+          {{- end }}
           volumeMounts:
+{{- include "platform-api.natsAccountMounts" (dict "root" $ "component" .Values.nats) | nindent 12 }}
             - name: identity-public-key
               mountPath: /var/run/hnb-identity
               readOnly: true
             - name: stale-challenge-key
               mountPath: /var/run/hnb-stale-challenge
               readOnly: true
+            {{- if .Values.conformance.existingTrustSecret }}
+            - name: conformance-trust
+              mountPath: /var/run/hnb-conformance
+              readOnly: true
+            {{- end }}
       volumes:
+{{- include "platform-api.natsAccountVolumes" (dict "root" $ "component" .Values.nats) | nindent 8 }}
         - name: identity-public-key
           secret:
             secretName: {{ required "platform-api.identity.existingManifestSecret is required" .Values.identity.existingManifestSecret }}
-            defaultMode: 0400
+            defaultMode: 0440
         - name: stale-challenge-key
           secret:
             secretName: {{ required "platform-api.staleChallenge.existingSecret is required" .Values.staleChallenge.existingSecret }}
-            defaultMode: 0400
+            defaultMode: 0440
+        {{- if .Values.conformance.existingTrustSecret }}
+        - name: conformance-trust
+          secret:
+            secretName: {{ .Values.conformance.existingTrustSecret | quote }}
+            defaultMode: 0440
+            items:
+              - key: {{ .Values.conformance.trustKey | quote }}
+                path: {{ .Values.conformance.trustKey | quote }}
+        {{- end }}

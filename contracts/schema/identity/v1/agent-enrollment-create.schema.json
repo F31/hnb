@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.hnb.cloud/identity/v1/agent-enrollment-create.schema.json",
+  "title": "AgentEnrollmentCreate",
+  "description": "One single-use agent bootstrap credential. The token is returned once, bound to the exact tenant and target, and must not be logged or persisted by the platform.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["enrollmentId", "enrollmentSecret", "expiresAt", "tenantId", "targetId", "subject"],
+  "properties": {
+    "enrollmentId": { "type": "string", "format": "uuid" },
+    "enrollmentSecret": { "type": "string", "minLength": 43, "maxLength": 512, "writeOnly": true },
+    "expiresAt": { "type": "string", "format": "date-time" },
+    "tenantId": { "type": "string", "minLength": 1, "maxLength": 128, "not": { "const": "*" } },
+    "targetId": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "subject": { "const": "cluster-agent" }
+  }
+}

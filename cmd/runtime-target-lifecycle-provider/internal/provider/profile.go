@@ -4,6 +4,15 @@ import "fmt"
 
 const ContractVersion = "2.0.0"
 
+// Audience is the exact service-token audience that owns step execution on this
+// provider. A token minted for another audience must not be accepted here.
+const Audience = "hnb-runtime-target-lifecycle-provider"
+
+// ExecuteBodyLimit bounds the execution request envelope. It must match the
+// limit enforced inside the handler so authorization reads the same bytes the
+// handler later decodes.
+const ExecuteBodyLimit = 64 << 10
+
 type Profile struct {
 	ProviderID      string
 	TargetKind      string
@@ -24,6 +33,7 @@ func ProfileForProviderID(providerID string) (Profile, error) {
 				"runtime_target.kubernetes.provision-and-register": "create",
 				"runtime_target.kubernetes.register":               "import",
 				"runtime_target.kubernetes.upgrade":                "upgrade",
+				"runtime_target.kubernetes.add-nodes":              "node-add",
 				"runtime_target.kubernetes.unregister":             "unmanage",
 			},
 		}, nil

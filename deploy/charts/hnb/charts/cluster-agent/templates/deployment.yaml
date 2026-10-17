@@ -15,18 +15,117 @@ spec:
       labels:
         app.kubernetes.io/name: {{ .Chart.Name }}
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: {{ .Values.runAsUser | default 65532 }}
+        runAsGroup: {{ .Values.runAsUser | default 65532 }}
+        fsGroup: {{ .Values.runAsUser | default 65532 }}
+        fsGroupChangePolicy: OnRootMismatch
+      volumes:
+{{- include "cluster-agent.natsAccountVolumes" (dict "root" $ "component" .Values.nats) | nindent 8 }}
+{{- if and .Values.onboarding.enabled .Values.onboarding.existingTokenSecret }}
+        - name: agent-token-source
+          secret:
+            secretName: {{ .Values.onboarding.existingTokenSecret | quote }}
+            items:
+              - key: {{ .Values.onboarding.tokenKey | quote }}
+                path: agent-token
+        - name: agent-token
+          emptyDir:
+            medium: Memory
+            sizeLimit: 64Ki
+{{- end }}
+{{- if and .Values.onboarding.enabled .Values.onboarding.observationIngestUrl .Values.onboarding.existingObserverTokenSecret }}
+        - name: observer-token
+          secret:
+            secretName: {{ .Values.onboarding.existingObserverTokenSecret | quote }}
+            defaultMode: 0400
+{{- end }}
       serviceAccountName: {{ .Values.serviceAccount.observerName | default (.Values.serviceAccount.name | default (printf "%s-observer" .Chart.Name)) }}
+{{- if and .Values.onboarding.enabled .Values.onboarding.existingTokenSecret }}
+      # A Secret mount cannot satisfy iam.FileTokenSource: fsGroup forces group
+      # read on the projected file, and the token loader rejects that. Stage the
+      # token into an owner-only emptyDir first, like operation-worker does.
+      {{- $sandbox := .Values.sandbox | default dict }}
+      {{- if not (regexMatch "^sha256:[0-9a-f]{64}$" ($sandbox.digest | default "")) }}
+      {{- fail "cluster-agent.sandbox.digest must be a sha256 digest; a tag is not an artifact identity" }}
+      {{- end }}
+      {{- $repo := $sandbox.repository | default "rancher/mirrored-library-busybox" }}
+      {{- $reg := .Values.global.imageRegistry | default "" }}
+      {{- $sandboxImage := ternary (printf "%s/%s@%s" $reg $repo $sandbox.digest) (printf "%s@%s" $repo $sandbox.digest) (ne $reg "") }}
+      {{- $agentUID := .Values.runAsUser | default 65532 }}
+      initContainers:
+        - name: stage-agent-token
+          image: {{ $sandboxImage }}
+          imagePullPolicy: {{ $sandbox.pullPolicy | default .Values.global.imagePullPolicy }}
+          command: ["sh", "-c"]
+          args: ["cp /source/agent-token /staged/agent-token && chown {{ $agentUID }}:{{ $agentUID }} /staged/agent-token && chmod 0400 /staged/agent-token"]
+          securityContext:
+            runAsUser: 0
+            runAsNonRoot: false
+          resources:
+            requests:
+              cpu: 5m
+              memory: 8Mi
+            limits:
+              cpu: 50m
+              memory: 32Mi
+          volumeMounts:
+            - name: agent-token-source
+              mountPath: /source
+              readOnly: true
+            - name: agent-token
+              mountPath: /staged
+{{- end }}
       containers:
         - name: {{ .Chart.Name }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default $.Values.global.imageTag }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy | default $.Values.global.imagePullPolicy }}
+          image: {{ include "hnb.image" . }}
+          imagePullPolicy: {{ include "hnb.imagePullPolicy" . }}
           env:
             - name: NATS_URL
               value: {{ .Values.nats.url | default $.Values.global.nats.url }}
+            {{- include "cluster-agent.natsAccountEnv" (dict "root" $ "component" .Values.nats) | nindent 12 }}
             - name: DB_DSN
-              value: {{ .Values.db.dsn | default $.Values.global.postgresql.dsn }}
+              {{- if .Values.db.existingSecret }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.db.existingSecret | quote }}
+                  key: {{ .Values.db.secretKey | default "dsn" | quote }}
+              {{- else }}
+              value: {{ .Values.db.dsn | default $.Values.global.postgresql.dsn | quote }}
+              {{- end }}
+            {{- if .Values.onboarding.enabled }}
+            - name: AGENT_TOKEN_FILE
+              value: /var/run/hnb-agent-token/agent-token
+            - name: TENANT_ID
+              value: {{ required "cluster-agent.onboarding.tenantId is required when onboarding is enabled" .Values.onboarding.tenantId | quote }}
+            - name: CLUSTER_ID
+              value: {{ required "cluster-agent.onboarding.clusterId is required when onboarding is enabled" .Values.onboarding.clusterId | quote }}
+            {{- with .Values.onboarding.tunnelUrl }}
+            - name: TUNNEL_URL
+              value: {{ . | quote }}
+            {{- end }}
+            {{- with .Values.onboarding.observationIngestUrl }}
+            - name: OBSERVATION_INGEST_URL
+              value: {{ . | quote }}
+            - name: OBSERVER_TOKEN_FILE
+              value: /etc/hnb/observer-token/token
+            {{- end }}
+            {{- end }}
           ports:
             - containerPort: 8080
               name: http
+          volumeMounts:
+{{- include "cluster-agent.natsAccountMounts" (dict "root" $ "component" .Values.nats) | nindent 12 }}
+{{- if and .Values.onboarding.enabled .Values.onboarding.existingTokenSecret }}
+            - name: agent-token
+              mountPath: /var/run/hnb-agent-token
+              readOnly: true
+{{- end }}
+{{- if and .Values.onboarding.enabled .Values.onboarding.observationIngestUrl .Values.onboarding.existingObserverTokenSecret }}
+            - name: observer-token
+              mountPath: /etc/hnb/observer-token
+              readOnly: true
+{{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}

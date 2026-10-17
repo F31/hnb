@@ -15,10 +15,23 @@ spec:
       labels:
         app.kubernetes.io/name: {{ .Chart.Name }}
     spec:
+{{- if or .Values.serviceTokenFiles .Values.runtimeProviders }}
+{{- if not .Values.serviceTokenFiles }}
+{{- fail "operation-worker.serviceTokenFiles must list the provider token keys to stage whenever runtimeProviders is configured" }}
+{{- end }}
+      initContainers:
+{{- include "operation-worker.stagedProviderTokenInit" . | nindent 8 }}
+{{- end }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: {{ .Values.runAsUser | default 65532 }}
+        runAsGroup: {{ .Values.runAsUser | default 65532 }}
+        fsGroup: {{ .Values.runAsUser | default 65532 }}
+        fsGroupChangePolicy: OnRootMismatch
       containers:
         - name: {{ .Chart.Name }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default $.Values.global.imageTag }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy | default $.Values.global.imagePullPolicy }}
+          image: {{ include "hnb.image" . }}
+          imagePullPolicy: {{ include "hnb.imagePullPolicy" . }}
           env:
             - name: NATS_URL
               value: {{ .Values.nats.url | default $.Values.global.nats.url }}
@@ -28,28 +41,63 @@ spec:
               value: /var/run/hnb-nats/tls.key
             - name: NATS_TLS_CA_FILE
               value: /var/run/hnb-nats/ca.crt
+            {{- include "operation-worker.natsAccountEnv" (dict "root" $ "component" .Values.nats) | nindent 12 }}
             - name: DB_DSN
-              value: {{ .Values.db.dsn | default $.Values.global.postgresql.dsn }}
+              {{- if .Values.db.existingSecret }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.db.existingSecret | quote }}
+                  key: {{ .Values.db.secretKey | default "dsn" | quote }}
+              {{- else }}
+              value: {{ .Values.db.dsn | default $.Values.global.postgresql.dsn | quote }}
+              {{- end }}
             - name: RUNTIME_PROVIDERS
               value: {{ required "operation-worker.runtimeProviders with endpoint, audience, and tokenFile is required" .Values.runtimeProviders | quote }}
           ports:
+            - containerPort: 8081
+              name: health
             - containerPort: 8080
               name: http
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+          {{- if .Values.probes.enabled }}
+          startupProbe:
+            httpGet: {path: /livez, port: health}
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 60
+          readinessProbe:
+            httpGet: {path: /readyz, port: health}
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 2
+          livenessProbe:
+            httpGet: {path: /livez, port: health}
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+          {{- end }}
           volumeMounts:
+{{- include "operation-worker.natsAccountMounts" (dict "root" $ "component" .Values.nats) | nindent 12 }}
             - name: nats-client-tls
               mountPath: /var/run/hnb-nats
               readOnly: true
             - name: provider-service-tokens
               mountPath: /var/run/hnb-service-tokens
               readOnly: true
+            {{- if .Values.serviceTokenFiles }}
+{{- include "operation-worker.stagedProviderTokenMount" . | nindent 12 }}
+            {{- end }}
       volumes:
+{{- include "operation-worker.natsAccountVolumes" (dict "root" $ "component" .Values.nats) | nindent 8 }}
         - name: nats-client-tls
           secret:
             secretName: {{ required "operation-worker.nats.existingClientTLSSecret is required" .Values.nats.existingClientTLSSecret }}
-            defaultMode: 0400
+            defaultMode: 0440
         - name: provider-service-tokens
           secret:
             secretName: {{ required "operation-worker.serviceTokenSecret is required" .Values.serviceTokenSecret }}
-            defaultMode: 0400
+            defaultMode: 0440
+        {{- if .Values.serviceTokenFiles }}
+{{- include "operation-worker.stagedProviderTokenVolume" . | nindent 8 }}
+        {{- end }}

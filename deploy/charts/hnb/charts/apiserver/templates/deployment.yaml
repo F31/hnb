@@ -18,11 +18,25 @@ spec:
         prometheus.io/scrape: "true"
         prometheus.io/port: "8081"
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: {{ .Values.runAsUser | default 65532 }}
+        runAsGroup: {{ .Values.runAsUser | default 65532 }}
+        fsGroup: {{ .Values.runAsUser | default 65532 }}
+        fsGroupChangePolicy: OnRootMismatch
+      initContainers:
+        {{- include "apiserver.stagedSigningKeyInit" . | nindent 8 }}
       containers:
         - name: {{ .Chart.Name }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default $.Values.global.imageTag }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy | default $.Values.global.imagePullPolicy }}
+          image: {{ include "hnb.image" . }}
+          imagePullPolicy: {{ include "hnb.imagePullPolicy" . }}
           env:
+            - name: PLATFORM_API_URL
+              value: {{ required "apiserver.platformAPIURL is required" .Values.platformAPIURL | quote }}
+            - name: APP_MARKET_URL
+              value: {{ required "apiserver.appMarketURL is required" .Values.appMarketURL | quote }}
+            - name: REQUIRE_PLATFORM_API
+              value: "true"
             - name: NATS_URL
               value: {{ .Values.nats.url | default $.Values.global.nats.url }}
             - name: NATS_TLS_CERT_FILE
@@ -31,8 +45,16 @@ spec:
               value: /var/run/hnb-nats/tls.key
             - name: NATS_TLS_CA_FILE
               value: /var/run/hnb-nats/ca.crt
+            {{- include "apiserver.natsAccountEnv" (dict "root" $ "component" .Values.nats) | nindent 12 }}
             - name: DB_DSN
-              value: {{ .Values.db.dsn | default $.Values.global.postgresql.dsn }}
+              {{- if .Values.db.existingSecret }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.db.existingSecret | quote }}
+                  key: {{ .Values.db.secretKey | default "dsn" | quote }}
+              {{- else }}
+              value: {{ .Values.db.dsn | default $.Values.global.postgresql.dsn | quote }}
+              {{- end }}
             - name: CLUSTER_READ_PROJECTION_MODE
               value: {{ .Values.clusterReadProjection.mode | quote }}
             - name: API_TOKEN_ISSUER
@@ -56,31 +78,49 @@ spec:
               name: http
             - containerPort: 8081
               name: metrics
+          {{- if .Values.probes.enabled }}
+          startupProbe:
+            httpGet: {path: /livez, port: http}
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 60
+          readinessProbe:
+            httpGet: {path: /readyz, port: http}
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 2
+          livenessProbe:
+            httpGet: {path: /livez, port: http}
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+          {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
+{{- include "apiserver.natsAccountMounts" (dict "root" $ "component" .Values.nats) | nindent 12 }}
             - name: identity-keys
               mountPath: /var/run/hnb-identity
               readOnly: true
-            - name: active-signing-key
-              mountPath: /var/run/hnb-signing
-              readOnly: true
+            {{- include "apiserver.stagedSigningKeyMount" . | nindent 12 }}
             - name: nats-client-tls
               mountPath: /var/run/hnb-nats
               readOnly: true
       volumes:
+{{- include "apiserver.stagedSigningKeyVolume" . | nindent 8 }}
+{{- include "apiserver.natsAccountVolumes" (dict "root" $ "component" .Values.nats) | nindent 8 }}
         - name: identity-keys
           secret:
             secretName: {{ required "apiserver.identity.existingManifestSecret is required" .Values.identity.existingManifestSecret }}
-            defaultMode: 0400
+            defaultMode: 0440
         - name: active-signing-key
           secret:
             secretName: {{ required "apiserver.identity.existingPrivateKeySecret is required" .Values.identity.existingPrivateKeySecret }}
-            defaultMode: 0400
+            defaultMode: 0440
             items:
               - key: {{ .Values.identity.privateKeyKey }}
                 path: active-private.pem
         - name: nats-client-tls
           secret:
             secretName: {{ required "apiserver.nats.existingClientTLSSecret is required" .Values.nats.existingClientTLSSecret }}
-            defaultMode: 0400
+            defaultMode: 0440

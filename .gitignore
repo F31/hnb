@@ -33,3 +33,8 @@ out/
 # Local compose environment (dev credentials, identity paths)
 deploy/docker-compose/.env
 deploy/docker-compose/compose.local*
+
+# Local agent memory / Python caches
+.workbuddy/
+__pycache__/
+*.pyc

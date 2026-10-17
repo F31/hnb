@@ -1,0 +1,26 @@
+replicaCount: 1
+image:
+  repository: hnb/runtime-target-lifecycle-provider
+  tag: ""
+  digest: ""
+  pullPolicy: ""
+providerId: "runtime-target.lifecycle.kubernetes"
+listenAddress: ":18082"
+identity:
+  # Step execution requires a platform service token for this exact audience.
+  # The provider refuses to start without it.
+  issuer: "https://issuer.hnb.local"
+  audience: "hnb-runtime-target-lifecycle-provider"
+  existingManifestSecret: ""
+  manifestKey: manifest.json
+db:
+  existingSecret: ""
+  secretKey: dsn
+masterKeySecret: ""
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 250m
+    memory: 256Mi

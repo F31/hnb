@@ -6,6 +6,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -42,7 +43,14 @@ func main() {
 		cancel()
 	}()
 
-	client := tunnel.NewAgentClient(cfg.TunnelURL, iam.FileTokenSource{Path: cfg.TokenFile}, cfg.TenantID, cfg.ClusterID)
+	tokenSource, sessionSource, err := buildAgentTokenSource(ctx, cfg)
+	if err != nil {
+		log.Fatalf("agent identity: %v", err)
+	}
+	if sessionSource != nil {
+		defer sessionSource.Close()
+	}
+	client := tunnel.NewAgentClient(cfg.TunnelURL, tokenSource, cfg.TenantID, cfg.ClusterID)
 
 	// Start the RT-008 observation producer (Full/Delta target, capability,
 	// and node inventory) against the platform ingest endpoint when configured.
@@ -75,10 +83,56 @@ func main() {
 		}
 
 		if err := connectAndServe(ctx, client, cfg); err != nil {
+			if errors.Is(err, tunnel.ErrSessionRevoked) || errors.Is(err, iam.ErrServiceIdentityRevoked) ||
+				errors.Is(err, iam.ErrServiceCredentialRejected) {
+				log.Printf("[agent] durable identity revoked or rejected; re-enrollment required")
+				return
+			}
 			log.Printf("[agent] connection error: %v, reconnecting in %ds...", err, cfg.ReconnectInt)
 			time.Sleep(time.Duration(cfg.ReconnectInt) * time.Second)
 		}
 	}
+}
+
+func buildAgentTokenSource(ctx context.Context, cfg *config.Config) (iam.TokenSource, *iam.AgentSessionTokenSource, error) {
+	if cfg.EnrollmentSecretFile == "" {
+		return iam.FileTokenSource{Path: cfg.TokenFile}, nil, nil
+	}
+	secret, err := iam.ReadEnrollmentSecretFile(cfg.EnrollmentSecretFile)
+	if err != nil {
+		return nil, nil, fmt.Errorf("read enrollment secret: %w", err)
+	}
+	keys, err := iam.LoadReloadingKeySet(context.Background(), iam.ReloadingKeySetConfig{
+		ManifestPath: cfg.AgentTokenKeyManifest,
+		Issuer:       cfg.AgentTokenIssuer,
+		OnSuccess: func(stats iam.KeyReloadStats) {
+			log.Printf("[agent] identity key manifest generation %d loaded", stats.Generation)
+		},
+	})
+	if err != nil {
+		return nil, nil, fmt.Errorf("load agent token keys: %w", err)
+	}
+	if err := keys.StartPolling(ctx, 5*time.Second, func(err error) {
+		log.Printf("[agent] identity key manifest reload failed: %v", err)
+	}); err != nil {
+		return nil, nil, fmt.Errorf("start agent key polling: %w", err)
+	}
+	verifier, err := iam.NewAgentTunnelTokenVerifier(iam.AgentTunnelTokenConfig{
+		Issuer: cfg.AgentTokenIssuer, Audience: cfg.AgentTokenAudience, TTL: iam.MaxAgentTunnelTokenTTL,
+	}, keys)
+	if err != nil {
+		return nil, nil, fmt.Errorf("agent session verifier: %w", err)
+	}
+	issuer, err := iam.NewHTTPAgentSessionIssuer(iam.HTTPAgentSessionIssuerConfig{BaseURL: cfg.ExchangeURL})
+	if err != nil {
+		return nil, nil, fmt.Errorf("agent session issuer: %w", err)
+	}
+	source, err := iam.NewAgentSessionTokenSource(ctx, verifier, issuer, cfg.TenantID, cfg.ClusterID, secret)
+	if err != nil {
+		return nil, nil, fmt.Errorf("agent session source: %w", err)
+	}
+	source.ConfigurePersistence(iam.FileAgentSessionStore{}, cfg.AgentSessionFile)
+	return source, source, nil
 }
 
 func connectAndServe(ctx context.Context, client *tunnel.AgentClient, cfg *config.Config) error {

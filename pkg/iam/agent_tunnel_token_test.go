@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 func newAgentTunnelTestKeys(t *testing.T) *staticObserverKeys {
@@ -93,5 +95,76 @@ func TestAgentTunnelTokenRejectsWrongScopeTamperAndTTL(t *testing.T) {
 	bad.TTL = MaxAgentTunnelTokenTTL + time.Second
 	if _, err := NewAgentTunnelTokenSigner(bad, keys); err == nil {
 		t.Fatal("expected TTL ceiling rejection")
+	}
+}
+
+func TestAgentTunnelSignWithTTLIssuesShortSession(t *testing.T) {
+	keys := newAgentTunnelTestKeys(t)
+	now := time.Unix(2_000_000_000, 0).UTC()
+	config := AgentTunnelTokenConfig{
+		Issuer: "https://identity.hnb.cloud", Audience: "hnb-apiserver-tunnel",
+		TTL: MaxAgentTunnelTokenTTL, Now: func() time.Time { return now },
+	}
+	signer, err := NewAgentTunnelTokenSigner(config, keys)
+	if err != nil {
+		t.Fatal(err)
+	}
+	verifier, err := NewAgentTunnelTokenVerifier(config, keys)
+	if err != nil {
+		t.Fatal(err)
+	}
+	const clusterID = "515eba09-0a41-5b92-b972-69af1f0f655c"
+	token, expiry, err := signer.SignWithTTL(context.Background(), "tenant-a", clusterID, 5*time.Minute)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if expiry.Sub(now) != 5*time.Minute {
+		t.Fatalf("session expiry = %v, want 5m", expiry.Sub(now))
+	}
+	if _, err := verifier.Verify(context.Background(), token, "tenant-a", clusterID); err != nil {
+		t.Fatalf("short session failed verification: %v", err)
+	}
+	for _, ttl := range []time.Duration{0, time.Millisecond, MaxAgentTunnelTokenTTL + time.Second} {
+		if _, _, err := signer.SignWithTTL(context.Background(), "tenant-a", clusterID, ttl); err == nil {
+			t.Fatalf("TTL %v was accepted", ttl)
+		}
+	}
+}
+
+func TestAgentTunnelSessionClaimsAndLookup(t *testing.T) {
+	keys := newAgentTunnelTestKeys(t)
+	now := time.Unix(2_000_000_000, 0).UTC()
+	config := AgentTunnelTokenConfig{
+		Issuer: "https://identity.hnb.cloud", Audience: "hnb-apiserver-tunnel",
+		TTL: MaxAgentTunnelTokenTTL, Now: func() time.Time { return now },
+	}
+	signer, _ := NewAgentTunnelTokenSigner(config, keys)
+	verifier, _ := NewAgentTunnelTokenVerifier(config, keys)
+	const clusterID = "515eba09-0a41-5b92-b972-69af1f0f655c"
+	sessionID := uuid.NewString()
+	token, _, err := signer.SignSession(context.Background(), "tenant-a", clusterID, sessionID, 3, 5*time.Minute)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tenantID, gotCluster, gotSession, err := ParseAgentSessionLookup(token)
+	if err != nil || tenantID != "tenant-a" || gotCluster != clusterID || gotSession != sessionID {
+		t.Fatalf("lookup = %q/%q/%q err=%v", tenantID, gotCluster, gotSession, err)
+	}
+	claims, err := verifier.VerifyClaims(context.Background(), token, "tenant-a", clusterID)
+	if err != nil || claims.SessionID != sessionID || claims.Generation != 3 {
+		t.Fatalf("claims = %+v err=%v", claims, err)
+	}
+	if _, _, err := signer.SignSession(context.Background(), "tenant-a", clusterID, "not-a-uuid", 1, time.Minute); err == nil {
+		t.Fatal("non-UUID session was accepted")
+	}
+	if _, _, err := signer.SignSession(context.Background(), "tenant-a", clusterID, sessionID, 0, time.Minute); err == nil {
+		t.Fatal("zero generation was accepted")
+	}
+	legacy, _, err := signer.SignWithTTL(context.Background(), "tenant-a", clusterID, time.Minute)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, _, err := ParseAgentSessionLookup(legacy); err == nil {
+		t.Fatal("legacy token was treated as a session token")
 	}
 }

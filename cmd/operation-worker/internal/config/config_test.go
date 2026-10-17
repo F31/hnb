@@ -51,7 +51,50 @@ func TestLoadRuntimeProviders(t *testing.T) {
 
 func TestLoadRuntimeProvidersFailsClosedWithoutIdentityConfiguration(t *testing.T) {
 	t.Setenv("RUNTIME_PROVIDERS", `{"edge":"http://edge-provider:8080/v2/steps:execute"}`)
-	if _, err := Load(); err == nil || !strings.Contains(err.Error(), "audience and tokenFile") {
+	if _, err := Load(); err == nil || !strings.Contains(err.Error(), "non-wildcard audience") {
 		t.Fatalf("error = %v", err)
+	}
+}
+
+func TestLoadServiceIdentityBindings(t *testing.T) {
+	t.Setenv("RUNTIME_PROVIDERS", `{"k8s":{"endpoint":"https://provider.example/v2/steps:execute","audience":"hnb-kubernetes-provider","serviceIdentities":{"tenant-a":{"identityId":"4e69ee9e-5a18-46e3-b330-1349e0d74166","subjectId":"c9114c57-4265-40fb-9b1b-7d5021637825","tokenFile":"/var/run/secrets/a"},"tenant-b":{"identityId":"a69a8f5f-0872-4c8e-8df9-d9e6179050af","subjectId":"2f2c9f5e-6a11-4b1e-8c4e-0c2b7a9e0f11","tokenFile":"/var/run/secrets/b"}}}}`)
+	t.Setenv("SERVICE_IDENTITY_ISSUER_URL", "https://apiserver.example")
+	t.Setenv("SERVICE_IDENTITY_ISSUER", "https://issuer.example")
+	t.Setenv("SERVICE_IDENTITY_KEY_MANIFEST_FILE", "/var/run/secrets/keys.json")
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("load: %v", err)
+	}
+	if !cfg.ServiceIdentitiesEnabled() {
+		t.Fatal("service identities were not detected")
+	}
+	provider := cfg.RuntimeProviders["k8s"]
+	if provider.TokenFile != "" || len(provider.ServiceIdentities) != 2 || provider.ServiceIdentities["tenant-a"].TokenFile != "/var/run/secrets/a" {
+		t.Fatalf("unexpected provider: %#v", provider)
+	}
+}
+
+func TestLoadServiceIdentityBindingsFailClosed(t *testing.T) {
+	valid := `{"k8s":{"endpoint":"https://provider.example/v2/steps:execute","audience":"hnb-kubernetes-provider","serviceIdentities":{"tenant-a":{"identityId":"4e69ee9e-5a18-46e3-b330-1349e0d74166","subjectId":"c9114c57-4265-40fb-9b1b-7d5021637825","tokenFile":"/var/run/secrets/a"}}}}`
+	for _, tc := range []struct {
+		name   string
+		value  string
+		issuer string
+		part   string
+	}{
+		{name: "missing global config", value: valid, part: "SERVICE_IDENTITY_ISSUER"},
+		{name: "missing subject", value: `{"k8s":{"endpoint":"https://provider.example/v2/steps:execute","audience":"hnb-kubernetes-provider","serviceIdentities":{"tenant-a":{"identityId":"4e69ee9e-5a18-46e3-b330-1349e0d74166","tokenFile":"/var/run/secrets/a"}}}}`, issuer: "https://issuer.example", part: "UUID subjectId"},
+		{name: "missing token file", value: `{"k8s":{"endpoint":"https://provider.example/v2/steps:execute","audience":"hnb-kubernetes-provider","serviceIdentities":{"tenant-a":{"identityId":"4e69ee9e-5a18-46e3-b330-1349e0d74166","subjectId":"c9114c57-4265-40fb-9b1b-7d5021637825"}}}}`, issuer: "https://issuer.example", part: "tokenFile bootstrap"},
+		{name: "wildcard tenant", value: `{"k8s":{"endpoint":"https://provider.example/v2/steps:execute","audience":"hnb-kubernetes-provider","serviceIdentities":{"*":{"identityId":"4e69ee9e-5a18-46e3-b330-1349e0d74166","subjectId":"c9114c57-4265-40fb-9b1b-7d5021637825","tokenFile":"/var/run/secrets/a"}}}}`, issuer: "https://issuer.example", part: "invalid tenant"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Setenv("RUNTIME_PROVIDERS", tc.value)
+			t.Setenv("SERVICE_IDENTITY_ISSUER_URL", "https://apiserver.example")
+			t.Setenv("SERVICE_IDENTITY_ISSUER", tc.issuer)
+			t.Setenv("SERVICE_IDENTITY_KEY_MANIFEST_FILE", "/var/run/secrets/keys.json")
+			if _, err := Load(); err == nil || !strings.Contains(err.Error(), tc.part) {
+				t.Fatalf("error = %v, want containing %q", err, tc.part)
+			}
+		})
 	}
 }

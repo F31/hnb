@@ -1,0 +1,25 @@
+replicaCount: 1
+image:
+  repository: hnb/plugin-worker
+  tag: ""
+  digest: ""
+  pullPolicy: ""
+listenAddress: ":8080"
+db:
+  existingSecret: ""
+  secretKey: dsn
+masterKeySecret: ""
+nats:
+  url: ""
+  # Plane account Secret providing user/password for NATS authentication.
+  existingAccountSecret: ""
+  existingClientTLSSecret: ""
+kubeconfigDir: "/tmp/hnb-plugin-worker"
+dryRun: "false"
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 250m
+    memory: 256Mi

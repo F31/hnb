@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -17,12 +18,14 @@ import (
 
 	"github.com/F31/hnb/cmd/apiserver/internal/capability"
 	"github.com/F31/hnb/cmd/apiserver/internal/config"
+	"github.com/F31/hnb/cmd/apiserver/internal/handler"
 	"github.com/F31/hnb/cmd/apiserver/internal/leader"
 	"github.com/F31/hnb/cmd/apiserver/internal/metrics"
 	"github.com/F31/hnb/cmd/apiserver/internal/middleware"
 	"github.com/F31/hnb/cmd/apiserver/internal/router"
 	"github.com/F31/hnb/cmd/apiserver/internal/server"
 	"github.com/F31/hnb/pkg/audit"
+	dbpkg "github.com/F31/hnb/pkg/db"
 	"github.com/F31/hnb/pkg/iam"
 	"github.com/F31/hnb/pkg/messaging"
 	"github.com/F31/hnb/pkg/tunnel"
@@ -39,8 +42,30 @@ func main() {
 	}
 	defer db.Close()
 
-	if err := db.Ping(); err != nil {
+	if err := dbpkg.WaitForReady(context.Background(), db); err != nil {
 		log.Fatalf("db ping: %v", err)
+	}
+
+	// Schema readiness gate (PINST-004): when the operator declares a migration
+	// directory, the server refuses to start unless the platform owner's schema
+	// is fully migrated and checksum-verified. An incompatible schema must keep
+	// the platform out of readiness instead of starting against a half-migrated
+	// database.
+	if cfg.MigrationsDir != "" {
+		files, loadErr := dbpkg.LoadMigrations(cfg.MigrationsDir)
+		if loadErr != nil {
+			log.Fatalf("schema readiness: cannot load migrations from %s: %v", cfg.MigrationsDir, loadErr)
+		}
+		migrator := dbpkg.Migrator{DB: db, Owner: dbpkg.OwnerPlatform}
+		ready, problems, verifyErr := migrator.VerifySchemaForService(context.Background(), files)
+		if verifyErr != nil {
+			log.Fatalf("schema readiness: %v", verifyErr)
+		}
+		if !ready {
+			log.Fatalf("schema readiness blocked: platform schema is not migrated or incompatible: %s",
+				strings.Join(problems, "; "))
+		}
+		log.Printf("schema readiness: platform owner schema is migrated and verified (%d migrations)", len(files))
 	}
 
 	nc, err := messaging.ConnectNATSFromEnv(cfg.NATSURL)
@@ -108,6 +133,9 @@ func main() {
 	authMW := middleware.NewAuth(tokenManager, []string{
 		"/health", "/ready", "/openapi.json",
 		"/api/v1/auth/login", "/api/v1/auth/refresh",
+		"/api/v1/service-credentials:renew",
+		"/api/v1/agent-enrollments:exchange",
+		"/api/v1/agent-sessions:renew",
 	})
 
 	tunnelVerifier, err := iam.NewTokenVerifier(iam.TokenManagerConfig{
@@ -131,17 +159,58 @@ func main() {
 	if err != nil {
 		log.Fatalf("agent tunnel token signer: %v", err)
 	}
+	serviceIdentityStore := iam.NewServiceIdentityDBStore(db)
 	verifyToken := func(ctx context.Context, token, tenantID, clusterID string) (time.Time, error) {
-		// 优先校验专用的 agent-tunnel token profile（接入指引签发的长 TTL 令牌，
-		// 覆盖 kubectl apply + 首次 Pod 启动窗口）；回退到短 TTL 访问令牌路径
-		// （保留既有手动签发/轮换流程的兼容性）。
-		if expiry, err := agentTunnelVerifier.Verify(ctx, token, tenantID, clusterID); err == nil {
-			return expiry, nil
+		// 优先校验专用的 agent-tunnel token profile；若 token 绑定 session，
+		// 还必须核对持久化 session 未撤销、未过期且 generation 一致。
+		if claims, err := agentTunnelVerifier.VerifyClaims(ctx, token, tenantID, clusterID); err == nil {
+			if claims.SessionID != "" {
+				session, err := serviceIdentityStore.GetAgentSession(ctx, tenantID, clusterID, claims.SessionID)
+				if err != nil || session.RevokedAt != nil || !session.ExpiresAt.After(time.Now()) || session.Generation != claims.Generation {
+					return time.Time{}, fmt.Errorf("agent session unavailable")
+				}
+			}
+			return time.Unix(claims.ExpiresAt, 0).UTC(), nil
 		}
 		trusted, err := tunnelAuthenticator.Authenticate(ctx, token, iam.ActionExecute, tenantID, "cluster", clusterID)
 		return trusted.ExpiresAt, err
 	}
 	tunnelServer := tunnel.NewTunnelServer(verifyToken)
+	serviceIdentityAuthority, err := iam.NewServiceCredentialAuthority(
+		serviceIdentityStore, keySet, keySet, cfg.TokenIssuer, time.Now,
+		func(_ context.Context, event iam.ServiceCredentialAuditEvent) {
+			_ = auditStore.Create(&audit.Event{
+				ID:               fmt.Sprintf("audit-%d", time.Now().UnixNano()),
+				Timestamp:        time.Now().UTC(),
+				UserID:           event.ActorSubjectID,
+				TenantID:         event.TenantID,
+				ServiceSubjectID: event.ServiceSubjectID,
+				Action:           event.Action,
+				ResourceType:     "serviceIdentity",
+				ResourceID:       event.ServiceIdentityID,
+				StatusCode:       http.StatusOK,
+			})
+		})
+	if err != nil {
+		log.Fatalf("service credential authority: %v", err)
+	}
+	serviceIdentityHandler := handler.NewServiceIdentityHandler(serviceIdentityAuthority, serviceIdentityStore)
+	agentEnrollmentHandler := handler.NewAgentEnrollmentHandler(
+		serviceIdentityStore, serviceIdentityStore, handler.NewSQLAgentTargetResolver(db),
+		agentTunnelSigner, agentTunnelVerifier, handler.DefaultAgentSessionTTL, tunnelServer.Revoke, time.Now,
+		func(_ context.Context, event handler.AgentEnrollmentAuditEvent) {
+			_ = auditStore.Create(&audit.Event{
+				ID:               fmt.Sprintf("audit-%d", time.Now().UnixNano()),
+				Timestamp:        time.Now().UTC(),
+				UserID:           event.ActorSubjectID,
+				TenantID:         event.TenantID,
+				ServiceSubjectID: event.ServiceSubjectID,
+				Action:           event.Action,
+				ResourceType:     "cluster",
+				ResourceID:       event.TargetID,
+				StatusCode:       http.StatusOK,
+			})
+		})
 
 	routesPath := filepath.Join(cfg.ConfigDir, "routes.yaml")
 	routeRegistry := router.NewRegistry(func(rf *router.RouteFile) {
@@ -154,13 +223,13 @@ func main() {
 
 	metrics.Serve(cfg.MetricsAddr)
 
-	httpHandler := router.NewWithCapabilities(db, tunnelServer, authMW, tokenManager, iamStore, auditStore, rbac, routeRegistry, delegationSigner, agentTunnelSigner, cfg.PlatformAPIURL, cfg.ClusterProjectionMode, cfg.AppMarketURL, cfg.HarborURL, cfg.HarborUser, cfg.HarborPass, cfg.PublicBaseURL, cfg.AgentImage, capability.FromCSV(cfg.ClusterCapabilities))
+	httpHandler := router.NewWithCapabilities(db, tunnelServer, authMW, tokenManager, iamStore, auditStore, rbac, routeRegistry, delegationSigner, agentTunnelSigner, serviceIdentityHandler, agentEnrollmentHandler, cfg.PlatformAPIURL, cfg.ClusterProjectionMode, cfg.AppMarketURL, cfg.HarborURL, cfg.HarborUser, cfg.HarborPass, cfg.PublicBaseURL, cfg.AgentImage, capability.FromCSV(cfg.ClusterCapabilities))
 
 	hostname, _ := os.Hostname()
 	leaderElection := leader.New(nc, js, "apiserver", hostname)
 	go leaderElection.Start(context.Background())
 
-	srv := server.New(cfg.ListenAddr, httpHandler)
+	srv := server.New(cfg.ListenAddr, dbpkg.WithHealth(httpHandler, db, nc.IsConnected))
 
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)

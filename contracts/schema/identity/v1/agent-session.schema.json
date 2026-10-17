@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.hnb.cloud/identity/v1/agent-session.schema.json",
+  "title": "AgentSessionCredential",
+  "description": "Short-lived agent session credential returned after a single-use enrollment exchange. It is bound to the exact tenant and target and must not be persisted by the platform.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "credential",
+    "expiresAt",
+    "tenantId",
+    "targetId",
+    "subject",
+    "sessionId",
+    "generation"
+  ],
+  "properties": {
+    "credential": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 8192,
+      "writeOnly": true
+    },
+    "expiresAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "tenantId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "not": {
+        "const": "*"
+      }
+    },
+    "targetId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "subject": {
+      "const": "cluster-agent"
+    },
+    "sessionId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "generation": {
+      "type": "integer",
+      "minimum": 1
+    }
+  }
+}

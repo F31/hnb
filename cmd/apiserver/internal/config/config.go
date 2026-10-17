@@ -31,6 +31,7 @@ type Config struct {
 	HarborPass             string
 	ClusterCapabilities    string
 	BootstrapAdminPassword string
+	MigrationsDir          string
 	PublicBaseURL          string
 	AgentImage             string
 }
@@ -59,6 +60,7 @@ func Load() (*Config, error) {
 	flag.StringVar(&cfg.HarborPass, "harbor-pass", os.Getenv("HARBOR_PASSWORD"), "Harbor admin password")
 	flag.StringVar(&cfg.ClusterCapabilities, "cluster-capabilities", envOrDefault("CLUSTER_CAPABILITIES", ""), "Comma-separated enabled cluster capability stages (empty = all enabled): contract,schema,provider,projector,read,write")
 	flag.StringVar(&cfg.BootstrapAdminPassword, "bootstrap-admin-password", os.Getenv("HNB_BOOTSTRAP_ADMIN_PASSWORD"), "If set, create the initial admin user with this password when the users table is empty")
+	flag.StringVar(&cfg.MigrationsDir, "migrations-dir", os.Getenv("MIGRATIONS_DIR"), "Owner migration directory; when set, the server refuses to start unless the platform schema is migrated and compatible")
 	flag.StringVar(&cfg.PublicBaseURL, "public-base-url", os.Getenv("PUBLIC_BASE_URL"), "Public base URL of the apiserver (used to render agent TUNNEL_URL in onboarding manifests); empty derives from the request Host")
 	flag.StringVar(&cfg.AgentImage, "agent-image", envOrDefault("AGENT_IMAGE", "hnb/cluster-agent:latest"), "cluster-agent image referenced by onboarding manifests")
 

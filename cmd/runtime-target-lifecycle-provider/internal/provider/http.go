@@ -68,7 +68,7 @@ func (s *Server) Handler() http.Handler {
 }
 
 func (s *Server) handleExecute(w http.ResponseWriter, r *http.Request) {
-	r.Body = http.MaxBytesReader(w, r.Body, 64<<10)
+	r.Body = http.MaxBytesReader(w, r.Body, ExecuteBodyLimit)
 	decoder := json.NewDecoder(r.Body)
 	decoder.DisallowUnknownFields()
 	var request executeRequest

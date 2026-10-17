@@ -1,19 +1,35 @@
 replicaCount: 1
+probes:
+  enabled: true
 image:
   repository: hnb/{{ .Chart.Name }}
-  tag: ""
+  digest: ""
   pullPolicy: ""
 nats:
   url: ""
+  # Plane account Secret providing user/password for NATS authentication.
+  existingAccountSecret: ""
   existingClientTLSSecret: ""
 db:
+  existingSecret: ""
+  secretKey: dsn
   dsn: ""
 runtimeProviders: ""
 serviceTokenSecret: ""
+# Provider token keys copied into an owner-only staged volume. The worker reads
+# them from /var/run/hnb-provider-tokens/<key>; a Secret mount alone is 0440 and
+# iam.FileTokenSource rejects group-readable bearer tokens.
+serviceTokenFiles: []
+# Image of the init container that stages those tokens; pinned like every other
+# component image.
+sandbox:
+  repository: rancher/mirrored-library-busybox
+  digest: ""
+  pullPolicy: ""
 resources:
   requests:
-    cpu: 200m
+    cpu: 125m
     memory: 256Mi
   limits:
-    cpu: 500m
+    cpu: 400m
     memory: 512Mi

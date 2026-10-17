@@ -127,6 +127,7 @@ type fakeStore struct {
 	manifests    map[string]*store.ProviderManifest
 	secrets      map[string]*store.SecretReferenceMetadata
 	secretValues map[string]string
+	releases     map[string]store.ReleaseCatalogEntry
 }
 
 func newFakeStore() *fakeStore {
@@ -137,6 +138,7 @@ func newFakeStore() *fakeStore {
 		commitments:  map[string]*store.IntentCommitment{},
 		manifests:    map[string]*store.ProviderManifest{},
 		secretValues: map[string]string{},
+		releases:     map[string]store.ReleaseCatalogEntry{},
 	}
 	f.seedLifecycleManifest("runtime-target.lifecycle.kubernetes", "KubernetesTarget", []string{"create", "import", "upgrade", "unmanage"})
 	f.seedLifecycleManifest("runtime-target.lifecycle.edge", "EdgeRuntimeTarget", []string{"import", "upgrade", "unmanage"})
@@ -1607,6 +1609,33 @@ func TestStalePolicyHTTPOutcomes(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// The client may not choose the provider: routing comes from the compatibility
+// matrix and the registered manifest, never from the request body.
+func TestSubmitIntentRejectsProviderRoutingFields(t *testing.T) {
+	srv, store := newTestServer()
+	before := len(store.ops)
+	for name, field := range map[string]string{
+		"providerId":         `"providerId":"runtime-target.lifecycle.kubernetes"`,
+		"provider":           `"provider":"hnb/kubernetes-provider"`,
+		"executionPlanSteps": `"executionPlan":{"steps":[{"stepType":"helm"}]}`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			body := `{"apiVersion":"hnb.io/v1","kind":"ImportRuntimeTarget","metadata":{"idempotencyKey":"pr-` +
+				name + `"},"spec":{"targetKind":"KubernetesTarget","displayName":"c",` + field + `}}`
+			rec := doRequest(t, srv, http.MethodPost, "/v1/intents", body)
+			if rec.Code != http.StatusBadRequest {
+				t.Fatalf("client-supplied %s was accepted with status %d", name, rec.Code)
+			}
+			if !strings.Contains(rec.Body.String(), "not permitted") {
+				t.Fatalf("rejection did not name the forbidden field: %s", rec.Body.String())
+			}
+		})
+	}
+	if len(store.ops) != before {
+		t.Fatalf("rejected intents created %d operations", len(store.ops)-before)
 	}
 }
 

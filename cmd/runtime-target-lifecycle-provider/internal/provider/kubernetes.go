@@ -29,6 +29,13 @@ const (
 	kubernetesIdemAnnotation      = "hnb.io/idempotency-key"
 	kubernetesAttemptAnnotation   = "hnb.io/execution-attempt-id"
 	kubernetesActionAnnotation    = "hnb.io/action"
+	// kubernetesEndpointAnnotation records the provisioned control-plane
+	// endpoint so later actions (node add, upgrade) can recover it after a
+	// provider restart without re-bootstrapping anything.
+	kubernetesEndpointAnnotation = "hnb.io/control-plane-endpoint"
+	// kubernetesKubeconfigRefAnnotation records where the admin kubeconfig was
+	// stored so the provider can reopen the target record after a restart.
+	kubernetesKubeconfigRefAnnotation = "hnb.io/kubeconfig-ref"
 )
 
 // KubernetesManager implements LifecycleManager for KubernetesRuntimeTarget
@@ -47,7 +54,12 @@ type KubernetesManager struct {
 	// resulting kubeconfig, and registers the target. nil disables provisioning.
 	provisioner interface {
 		Provision(ctx context.Context, spec provision.ProvisionSpec) (provision.Result, error)
+		AddNodes(ctx context.Context, spec provision.AddNodesSpec) (provision.AddNodesResult, error)
 	}
+	// kubeconfigLoader resolves a stored kubeconfig SecretReference back into
+	// plaintext so the provider can persist/reopen the target record inside
+	// the provisioned cluster. nil disables record persistence (tests).
+	kubeconfigLoader func(ctx context.Context, tenantID string, ref provision.SecretReference) ([]byte, error)
 }
 
 // NewKubernetesManager creates a manager that uses the resolved kubeconfig
@@ -65,9 +77,23 @@ func NewKubernetesManager(profile Profile) *KubernetesManager {
 // clusters over user-supplied SSH nodes (create with sshSecretRef + nodes).
 func NewKubernetesManagerWithProvisioner(profile Profile, provisioner interface {
 	Provision(ctx context.Context, spec provision.ProvisionSpec) (provision.Result, error)
+	AddNodes(ctx context.Context, spec provision.AddNodesSpec) (provision.AddNodesResult, error)
 }) *KubernetesManager {
 	m := NewKubernetesManager(profile)
 	m.provisioner = provisioner
+	return m
+}
+
+// NewKubernetesManagerWithProvisionerAndLoader additionally enables persisting
+// the target record into the provisioned cluster (managed namespace), so a
+// provider restart can recover the control-plane endpoint and kubeconfig
+// reference for follow-up actions such as node add.
+func NewKubernetesManagerWithProvisionerAndLoader(profile Profile, provisioner interface {
+	Provision(ctx context.Context, spec provision.ProvisionSpec) (provision.Result, error)
+	AddNodes(ctx context.Context, spec provision.AddNodesSpec) (provision.AddNodesResult, error)
+}, loader func(ctx context.Context, tenantID string, ref provision.SecretReference) ([]byte, error)) *KubernetesManager {
+	m := NewKubernetesManagerWithProvisioner(profile, provisioner)
+	m.kubeconfigLoader = loader
 	return m
 }
 
@@ -157,6 +183,17 @@ func (m *KubernetesManager) Apply(ctx context.Context, execution ExecutionContex
 		if err := m.updateVersion(ctx, execution, input); err != nil {
 			return Result{}, err
 		}
+	case "node-add":
+		if m.provisioner == nil {
+			return Result{}, fail(400, ErrorUnsupportedAction, false, "node add is not enabled for this provider build")
+		}
+		// Node addition inherits cluster identity; it does not change the version.
+		input.DesiredVersion = record.DesiredVersion
+		outputs, err := m.addNodes(ctx, execution, input, record)
+		if err != nil {
+			return Result{}, err
+		}
+		provisionOutputs = outputs
 	case "unmanage":
 		if err := m.cleanupNamespace(ctx, execution, input); err != nil {
 			return Result{}, err
@@ -231,6 +268,26 @@ func (m *KubernetesManager) provision(ctx context.Context, execution ExecutionCo
 		})
 		outputs["kubeconfigRef"] = string(encoded)
 	}
+	// Persist the target record inside the provisioned cluster so a provider
+	// restart can recover the endpoint/kubeconfig reference for follow-up
+	// actions (node add, upgrade) without re-bootstrapping anything.
+	if m.kubeconfigLoader != nil {
+		kubeconfig, err := m.kubeconfigLoader(ctx, execution.TenantID, result.KubeconfigRef)
+		if err != nil {
+			return nil, fail(500, ErrorTargetUnavailable, true, "resolve provisioned kubeconfig: %v", err)
+		}
+		client, err := m.clientFunc(kubeconfig)
+		if err != nil {
+			return nil, fail(500, ErrorTargetUnavailable, true, "open provisioned cluster: %v", err)
+		}
+		extra := map[string]string{kubernetesEndpointAnnotation: result.ControlPlaneEndpoint}
+		if refJSON := outputs["kubeconfigRef"]; refJSON != "" {
+			extra[kubernetesKubeconfigRefAnnotation] = refJSON
+		}
+		if err := m.writeTargetRecord(ctx, client, execution, input, extra); err != nil {
+			return nil, fail(500, ErrorTargetUnavailable, true, "persist target record: %v", err)
+		}
+	}
 	return outputs, nil
 }
 
@@ -248,15 +305,23 @@ func (m *KubernetesManager) provisionSpec(execution ExecutionContext, input Life
 		return provision.ProvisionSpec{}, fail(400, ErrorInvalidRequest, false, "parameters.nodes requires at least one node")
 	}
 	return provision.ProvisionSpec{
-		TenantID:       execution.TenantID,
-		TargetID:       input.TargetID,
-		DisplayName:    input.DisplayName,
-		DesiredVersion: input.DesiredVersion,
-		PodCIDR:        parameterString(input.Parameters, "podCidr"),
-		ServiceCIDR:    parameterString(input.Parameters, "serviceCidr"),
-		ClusterDomain:  parameterString(input.Parameters, "clusterDomain"),
-		IdempotencyKey: input.IdempotencyKey,
-		Nodes:          nodes,
+		TenantID:             execution.TenantID,
+		TargetID:             input.TargetID,
+		DisplayName:          input.DisplayName,
+		DesiredVersion:       input.DesiredVersion,
+		PodCIDR:              parameterString(input.Parameters, "podCidr"),
+		ServiceCIDR:          parameterString(input.Parameters, "serviceCidr"),
+		ClusterDomain:        parameterString(input.Parameters, "clusterDomain"),
+		NetworkPlugin:        parameterString(input.Parameters, "networkPlugin"),
+		NetworkVersion:       parameterString(input.Parameters, "networkVersion"),
+		ImageRepository:      parameterString(input.Parameters, "imageRepository"),
+		SandboxImage:         parameterString(input.Parameters, "sandboxImage"),
+		CNIImageRepository:   parameterString(input.Parameters, "cniImageRepository"),
+		HelmChartRepository:  parameterString(input.Parameters, "helmChartRepository"),
+		AdvertiseAddress:     parameterString(input.Parameters, "advertiseAddress"),
+		ControlPlaneEndpoint: parameterString(input.Parameters, "controlPlaneEndpoint"),
+		IdempotencyKey:       input.IdempotencyKey,
+		Nodes:                nodes,
 		SSHCredential: provision.SecretReference{
 			Provider: input.SSHSecretRef.Provider,
 			Scope:    input.SSHSecretRef.Scope,
@@ -310,6 +375,188 @@ func parameterString(params map[string]any, key string) string {
 		return text
 	}
 	return fmt.Sprintf("%v", raw)
+}
+
+// addNodes joins new worker nodes to the provisioned cluster over SSH. The
+// control-plane endpoint and desired version come from the durable target
+// record (in-memory or namespace-recovered); the caller supplies only node
+// identities plus the SSH credential scope.
+func (m *KubernetesManager) addNodes(ctx context.Context, execution ExecutionContext, input LifecycleInput, record targetRecord) (map[string]string, error) {
+	endpoint := record.Outputs["endpoint"]
+	if endpoint == "" {
+		return nil, fail(409, ErrorResourceConflict, false,
+			"node add requires a toolkit-provisioned cluster with a recorded control-plane endpoint; imported clusters have no SSH bootstrap path")
+	}
+	desiredVersion := record.DesiredVersion
+	if desiredVersion == "" {
+		return nil, fail(409, ErrorResourceConflict, false, "node add requires the cluster's desired version to be recorded")
+	}
+	nodes, err := parseAddNodes(input.Parameters)
+	if err != nil {
+		return nil, fail(400, ErrorInvalidRequest, false, "parameters.nodes: %v", err)
+	}
+	result, err := m.provisioner.AddNodes(ctx, provision.AddNodesSpec{
+		TenantID:             execution.TenantID,
+		TargetID:             input.TargetID,
+		ControlPlaneEndpoint: endpoint,
+		DesiredVersion:       desiredVersion,
+		IdempotencyKey:       input.IdempotencyKey,
+		Nodes:                nodes,
+		SSHCredential: provision.SecretReference{
+			Provider: input.SSHSecretRef.Provider,
+			Scope:    input.SSHSecretRef.Scope,
+			Name:     input.SSHSecretRef.Name,
+			Version:  input.SSHSecretRef.Version,
+		},
+	})
+	if err != nil {
+		return nil, fail(500, ErrorTargetUnavailable, true, "add nodes: %v", err)
+	}
+	// Refresh the durable record (fencing + action) so a later restart sees
+	// the node-add operation rather than the original create.
+	if err := m.persistAfterNodeAdd(ctx, execution, input, record); err != nil {
+		return nil, err
+	}
+	return map[string]string{
+		"endpoint":           result.Endpoint,
+		"kubeconfigRef":      record.Outputs["kubeconfigRef"],
+		"nodeCount":          fmt.Sprintf("%d", result.Requested),
+		"joinedCount":        fmt.Sprintf("%d", result.Joined),
+		"alreadyJoinedCount": fmt.Sprintf("%d", result.AlreadyJoined),
+	}, nil
+}
+
+// parseAddNodes translates the intent-owned node identities (name + worker
+// role only) into SSH node specs: the name doubles as the SSH address and the
+// kubelet node name. Execution fields cannot arrive through this path.
+func parseAddNodes(params map[string]any) ([]provision.NodeSpec, error) {
+	raw, ok := params["nodes"]
+	if !ok || raw == nil {
+		return nil, fmt.Errorf("nodes list is required")
+	}
+	list, ok := raw.([]any)
+	if !ok || len(list) == 0 {
+		return nil, fmt.Errorf("must be a non-empty array of node objects")
+	}
+	nodes := make([]provision.NodeSpec, 0, len(list))
+	seen := make(map[string]bool, len(list))
+	for i, item := range list {
+		obj, ok := item.(map[string]any)
+		if !ok {
+			return nil, fmt.Errorf("nodes[%d] must be an object", i)
+		}
+		name, _ := obj["name"].(string)
+		role, _ := obj["role"].(string)
+		if name == "" || role != string(provision.RoleWorker) {
+			return nil, fmt.Errorf("nodes[%d] requires a name and the worker role", i)
+		}
+		if seen[name] {
+			return nil, fmt.Errorf("nodes[%d]: duplicate node name %q", i, name)
+		}
+		seen[name] = true
+		nodes = append(nodes, provision.NodeSpec{ID: name, Host: name, Role: provision.RoleWorker})
+	}
+	return nodes, nil
+}
+
+// persistAfterNodeAdd refreshes the managed-namespace record after a
+// successful node add. Legacy records without a kubeconfig reference skip the
+// bookkeeping rather than failing the completed join.
+func (m *KubernetesManager) persistAfterNodeAdd(ctx context.Context, execution ExecutionContext, input LifecycleInput, record targetRecord) error {
+	if m.kubeconfigLoader == nil {
+		return nil
+	}
+	refJSON := record.Outputs["kubeconfigRef"]
+	if refJSON == "" {
+		return nil
+	}
+	var ref provision.SecretReference
+	if err := json.Unmarshal([]byte(refJSON), &ref); err != nil {
+		return nil
+	}
+	kubeconfig, err := m.kubeconfigLoader(ctx, execution.TenantID, ref)
+	if err != nil {
+		return fail(500, ErrorTargetUnavailable, true, "resolve stored kubeconfig: %v", err)
+	}
+	client, err := m.clientFunc(kubeconfig)
+	if err != nil {
+		return fail(500, ErrorTargetUnavailable, true, "open target cluster: %v", err)
+	}
+	extra := map[string]string{kubernetesKubeconfigRefAnnotation: refJSON}
+	if endpoint := record.Outputs["endpoint"]; endpoint != "" {
+		extra[kubernetesEndpointAnnotation] = endpoint
+	}
+	if err := m.writeTargetRecord(ctx, client, execution, input, extra); err != nil {
+		return fail(500, ErrorTargetUnavailable, true, "persist target record: %v", err)
+	}
+	return nil
+}
+
+// writeTargetRecord creates or refreshes the managed-namespace record inside
+// the target cluster, carrying the fencing/operation identity plus the extra
+// annotations (endpoint, kubeconfig reference). Ownership is validated before
+// any update so a foreign namespace is never rewritten.
+func (m *KubernetesManager) writeTargetRecord(ctx context.Context, client kubernetes.Interface, execution ExecutionContext, input LifecycleInput, extra map[string]string) error {
+	namespaceName := "hnb-target-" + input.TargetID[:8]
+	annotations := map[string]string{
+		kubernetesManagedByAnnotation: kubernetesProviderValue,
+		kubernetesTenantAnnotation:    execution.TenantID,
+		kubernetesTargetAnnotation:    input.TargetID,
+		kubernetesOperationAnnotation: execution.OperationID,
+		kubernetesFencingAnnotation:   fmt.Sprintf("%d", execution.FencingGeneration),
+		kubernetesStepAnnotation:      execution.StepID,
+		kubernetesIdemAnnotation:      execution.IdempotencyKey,
+		kubernetesAttemptAnnotation:   execution.ExecutionAttemptID,
+		kubernetesActionAnnotation:    input.Action,
+	}
+	if input.DesiredVersion != "" {
+		annotations[kubernetesVersionAnnotation] = input.DesiredVersion
+	}
+	mergeParameterAnnotations(annotations, input.Parameters)
+	for key, value := range extra {
+		annotations[key] = value
+	}
+	ns := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        namespaceName,
+			Annotations: annotations,
+			Labels: map[string]string{
+				"hnb.io/managed-by": kubernetesProviderValue,
+				"hnb.io/target-id":  input.TargetID,
+			},
+		},
+	}
+	_, err := client.CoreV1().Namespaces().Create(ctx, ns, metav1.CreateOptions{})
+	if err == nil {
+		return nil
+	}
+	if !apierrors.IsAlreadyExists(err) {
+		return targetError("create managed namespace", err)
+	}
+	existing, err := client.CoreV1().Namespaces().Get(ctx, namespaceName, metav1.GetOptions{})
+	if err != nil {
+		return targetError("get managed namespace", err)
+	}
+	ann := existing.GetAnnotations()
+	if ann[kubernetesManagedByAnnotation] != kubernetesProviderValue ||
+		ann[kubernetesTenantAnnotation] != execution.TenantID || ann[kubernetesTargetAnnotation] != input.TargetID {
+		return fail(409, ErrorResourceConflict, false, "managed namespace belongs to a different target management relation")
+	}
+	// Follow-up actions keep carrying the durable identity annotations when
+	// they do not restate them (for example the version on node add).
+	if _, present := annotations[kubernetesVersionAnnotation]; !present && ann[kubernetesVersionAnnotation] != "" {
+		annotations[kubernetesVersionAnnotation] = ann[kubernetesVersionAnnotation]
+	}
+	for _, key := range []string{kubernetesEndpointAnnotation, kubernetesKubeconfigRefAnnotation} {
+		if _, present := annotations[key]; !present && ann[key] != "" {
+			annotations[key] = ann[key]
+		}
+	}
+	existing.SetAnnotations(annotations)
+	if _, err := client.CoreV1().Namespaces().Update(ctx, existing, metav1.UpdateOptions{}); err != nil {
+		return targetError("update managed namespace", err)
+	}
+	return nil
 }
 
 func stringValue(v any) string {
@@ -450,6 +697,12 @@ func (m *KubernetesManager) loadRecordFromNamespace(ctx context.Context, executi
 	}
 	if ann[kubernetesVersionAnnotation] != "" {
 		outputs["desiredVersion"] = ann[kubernetesVersionAnnotation]
+	}
+	if ann[kubernetesEndpointAnnotation] != "" {
+		outputs["endpoint"] = ann[kubernetesEndpointAnnotation]
+	}
+	if ann[kubernetesKubeconfigRefAnnotation] != "" {
+		outputs["kubeconfigRef"] = ann[kubernetesKubeconfigRefAnnotation]
 	}
 	return targetRecord{
 		TenantID: execution.TenantID, TargetID: input.TargetID, TargetKind: input.TargetKind,

@@ -27,11 +27,26 @@ func (s *IAMDBStore) RecordKeyManifest(ctx context.Context, manifest KeyManifest
 		return errors.New("stored signing-key generation is newer than manifest")
 	}
 	for kid, entry := range manifest.Keys {
+		// PostgreSQL TIMESTAMPTZ stores microseconds. A manifest carries
+		// nanoseconds, so comparing it with time.Equal against a value that has
+		// already been through the database always fails and the process refuses
+		// to restart on its own recorded key. Compare at database precision.
+		entry.NotBefore = truncateToDatabasePrecision(entry.NotBefore)
+		entry.NotAfter = truncateToDatabasePrecision(entry.NotAfter)
 		if err := recordManifestKey(ctx, tx, manifest, kid, entry, storedGeneration); err != nil {
 			return err
 		}
 	}
 	return tx.Commit()
+}
+
+// truncateToDatabasePrecision drops sub-microsecond components so a value keeps
+// the exact representation it will have after a PostgreSQL round trip.
+// PostgreSQL rounds TIMESTAMPTZ input to microseconds, so rounding here must
+// match the database rather than truncating, or a recorded key never compares
+// equal on the next process start.
+func truncateToDatabasePrecision(value time.Time) time.Time {
+	return value.Round(time.Microsecond)
 }
 
 func recordManifestKey(ctx context.Context, tx *sql.Tx, manifest KeyManifest, kid string, entry KeyManifestEntry, storedGeneration uint64) error {

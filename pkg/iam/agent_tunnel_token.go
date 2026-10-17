@@ -12,6 +12,8 @@ import (
 	"math/big"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 // Agent tunnel tokens bind a cluster-agent workload to the exact tenant and
@@ -42,6 +44,8 @@ type AgentTunnelTokenClaims struct {
 	SubjectID      string              `json:"sub"`
 	SubjectType    string              `json:"type"`
 	Identity       AgentTunnelIdentity `json:"agent"`
+	SessionID      string              `json:"sessionId,omitempty"`
+	Generation     int64               `json:"generation,omitempty"`
 	IssuedAt       int64               `json:"iat"`
 	NotBefore      int64               `json:"nbf"`
 	ExpiresAt      int64               `json:"exp"`
@@ -108,19 +112,46 @@ func validAgentTunnelIdentity(identity AgentTunnelIdentity) bool {
 // Sign issues an agent tunnel token bound to (tenantID, clusterID). The
 // returned time.Time is the token expiry (UTC).
 func (s *AgentTunnelTokenSigner) Sign(ctx context.Context, tenantID, clusterID string) (string, time.Time, error) {
+	return s.SignWithTTL(ctx, tenantID, clusterID, s.config.TTL)
+}
+
+// SignWithTTL issues a shorter-lived legacy token without a session binding.
+// It never exceeds the configured or profile TTL.
+func (s *AgentTunnelTokenSigner) SignWithTTL(ctx context.Context, tenantID, clusterID string, ttl time.Duration) (string, time.Time, error) {
+	return s.sign(ctx, tenantID, clusterID, "", 0, ttl)
+}
+
+// SignSession issues a renewable session token bound to one agent_sessions row.
+// Rotation keeps the same session ID and generation; re-enrollment creates a
+// new generation. The tunnel verifier checks the persisted session state.
+func (s *AgentTunnelTokenSigner) SignSession(ctx context.Context, tenantID, clusterID, sessionID string, generation int64, ttl time.Duration) (string, time.Time, error) {
+	if _, err := uuid.Parse(sessionID); err != nil {
+		return "", time.Time{}, errors.New("agent session ID must be a UUID")
+	}
+	if generation < 1 {
+		return "", time.Time{}, errors.New("agent session generation must be positive")
+	}
+	return s.sign(ctx, tenantID, clusterID, sessionID, generation, ttl)
+}
+
+func (s *AgentTunnelTokenSigner) sign(ctx context.Context, tenantID, clusterID, sessionID string, generation int64, ttl time.Duration) (string, time.Time, error) {
 	if !validAgentTunnelIdentity(AgentTunnelIdentity{TenantID: tenantID, ClusterID: clusterID}) {
 		return "", time.Time{}, errors.New("explicit tenant and cluster binding are required")
+	}
+	if ttl < time.Second || ttl > s.config.TTL || ttl > MaxAgentTunnelTokenTTL {
+		return "", time.Time{}, errors.New("agent tunnel session TTL is outside the allowed window")
 	}
 	kid, key, err := s.keyProvider.CurrentSigningKey(ctx)
 	if err != nil {
 		return "", time.Time{}, err
 	}
 	now := s.config.Now().UTC()
-	expiry := now.Add(s.config.TTL).Truncate(time.Second)
+	expiry := now.Add(ttl).Truncate(time.Second)
 	claims := AgentTunnelTokenClaims{
 		ProfileVersion: AgentTunnelProfileVersion, Issuer: s.config.Issuer, Audience: s.config.Audience,
 		SubjectID: "cluster-agent", SubjectType: "service",
-		Identity: AgentTunnelIdentity{TenantID: tenantID, ClusterID: clusterID},
+		Identity:  AgentTunnelIdentity{TenantID: tenantID, ClusterID: clusterID},
+		SessionID: sessionID, Generation: generation,
 		IssuedAt: now.Unix(), NotBefore: now.Unix(), ExpiresAt: expiry.Unix(),
 		TokenID: randomID(), KeyID: kid, Algorithm: AccessTokenAlgorithm,
 	}
@@ -134,12 +165,22 @@ func (s *AgentTunnelTokenSigner) Sign(ctx context.Context, tenantID, clusterID s
 // Verify validates a token signature, profile, and exact (tenant, cluster)
 // binding; it returns the token expiry (UTC).
 func (v *AgentTunnelTokenVerifier) Verify(ctx context.Context, token, tenantID, clusterID string) (time.Time, error) {
+	claims, err := v.VerifyClaims(ctx, token, tenantID, clusterID)
+	if err != nil {
+		return time.Time{}, err
+	}
+	return time.Unix(claims.ExpiresAt, 0).UTC(), nil
+}
+
+// VerifyClaims returns the verified claims so callers can enforce persisted
+// session revocation/generation state after the signature check.
+func (v *AgentTunnelTokenVerifier) VerifyClaims(ctx context.Context, token, tenantID, clusterID string) (*AgentTunnelTokenClaims, error) {
 	if len(token) == 0 || len(token) > MaxAgentTunnelTokenSize {
-		return time.Time{}, errors.New("invalid agent tunnel token size")
+		return nil, errors.New("invalid agent tunnel token size")
 	}
 	parts := strings.Split(token, ".")
 	if len(parts) != 3 || parts[0] == "" || parts[1] == "" || parts[2] == "" {
-		return time.Time{}, errors.New("invalid agent tunnel JWT")
+		return nil, errors.New("invalid agent tunnel JWT")
 	}
 	var header struct {
 		Type      string `json:"typ"`
@@ -148,23 +189,23 @@ func (v *AgentTunnelTokenVerifier) Verify(ctx context.Context, token, tenantID, 
 	}
 	if err := decodeStrictJSON(parts[0], &header); err != nil || header.Type != AgentTunnelTokenType ||
 		header.Algorithm != AccessTokenAlgorithm || !boundedClaim(header.KeyID, 128) {
-		return time.Time{}, errors.New("unsupported agent tunnel JWT header")
+		return nil, errors.New("unsupported agent tunnel JWT header")
 	}
 	key, err := v.keyRing.VerificationKey(ctx, header.KeyID)
 	if err != nil || key == nil || key.Curve.Params().Name != "P-256" {
-		return time.Time{}, errors.New("unknown agent tunnel signing key")
+		return nil, errors.New("unknown agent tunnel signing key")
 	}
 	signature, err := base64.RawURLEncoding.DecodeString(parts[2])
 	if err != nil || len(signature) != 64 {
-		return time.Time{}, errors.New("invalid agent tunnel signature")
+		return nil, errors.New("invalid agent tunnel signature")
 	}
 	digest := sha256.Sum256([]byte(parts[0] + "." + parts[1]))
 	if !ecdsa.Verify(key, digest[:], new(big.Int).SetBytes(signature[:32]), new(big.Int).SetBytes(signature[32:])) {
-		return time.Time{}, errors.New("invalid agent tunnel signature")
+		return nil, errors.New("invalid agent tunnel signature")
 	}
 	var claims AgentTunnelTokenClaims
 	if err := decodeStrictJSON(parts[1], &claims); err != nil {
-		return time.Time{}, errors.New("invalid agent tunnel claims")
+		return nil, errors.New("invalid agent tunnel claims")
 	}
 	now := v.config.Now().UTC().Unix()
 	if claims.ProfileVersion != AgentTunnelProfileVersion || claims.Issuer != v.config.Issuer ||
@@ -173,12 +214,20 @@ func (v *AgentTunnelTokenVerifier) Verify(ctx context.Context, token, tenantID, 
 		claims.IssuedAt <= 0 || claims.NotBefore <= 0 || claims.ExpiresAt <= 0 || claims.IssuedAt > now || claims.NotBefore > now ||
 		claims.ExpiresAt <= now || claims.ExpiresAt <= claims.IssuedAt ||
 		time.Duration(claims.ExpiresAt-claims.IssuedAt)*time.Second > MaxAgentTunnelTokenTTL {
-		return time.Time{}, errors.New("agent tunnel claims failed validation")
+		return nil, errors.New("agent tunnel claims failed validation")
 	}
 	if !validAgentTunnelIdentity(claims.Identity) || claims.Identity.TenantID != tenantID || claims.Identity.ClusterID != clusterID {
-		return time.Time{}, errors.New("agent tunnel token is not bound to the requested scope")
+		return nil, errors.New("agent tunnel token is not bound to the requested scope")
 	}
-	return time.Unix(claims.ExpiresAt, 0).UTC(), nil
+	if (claims.SessionID == "") != (claims.Generation == 0) {
+		return nil, errors.New("agent tunnel session claims are incomplete")
+	}
+	if claims.SessionID != "" {
+		if _, err := uuid.Parse(claims.SessionID); err != nil || claims.Generation < 1 {
+			return nil, errors.New("agent tunnel session claims are invalid")
+		}
+	}
+	return &claims, nil
 }
 
 func signAgentTunnelToken(key *ecdsa.PrivateKey, kid string, claims AgentTunnelTokenClaims) (string, error) {
@@ -208,4 +257,32 @@ func signAgentTunnelToken(key *ecdsa.PrivateKey, kid string, claims AgentTunnelT
 	r.FillBytes(signature[:32])
 	s.FillBytes(signature[32:])
 	return unsigned + "." + base64.RawURLEncoding.EncodeToString(signature), nil
+}
+
+// ParseAgentSessionLookup extracts only the unverified lookup keys needed to
+// find the authoritative agent_sessions row. The caller must still verify the
+// token with AgentTunnelTokenVerifier.VerifyClaims before rotating or using it.
+func ParseAgentSessionLookup(token string) (string, string, string, error) {
+	if len(token) == 0 || len(token) > MaxAgentTunnelTokenSize {
+		return "", "", "", errors.New("invalid agent session token size")
+	}
+	parts := strings.Split(token, ".")
+	if len(parts) != 3 || parts[1] == "" {
+		return "", "", "", errors.New("invalid agent session JWT")
+	}
+	data, err := base64.RawURLEncoding.DecodeString(parts[1])
+	if err != nil {
+		return "", "", "", errors.New("invalid agent session payload")
+	}
+	var claims AgentTunnelTokenClaims
+	if err := json.Unmarshal(data, &claims); err != nil {
+		return "", "", "", errors.New("invalid agent session payload")
+	}
+	if !validAgentTunnelIdentity(claims.Identity) || claims.SessionID == "" {
+		return "", "", "", errors.New("not an agent session token")
+	}
+	if _, err := uuid.Parse(claims.SessionID); err != nil {
+		return "", "", "", errors.New("invalid agent session ID")
+	}
+	return claims.Identity.TenantID, claims.Identity.ClusterID, claims.SessionID, nil
 }

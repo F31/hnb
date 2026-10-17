@@ -21,6 +21,10 @@ const (
 	// Transactional Outbox + relay 投递到 domain-events 流（GSLB-005）。
 	commandSubject = "hnb.event.gslb.step-requested.v1"
 	consumerName   = "gslb-controller"
+	// Must match the domain-event cap the operation-worker outbox relay applies:
+	// JetStream rejects a stream whose ceiling exceeds the configured store, and
+	// it withholds roughly a quarter of the volume as headroom.
+	domainEventStreamBytes = 256 << 20
 )
 
 var errRejected = errors.New("gslb command rejected: request not in executable state")
@@ -57,7 +61,7 @@ func (c *Consumer) Start(ctx context.Context) error {
 		Storage:    jetstream.FileStorage,
 		Retention:  jetstream.LimitsPolicy,
 		MaxAge:     30 * 24 * time.Hour,
-		MaxBytes:   5 << 30,
+		MaxBytes:   domainEventStreamBytes,
 		MaxMsgSize: 2 << 20,
 		Discard:    jetstream.DiscardOld,
 		Duplicates: 2 * time.Minute,

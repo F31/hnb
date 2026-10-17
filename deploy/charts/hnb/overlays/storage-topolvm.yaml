@@ -1,0 +1,8 @@
+# Apply after minimal.yaml and only after TopoLVM + its VG are ready.
+# This selects storage for NEW claims; existing PVC storageClassName is immutable.
+postgresql:
+  storage:
+    className: hnb-topolvm
+nats:
+  storage:
+    className: hnb-topolvm

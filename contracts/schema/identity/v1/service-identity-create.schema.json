@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.hnb.cloud/identity/v1/service-identity-create.schema.json",
+  "title": "ServiceIdentityCreate",
+  "description": "Register one exact service identity. The caller's tenant is authoritative; this body cannot select another tenant. This is not a credential and does not grant execution authority by itself.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["subjectId", "audience", "permission"],
+  "properties": {
+    "subjectId": { "type": "string", "format": "uuid" },
+    "audience": {
+      "type": "string", "minLength": 1, "maxLength": 256,
+      "pattern": "^[!-)+-~]+$", "not": { "const": "*" }
+    },
+    "permission": {
+      "allOf": [
+        { "$ref": "../../platform/v1/scoped-permission.schema.json" },
+        {
+          "type": "object",
+          "required": ["tenantId", "resourceKind", "resourceId", "action"],
+          "properties": {
+            "resourceKind": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9._-]{0,127}$" },
+            "resourceId": { "type": "string", "minLength": 1, "maxLength": 256 },
+            "action": { "not": { "const": "*" } }
+          },
+          "dependentRequired": { "environmentId": ["projectId"], "namespaceId": ["environmentId"] }
+        }
+      ]
+    }
+  }
+}

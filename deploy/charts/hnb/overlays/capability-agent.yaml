@@ -1,0 +1,8 @@
+# Enable when onboarding a managed target; use target-specific bindings.
+cluster-agent: {enabled: true, replicaCount: 1}
+rbac-syncer: {enabled: true, replicaCount: 1}
+
+# Each NATS client authenticates as the platform plane account; the Secret must
+# carry user/password keys and never appears in values.
+nats:
+  existingAccountSecret: hnb-platform-nats

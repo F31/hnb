@@ -65,7 +65,12 @@ func bootstrapAdmin(ctx context.Context, db *sql.DB, password, issuer string) er
 		query string
 		args  []any
 	}{
-		{`INSERT INTO tenants (id, name, display_name, status, created_at, updated_at) VALUES ($1,$2,$3,'active',$4,$4)`,
+		// The default tenant is created idempotently: ensureDefaultWorkspace may
+		// already have created it, and an unconditional insert would abort the
+		// whole bootstrap with a duplicate-key error, leaving an installation
+		// that can never create its first admin.
+		{`INSERT INTO tenants (id, name, display_name, status, created_at, updated_at)
+		  VALUES ($1,$2,$3,'active',$4,$4) ON CONFLICT (id) DO NOTHING`,
 			[]any{tenantID, "default", "Default Tenant", now}},
 		{`INSERT INTO users (id, username, email, display_name, password_hash, source, is_active, created_at, updated_at) VALUES ($1,$2,'','admin',$3,'local',true,$4,$4)`,
 			[]any{userID, "admin", passwordHash, now}},
@@ -83,7 +88,10 @@ func bootstrapAdmin(ctx context.Context, db *sql.DB, password, issuer string) er
 			[]any{rbBindingID, userID, now}},
 		// The bootstrap tenant gets a default workspace so the console has a
 		// space to land on after login (fetchWorkspaces would otherwise be empty).
-		{`INSERT INTO workspaces (id, tenant_id, name, display_name, labels, is_active, created_at, updated_at) VALUES ($1,$2,'default','默认工作空间','{}',true,$3,$3)`,
+		// Startup creates the same workspace through ensureDefaultWorkspace, so
+		// this insert must tolerate it already existing.
+		{`INSERT INTO workspaces (id, tenant_id, name, display_name, labels, is_active, created_at, updated_at)
+		  VALUES ($1,$2,'default','默认工作空间','{}',true,$3,$3) ON CONFLICT DO NOTHING`,
 			[]any{uuid.NewString(), tenantID, now}},
 	}
 

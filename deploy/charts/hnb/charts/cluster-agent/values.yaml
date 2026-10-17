@@ -8,16 +8,39 @@ rbac:
   create: true
 image:
   repository: hnb/{{ .Chart.Name }}
-  tag: ""
+  digest: ""
   pullPolicy: ""
 nats:
   url: ""
+  # Plane account Secret providing user/password for NATS authentication.
+  existingAccountSecret: ""
 db:
+  existingSecret: ""
+  secretKey: dsn
   dsn: ""
+# The agent refuses to start without its tenant/cluster-bound tunnel credential,
+# so the platform's own agent needs the onboarding binding explicitly. Operators
+# can leave these empty when this chart only renders the managed-cluster agent.
+onboarding:
+  enabled: false
+  tenantId: ""
+  clusterId: ""
+  tunnelUrl: ""
+  # Secret holding the agent-tunnel token under an owner-only file mode.
+  existingTokenSecret: ""
+  tokenKey: agent-token
+  # Optional observation ingest; requires observerTokenSecret.
+  observationIngestUrl: ""
+  existingObserverTokenSecret: ""
+# Scratch-based component image cannot run the staging shell; use a pinned sandbox.
+sandbox:
+  repository: rancher/mirrored-library-busybox
+  digest: ""
+  pullPolicy: ""
 resources:
   requests:
-    cpu: 200m
-    memory: 256Mi
+    cpu: 50m
+    memory: 64Mi
   limits:
-    cpu: 500m
-    memory: 512Mi
+    cpu: 100m
+    memory: 128Mi

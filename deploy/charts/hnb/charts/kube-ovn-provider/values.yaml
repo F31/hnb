@@ -1,14 +1,16 @@
 replicaCount: 1
-global:
-  imageTag: ""
 image:
   repository: hnb/{{ .Chart.Name }}
-  tag: ""
+  digest: ""
   pullPolicy: ""
 nats:
   url: ""
+  # Plane account Secret providing user/password for NATS authentication.
+  existingAccountSecret: ""
   existingClientTLSSecret: ""
 db:
+  existingSecret: ""
+  secretKey: dsn
   dsn: ""
 masterKey:
   # Secret holding the platform master key (HNB_MASTER_KEY) used to decrypt

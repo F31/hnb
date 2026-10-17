@@ -78,6 +78,9 @@ func parseLifecycleInput(profile Profile, execution ExecutionContext) (Lifecycle
 	if action == "upgrade" && (input.DesiredVersion == "" || len(input.DesiredVersion) > 128) {
 		return LifecycleInput{}, invalid("inputs.desiredVersion is required for upgrade")
 	}
+	if action == "node-add" && input.SSHSecretRef == nil {
+		return LifecycleInput{}, invalid("inputs.sshSecretRef is required for node add")
+	}
 	if profile.TargetKind == "EdgeRuntimeTarget" && action == "import" {
 		if err := validateCloudCoreEndpoint(input.CloudCoreEndpoint); err != nil {
 			return LifecycleInput{}, err

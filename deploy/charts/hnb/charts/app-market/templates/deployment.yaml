@@ -15,10 +15,16 @@ spec:
       labels:
         app.kubernetes.io/name: {{ .Chart.Name }}
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: {{ .Values.runAsUser | default 65532 }}
+        runAsGroup: {{ .Values.runAsUser | default 65532 }}
+        fsGroup: {{ .Values.runAsUser | default 65532 }}
+        fsGroupChangePolicy: OnRootMismatch
       containers:
         - name: {{ .Chart.Name }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default $.Values.global.imageTag }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy | default $.Values.global.imagePullPolicy }}
+          image: {{ include "hnb.image" . }}
+          imagePullPolicy: {{ include "hnb.imagePullPolicy" . }}
           env:
             - name: NATS_URL
               value: {{ .Values.nats.url | default $.Values.global.nats.url }}
@@ -28,8 +34,16 @@ spec:
               value: /var/run/hnb-nats/tls.key
             - name: NATS_TLS_CA_FILE
               value: /var/run/hnb-nats/ca.crt
+            {{- include "app-market.natsAccountEnv" (dict "root" $ "component" .Values.nats) | nindent 12 }}
             - name: DB_DSN
+              {{- if .Values.db.existingSecret }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.db.existingSecret | quote }}
+                  key: {{ .Values.db.secretKey | default "dsn" | quote }}
+              {{- else }}
               value: {{ required "app-market.db.dsn must reference the independent App Market database" .Values.db.dsn | quote }}
+              {{- end }}
             - name: API_TOKEN_ISSUER
               value: {{ required "app-market.identity.issuer is required" .Values.identity.issuer | quote }}
             - name: API_TOKEN_AUDIENCE
@@ -38,24 +52,52 @@ spec:
               value: /var/run/hnb-identity/{{ .Values.identity.manifestKey }}
             - name: API_TOKEN_KEY_RELOAD_INTERVAL
               value: {{ .Values.identity.reloadInterval | quote }}
+            - name: ARTIFACT_TRANSFER_STAGING_DIR
+              value: {{ .Values.transfer.stagingDir | quote }}
           ports:
             - containerPort: 8080
               name: http
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+          {{- if .Values.probes.enabled }}
+          startupProbe:
+            httpGet: {path: /livez, port: http}
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 60
+          readinessProbe:
+            httpGet: {path: /readyz, port: http}
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 2
+          livenessProbe:
+            httpGet: {path: /livez, port: http}
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+          {{- end }}
           volumeMounts:
+{{- include "app-market.natsAccountMounts" (dict "root" $ "component" .Values.nats) | nindent 12 }}
             - name: identity-public-key
               mountPath: /var/run/hnb-identity
               readOnly: true
             - name: nats-client-tls
               mountPath: /var/run/hnb-nats
               readOnly: true
+            # A scratch image ships no writable /tmp, so artifact transfer
+            # staging gets an explicit bounded volume instead.
+            - name: transfer-staging
+              mountPath: {{ .Values.transfer.stagingDir }}
       volumes:
+{{- include "app-market.natsAccountVolumes" (dict "root" $ "component" .Values.nats) | nindent 8 }}
         - name: identity-public-key
           secret:
             secretName: {{ required "app-market.identity.existingManifestSecret is required" .Values.identity.existingManifestSecret }}
-            defaultMode: 0400
+            defaultMode: 0440
         - name: nats-client-tls
           secret:
             secretName: {{ required "app-market.nats.existingClientTLSSecret is required" .Values.nats.existingClientTLSSecret }}
-            defaultMode: 0400
+            defaultMode: 0440
+        - name: transfer-staging
+          emptyDir:
+            sizeLimit: {{ .Values.transfer.stagingSizeLimit | default "1Gi" }}

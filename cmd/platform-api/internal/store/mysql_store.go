@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"fmt"
 	"time"
+
+	"github.com/F31/hnb/pkg/core"
 )
 
 // ErrMySQLNotImplemented is returned by every MySQL stub store method. Users
@@ -91,6 +93,17 @@ func (m *mysqlStubStore) ExpireConformance(ctx context.Context) ([]string, error
 func (m *mysqlStubStore) CheckProviderConformance(ctx context.Context, providerID string) error {
 	return ErrMySQLNotImplemented
 }
+func (m *mysqlStubStore) RegisterConformance(ctx context.Context, report core.SignedConformanceReport) error {
+	return ErrMySQLNotImplemented
+}
+
+func (m *mysqlStubStore) RegisterReleaseMaterial(ctx context.Context, entry ReleaseCatalogEntry) (*ReleaseCatalogEntry, bool, error) {
+	return nil, false, ErrMySQLNotImplemented
+}
+func (m *mysqlStubStore) ListReleaseMaterials(ctx context.Context) ([]ReleaseCatalogEntry, error) {
+	return nil, ErrMySQLNotImplemented
+}
+
 func (m *mysqlStubStore) UpdateConformanceLevel(ctx context.Context, providerID, level string, expiresAt *time.Time) error {
 	return ErrMySQLNotImplemented
 }

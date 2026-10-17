@@ -13,6 +13,8 @@ import (
 )
 
 type Config struct {
+	Driver                      string
+	DBDSN                       string
 	DBDriver                    string
 	DBHost                      string
 	DBPort                      int
@@ -38,7 +40,8 @@ func Load() (*Config, error) {
 	port, _ := strconv.Atoi(getEnv("DB_PORT", "5432"))
 
 	cfg := &Config{
-		DBDriver:                    getEnv("DB_DRIVER", "postgres"),
+		Driver:                      getEnv("DB_DRIVER", "postgres"),
+		DBDSN:                       os.Getenv("DB_DSN"),
 		DBHost:                      getEnv("DB_HOST", "localhost"),
 		DBPort:                      port,
 		DBUser:                      getEnv("DB_USER", "hnb"),
@@ -110,7 +113,22 @@ func (c *Config) Validate() error {
 }
 
 // DBConfig returns a pkg/db.DatabaseConfig populated from the Config fields.
+// Deployment charts bind the credential as a single DB_DSN so it never has to
+// appear as discrete variables in a Pod spec; prefer that when it is present.
 func (c *Config) DBConfig() db.DatabaseConfig {
+	if c.DBDSN != "" {
+		if parsed, err := db.ParsePostgresURL(c.DBDSN); err == nil {
+			parsed.Driver = c.DBDriver
+			if c.DBDriver == "" {
+				parsed.Driver = parsed.Driver
+			}
+			parsed.MaxOpenConns = 25
+			parsed.MaxIdleConns = 10
+			parsed.ConnMaxLifetime = 5 * time.Minute
+			parsed.ConnMaxIdleTime = time.Minute
+			return parsed
+		}
+	}
 	return db.DatabaseConfig{
 		Driver:          c.DBDriver,
 		Host:            c.DBHost,

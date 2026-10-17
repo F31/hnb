@@ -109,7 +109,7 @@ func NewCompatibilityMatrix(data []byte, now func() time.Time) (*CompatibilityMa
 		document.EffectiveAt.IsZero() || !document.ExpiresAt.After(document.EffectiveAt) || len(document.Rows) != 2 {
 		return nil, errors.New("compatibility matrix metadata is invalid")
 	}
-	wantedActions := []string{"create", "import", "upgrade", "unmanage"}
+	wantedActions := []string{"create", "import", "upgrade", "unmanage", "node-add"}
 	seen := make(map[string]struct{}, len(document.Rows))
 	for _, row := range document.Rows {
 		if (row.TargetKind != "KubernetesTarget" && row.TargetKind != "EdgeRuntimeTarget") || row.ProviderID == "" ||
@@ -170,7 +170,7 @@ func (m *CompatibilityMatrix) Decisions() []CompatibilityDecision {
 	}
 	decisions := make([]CompatibilityDecision, 0, len(m.document.Rows)*4)
 	for _, row := range m.document.Rows {
-		for _, action := range []string{"create", "import", "upgrade", "unmanage"} {
+		for _, action := range []string{"create", "import", "upgrade", "unmanage", "node-add"} {
 			decisions = append(decisions, CompatibilityDecision{
 				MatrixVersion: m.document.MatrixVersion, ProviderProtocolVersion: m.document.ProviderProtocolVersion,
 				TargetKind: row.TargetKind, Action: action, Status: row.Actions[action], ProviderID: row.ProviderID,
@@ -191,6 +191,8 @@ func lifecycleAction(kind IntentKind) (string, bool) {
 		return "upgrade", true
 	case IntentDeleteRuntimeTarget:
 		return "unmanage", true
+	case IntentAddNodesRuntimeTarget:
+		return "node-add", true
 	default:
 		return "", false
 	}

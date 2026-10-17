@@ -1,18 +1,37 @@
 replicaCount: 1
+probes:
+  enabled: true
+# The scratch image runs as this non-root UID.
+runAsUser: 65532
+sandbox:
+  # Init-container image. It must be digest-pinned like every other image and
+  # must already exist in the node image set.
+  repository: rancher/mirrored-library-busybox
+  digest: ""
+  pullPolicy: ""
 image:
   repository: hnb/{{ .Chart.Name }}
-  tag: ""
+  digest: ""
   pullPolicy: ""
 nats:
   url: ""
+  # Plane account Secret providing user/password for NATS authentication.
+  existingAccountSecret: ""
   existingClientTLSSecret: ""
 db:
+  existingSecret: ""
+  secretKey: dsn
+  # Legacy inline DSN; existingSecret takes precedence.
   dsn: ""
+platformAPIURL: http://platform-api:8080
+appMarketURL: http://app-market:8080
 clusterReadProjection:
   mode: shadow
   alerts:
     enabled: false
 identity:
+  # Copied from the Secret to a private, owner-only file by the init container.
+  stagedKeyName: active-private.pem
   issuer: ""
   audiences: "hnb-apiserver,hnb-platform-api,hnb-app-market"
   reloadInterval: 5s
@@ -28,8 +47,8 @@ agentOnboarding:
   image: hnb/cluster-agent:latest
 resources:
   requests:
-    cpu: 200m
+    cpu: 125m
     memory: 256Mi
   limits:
-    cpu: 500m
+    cpu: 400m
     memory: 512Mi

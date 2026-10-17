@@ -1,3 +1,4 @@
+{{- define "hnb.component" -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -21,8 +22,8 @@ spec:
     spec:
       containers:
         - name: {{ .Chart.Name }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default $.Values.global.imageTag }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy | default $.Values.global.imagePullPolicy }}
+          image: {{ include "hnb.image" . }}
+          imagePullPolicy: {{ include "hnb.imagePullPolicy" . }}
           args:
             {{- if .Values.args }}
             {{- toYaml .Values.args | nindent 12 }}
@@ -35,12 +36,12 @@ spec:
             - name: TUNNEL_TOKEN_SECRET
               valueFrom:
                 secretKeyRef:
-                  name: hnb-secrets
+                  name: {{ required "global.existingSecretName is required" .Values.global.existingSecretName }}
                   key: tunnel-token-secret
             - name: API_TOKEN_SECRET
               valueFrom:
                 secretKeyRef:
-                  name: hnb-secrets
+                  name: {{ required "global.existingSecretName is required" .Values.global.existingSecretName }}
                   key: api-token-secret
           ports:
             - containerPort: 8080
@@ -84,3 +85,4 @@ spec:
       targetPort: {{ .Values.service.tunnelPort }}
       name: tunnel
     {{- end }}
+{{- end -}}

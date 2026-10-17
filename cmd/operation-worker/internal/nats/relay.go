@@ -55,7 +55,7 @@ func (r *OutboxRelay) ensureStream(ctx context.Context) error {
 		Storage:    jetstream.FileStorage,
 		Retention:  jetstream.LimitsPolicy,
 		MaxAge:     30 * 24 * time.Hour,
-		MaxBytes:   5 << 30,
+		MaxBytes:   domainEventStreamBytes,
 		MaxMsgSize: 2 << 20,
 		Discard:    jetstream.DiscardOld,
 		Duplicates: 2 * time.Minute,

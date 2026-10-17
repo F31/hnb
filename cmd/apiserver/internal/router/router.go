@@ -29,13 +29,13 @@ var bypassPaths = []string{
 }
 
 func New(db *sql.DB, ts *tunnel.TunnelServer, authMW *middleware.AuthMiddleware, tokenManager *iam.TokenManager, iamStore *iam.IAMDBStore, auditStore *audit.Store, rbac *iam.RBACEngine, reg *Registry, delegationSigner *iam.DelegationSigner, platformAPIURL, clusterProjectionMode, appMarketURL, harborURL, harborUser, harborPass string) http.Handler {
-	return NewWithCapabilities(db, ts, authMW, tokenManager, iamStore, auditStore, rbac, reg, delegationSigner, nil, platformAPIURL, clusterProjectionMode, appMarketURL, harborURL, harborUser, harborPass, "", "", capability.AllStages())
+	return NewWithCapabilities(db, ts, authMW, tokenManager, iamStore, auditStore, rbac, reg, delegationSigner, nil, nil, nil, platformAPIURL, clusterProjectionMode, appMarketURL, harborURL, harborUser, harborPass, "", "", capability.AllStages())
 }
 
 // NewWithCapabilities wires the cluster-management routes behind the staged
 // server capability gates. Routes gated by a disabled stage fail closed before
 // any application state is touched.
-func NewWithCapabilities(db *sql.DB, ts *tunnel.TunnelServer, authMW *middleware.AuthMiddleware, tokenManager *iam.TokenManager, iamStore *iam.IAMDBStore, auditStore *audit.Store, rbac *iam.RBACEngine, reg *Registry, delegationSigner *iam.DelegationSigner, agentTunnelSigner *iam.AgentTunnelTokenSigner, platformAPIURL, clusterProjectionMode, appMarketURL, harborURL, harborUser, harborPass, publicBaseURL, agentImage string, caps capability.Set) http.Handler {
+func NewWithCapabilities(db *sql.DB, ts *tunnel.TunnelServer, authMW *middleware.AuthMiddleware, tokenManager *iam.TokenManager, iamStore *iam.IAMDBStore, auditStore *audit.Store, rbac *iam.RBACEngine, reg *Registry, delegationSigner *iam.DelegationSigner, agentTunnelSigner *iam.AgentTunnelTokenSigner, serviceIdentityH *handler.ServiceIdentityHandler, agentEnrollmentH *handler.AgentEnrollmentHandler, platformAPIURL, clusterProjectionMode, appMarketURL, harborURL, harborUser, harborPass, publicBaseURL, agentImage string, caps capability.Set) http.Handler {
 	authH := handler.NewIAMHandler(
 		iam.NewAuthenticator(iamStore),
 		tokenManager,
@@ -227,6 +227,22 @@ func NewWithCapabilities(db *sql.DB, ts *tunnel.TunnelServer, authMW *middleware
 		"capabilities.list":                     capabilityH.List,
 		"capabilities.get":                      capabilityH.Get,
 	}
+	if serviceIdentityH != nil {
+		coreHandlers["service-identities.create"] = serviceIdentityH.Create
+		coreHandlers["service-identities.list"] = serviceIdentityH.List
+		coreHandlers["service-identities.get"] = serviceIdentityH.Get
+		coreHandlers["service-identities.issue"] = serviceIdentityH.Issue
+		coreHandlers["service-identities.renew"] = serviceIdentityH.Renew
+		coreHandlers["service-identities.revoke"] = serviceIdentityH.RevokeIdentity
+		coreHandlers["service-identities.revoke-credential"] = serviceIdentityH.RevokeCredential
+	}
+	if agentEnrollmentH != nil {
+		coreHandlers["agent-enrollments.create"] = agentEnrollmentH.Create
+		coreHandlers["agent-enrollments.exchange"] = agentEnrollmentH.Exchange
+		coreHandlers["agent-enrollments.renew"] = agentEnrollmentH.Renew
+		coreHandlers["agent-enrollments.revoke"] = agentEnrollmentH.Revoke
+		coreHandlers["agent-enrollments.revoke-sessions"] = agentEnrollmentH.RevokeSessions
+	}
 
 	// Core routes (code-registered, compile-time safety)
 	coreMux := http.NewServeMux()
@@ -351,6 +367,22 @@ func NewWithCapabilities(db *sql.DB, ts *tunnel.TunnelServer, authMW *middleware
 	coreMux.HandleFunc("GET /api/v1/plugin-catalog", coreHandlers["plugin-catalog.list"])
 	coreMux.HandleFunc("POST /api/v1/plugin-catalog/installs", coreHandlers["plugin-catalog.install"])
 	coreMux.HandleFunc("DELETE /api/v1/plugin-catalog/installs/{name}", coreHandlers["plugin-catalog.uninstall"])
+	if serviceIdentityH != nil {
+		coreMux.HandleFunc("POST /api/v1/service-identities", coreHandlers["service-identities.create"])
+		coreMux.HandleFunc("GET /api/v1/service-identities", coreHandlers["service-identities.list"])
+		coreMux.HandleFunc("GET /api/v1/service-identities/{id}", coreHandlers["service-identities.get"])
+		coreMux.HandleFunc("POST /api/v1/service-identities/{id}/credentials", coreHandlers["service-identities.issue"])
+		coreMux.HandleFunc("POST /api/v1/service-credentials:renew", coreHandlers["service-identities.renew"])
+		coreMux.HandleFunc("DELETE /api/v1/service-identities/{id}", coreHandlers["service-identities.revoke"])
+		coreMux.HandleFunc("POST /api/v1/service-identities/{id}/credentials/{credentialId}:revoke", coreHandlers["service-identities.revoke-credential"])
+	}
+	if agentEnrollmentH != nil {
+		coreMux.HandleFunc("POST /api/v1/resources/clusters/{id}/agent-enrollments", coreHandlers["agent-enrollments.create"])
+		coreMux.HandleFunc("POST /api/v1/agent-enrollments:exchange", coreHandlers["agent-enrollments.exchange"])
+		coreMux.HandleFunc("POST /api/v1/agent-sessions:renew", coreHandlers["agent-enrollments.renew"])
+		coreMux.HandleFunc("DELETE /api/v1/resources/clusters/{id}/agent-enrollments/{enrollmentId}", coreHandlers["agent-enrollments.revoke"])
+		coreMux.HandleFunc("DELETE /api/v1/resources/clusters/{id}/agent-session", coreHandlers["agent-enrollments.revoke-sessions"])
+	}
 
 	// Authorization runs before tenant enrichment so denied routes cannot query application state.
 	chain := middleware.NewChain()

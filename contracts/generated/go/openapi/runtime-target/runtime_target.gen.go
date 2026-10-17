@@ -63,6 +63,24 @@ func (e CompatibilityMatrixSchemaRowsActionsImport) Valid() bool {
 	}
 }
 
+// Defines values for CompatibilityMatrixSchemaRowsActionsNodeAdd.
+const (
+	CompatibilityMatrixSchemaRowsActionsNodeAddREQUIRED    CompatibilityMatrixSchemaRowsActionsNodeAdd = "REQUIRED"
+	CompatibilityMatrixSchemaRowsActionsNodeAddUNSUPPORTED CompatibilityMatrixSchemaRowsActionsNodeAdd = "UNSUPPORTED"
+)
+
+// Valid indicates whether the value is a known member of the CompatibilityMatrixSchemaRowsActionsNodeAdd enum.
+func (e CompatibilityMatrixSchemaRowsActionsNodeAdd) Valid() bool {
+	switch e {
+	case CompatibilityMatrixSchemaRowsActionsNodeAddREQUIRED:
+		return true
+	case CompatibilityMatrixSchemaRowsActionsNodeAddUNSUPPORTED:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for CompatibilityMatrixSchemaRowsActionsUnmanage.
 const (
 	CompatibilityMatrixSchemaRowsActionsUnmanageREQUIRED    CompatibilityMatrixSchemaRowsActionsUnmanage = "REQUIRED"
@@ -241,6 +259,7 @@ func (e EdgeLifecycleStepInputSchemaTargetKind) Valid() bool {
 const (
 	KubernetesLifecycleStepInputSchemaActionCreate   KubernetesLifecycleStepInputSchemaAction = "create"
 	KubernetesLifecycleStepInputSchemaActionImport   KubernetesLifecycleStepInputSchemaAction = "import"
+	KubernetesLifecycleStepInputSchemaActionNodeAdd  KubernetesLifecycleStepInputSchemaAction = "node-add"
 	KubernetesLifecycleStepInputSchemaActionUnmanage KubernetesLifecycleStepInputSchemaAction = "unmanage"
 	KubernetesLifecycleStepInputSchemaActionUpgrade  KubernetesLifecycleStepInputSchemaAction = "upgrade"
 )
@@ -251,6 +270,8 @@ func (e KubernetesLifecycleStepInputSchemaAction) Valid() bool {
 	case KubernetesLifecycleStepInputSchemaActionCreate:
 		return true
 	case KubernetesLifecycleStepInputSchemaActionImport:
+		return true
+	case KubernetesLifecycleStepInputSchemaActionNodeAdd:
 		return true
 	case KubernetesLifecycleStepInputSchemaActionUnmanage:
 		return true
@@ -1024,6 +1045,7 @@ type CompatibilityMatrixSchema struct {
 		Actions struct {
 			Create   CompatibilityMatrixSchemaRowsActionsCreate   `json:"create"`
 			Import   CompatibilityMatrixSchemaRowsActionsImport   `json:"import"`
+			NodeAdd  CompatibilityMatrixSchemaRowsActionsNodeAdd  `json:"node-add"`
 			Unmanage CompatibilityMatrixSchemaRowsActionsUnmanage `json:"unmanage"`
 			Upgrade  CompatibilityMatrixSchemaRowsActionsUpgrade  `json:"upgrade"`
 		} `json:"actions"`
@@ -1042,6 +1064,9 @@ type CompatibilityMatrixSchemaRowsActionsCreate string
 
 // CompatibilityMatrixSchemaRowsActionsImport defines model for CompatibilityMatrixSchema.Rows.Actions.Import.
 type CompatibilityMatrixSchemaRowsActionsImport string
+
+// CompatibilityMatrixSchemaRowsActionsNodeAdd defines model for CompatibilityMatrixSchema.Rows.Actions.NodeAdd.
+type CompatibilityMatrixSchemaRowsActionsNodeAdd string
 
 // CompatibilityMatrixSchemaRowsActionsUnmanage defines model for CompatibilityMatrixSchema.Rows.Actions.Unmanage.
 type CompatibilityMatrixSchemaRowsActionsUnmanage string
@@ -1154,6 +1179,7 @@ type KubernetesLifecycleStepInputSchema struct {
 	FencingGeneration   int                                             `json:"fencingGeneration"`
 	IdempotencyKey      string                                          `json:"idempotencyKey"`
 	ObservationVersion  int                                             `json:"observationVersion"`
+	Parameters          *map[string]interface{}                         `json:"parameters,omitempty"`
 	SchemaVersion       KubernetesLifecycleStepInputSchemaSchemaVersion `json:"schemaVersion"`
 	SshSecretRef        *SecretReferenceSchema                          `json:"sshSecretRef,omitempty"`
 	TargetId            openapi_types.UUID                              `json:"targetId"`

@@ -113,3 +113,18 @@ func CanTransition(from, to string) bool {
 func StepIdempotencyKey(operationKey, planStepID string) string {
 	return fmt.Sprintf("%s:%s", operationKey, planStepID)
 }
+
+// MaxStepIdempotencyKeyLength is the bound operation-worker enforces when it
+// accepts a step request. The derived key is always longer than the client key
+// the API accepts, so the two limits must be reconciled here: creating an
+// Operation whose step can never be delivered is a silent dead end.
+const MaxStepIdempotencyKeyLength = 128
+
+// ValidateStepIdempotencyKey fails closed before an Operation is created.
+func ValidateStepIdempotencyKey(operationKey, planStepID string) error {
+	key := StepIdempotencyKey(operationKey, planStepID)
+	if len(key) > MaxStepIdempotencyKeyLength {
+		return fmt.Errorf("step idempotency key would be %d characters, over the %d character execution limit; use a shorter idempotency key", len(key), MaxStepIdempotencyKeyLength)
+	}
+	return nil
+}

@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/F31/hnb/pkg/core"
 	"github.com/F31/hnb/pkg/iam"
 )
 
@@ -76,6 +77,24 @@ func TestVersionCatalogRequiresEvidence(t *testing.T) {
 
 func validImportIntentBody(idempotencyKey string) string {
 	return `{"apiVersion":"hnb.io/v1","kind":"ImportRuntimeTarget","metadata":{"idempotencyKey":"` + idempotencyKey + `","correlationId":"018f6c2a-4a64-7b58-9cc3-9f70462f36c1"},"spec":{"targetKind":"KubernetesTarget","displayName":"cluster-a","credentialSecretRef":{"provider":"config","scope":"tenant-a","name":"kubeconfig-a"}}}`
+}
+
+func TestImportSemanticDigestOmitsUnrelatedVolumeFields(t *testing.T) {
+	var envelope bffIntentEnvelope
+	if err := json.Unmarshal([]byte(validImportIntentBody("digest-contract")), &envelope); err != nil {
+		t.Fatal(err)
+	}
+	// This is the canonical ImportRuntimeTarget document used by platform-api.
+	// A typed nil dependency slice placed in an interface serializes as null,
+	// which must not appear in a cluster import commitment.
+	want := core.IntentSemanticDigest(core.IntentSemanticDocument{
+		APIVersion: "hnb.io/v1", Kind: "ImportRuntimeTarget",
+		TargetKind: "KubernetesTarget", DisplayName: "cluster-a",
+		CredentialSecretRef: &core.IntentSecretReference{Provider: "config", Scope: "tenant-a", Name: "kubeconfig-a"},
+	})
+	if got := bffIntentSemanticDigest(envelope); got != want {
+		t.Fatalf("BFF digest %s differs from import contract %s", got, want)
+	}
 }
 
 func TestResourceClusterHandlerForwardsIntentToPlatformAPI(t *testing.T) {

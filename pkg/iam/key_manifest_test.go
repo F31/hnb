@@ -336,3 +336,52 @@ func bytesContainsFold(value, needle []byte) bool {
 	}
 	return false
 }
+
+// hnbctl identity generate records the verification key relative to the manifest
+// so the same file works on the operator host and inside every container that
+// mounts it at a different absolute path.
+func TestKeyManifestResolvesPublicKeyRelativeToManifest(t *testing.T) {
+	fixture := newManifestFixture(t, "k1")
+	manifest := testManifest(fixture, 1, "k1", map[string]KeyStatus{"k1": KeyActive}, time.Now().Add(-time.Hour), time.Now().Add(time.Hour))
+	entry := manifest.Keys["k1"]
+	entry.PublicKeyPath = "k1-public.pem"
+	manifest.Keys["k1"] = entry
+	fixture.writeManifest(t, manifest)
+
+	set, err := LoadReloadingKeySet(context.Background(), ReloadingKeySetConfig{
+		ManifestPath: fixture.manifestPath,
+		Issuer:       manifest.Issuer,
+		OnSuccess:    func(KeyReloadStats) {},
+	})
+	if err != nil {
+		t.Fatalf("relative public key path was rejected: %v", err)
+	}
+	if _, err := set.VerificationKey(context.Background(), "k1"); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestKeyManifestRejectsTraversalAndUncleanKeyPaths(t *testing.T) {
+	fixture := newManifestFixture(t, "k1")
+	for name, keyPath := range map[string]string{
+		"parent":      "../outside.pem",
+		"unclean":     "./k1-public.pem",
+		"dotdot":      "..",
+		"empty":       "",
+		"absolute ..": "/var/run/../etc/shadow",
+	} {
+		t.Run(name, func(t *testing.T) {
+			manifest := testManifest(fixture, 1, "k1", map[string]KeyStatus{"k1": KeyActive}, time.Now().Add(-time.Hour), time.Now().Add(time.Hour))
+			entry := manifest.Keys["k1"]
+			entry.PublicKeyPath = keyPath
+			manifest.Keys["k1"] = entry
+			fixture.writeManifest(t, manifest)
+			if _, err := LoadReloadingKeySet(context.Background(), ReloadingKeySetConfig{
+				ManifestPath: fixture.manifestPath, Issuer: manifest.Issuer,
+				OnSuccess: func(KeyReloadStats) {},
+			}); err == nil {
+				t.Fatalf("unsafe key path %q was accepted", keyPath)
+			}
+		})
+	}
+}

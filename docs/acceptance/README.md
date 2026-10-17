@@ -3,6 +3,23 @@
 `registry.yaml` 是验收台账；源码存在、测试通过、容器启动、真实业务验收分别记录。
 历史会话结论不作为发布资格。Blocked 表示目标尚未达成，不得改成 cancelled 隐藏缺环。
 
+产品闭环建设入口：[`S0 复用/缺口基线`](product-loop-baseline.md)、
+[`统一底座与四档组装契约`](../deployment/profile-composition-contract.md)、
+[`阶段计划/预算/证据校验`](product-readiness-manifests.md)。这些建设记录不提升既有认证。
+
+2026-10-17 新增：[`S1 服务身份生命周期`](reports/20261017-service-identity-lifecycle.md)
+（受限 issue/renew/revoke、原子消费/撤销、actor/service subject 审计；本地 unit/竞态 +
+独立 PostgreSQL 16.15 集成；不含真实部署、HA 或 5s/60s 撤销时延认证）。
+同日新增：[`2.4 worker 按租户续期 + 2.5 Agent 单次入网`](reports/20261017-agent-enrollment-and-worker-identity.md)
+（per-tenant binding、无 tokenFile 回退、create/exchange/replay/撤销/跨租户/跨目标；
+不含 Agent 二进制接线、生产 rollout、HA 或真实跨 TTL 演练）。
+同日新增：[`2.6 Agent 会话轮换 + 2.7 撤销关闭持久连接`](reports/20261017-agent-session-rotation-revocation.md)
+（session/generation、50% TTL 轮换、精确 tenant/target 关闭、撤销后停止重连；
+不含 5s/60s 实测、身份服务故障演练或 HA）。
+同日新增：[`2.8 真实身份演练`](reports/20261017-identity-drill.md)
+（本地真实 HTTP/WebSocket/PostgreSQL 链路：跨 >2 TTL、Agent 重启恢复、撤销关闭 3.19ms；
+不含生产 5min soak、云主机/HA、真实断网或 60s 多连接传播测量）。
+
 2026-10-15 新增：[`Ubuntu 26.04 OS 适配与 19 工作负载部署复验`](reports/20261015-ubuntu2604-adaptation.md)。
 `hnbctl os inspect` 已在真机验证；现有 K3s 路线上完成工作负载滚动恢复，
 PG 2Gi/NATS 1Gi 的 TopoLVM 卷与三平面迁移 ledger 保留。该结果不提升 kubeadm
@@ -57,8 +74,10 @@ CLI 冒烟/拒绝路径、verify 修复复测、数据库/JetStream 重启恢复
 - 任何 HA / 多故障域 / Lite HA 结论。
 - 完整安装执行路径（`hnbctl install` 实际资源执行）：render 已完成，install 未接通。
 - 节点增加（node add）与平台升级的服务端契约与执行路由。
-- 服务凭据签发与轮换：`GenerateServiceCredential` 为显式桩函数，平台无签发方；
-  当前真机成功依赖"签发后 8 秒内提交"。
+- 服务凭据真实部署闭环：apiserver 已提供受限 issue/renew/revoke、持久化撤销与
+  actor/service subject 审计，但 operation-worker/Provider 的按租户 factory、部署引导
+  和真实跨 TTL 演练尚未完成；历史真机结果仍依赖"签发后 8 秒内提交"，不能据此声明
+  自动续期已上线。
 
 **跨主机/跨进程未验证项**
 

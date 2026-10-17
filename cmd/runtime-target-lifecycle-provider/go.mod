@@ -5,15 +5,18 @@ go 1.24.0
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/F31/hnb/pkg/kms v0.0.0-00010101000000-000000000000
+	github.com/F31/hnb/pkg/provision v0.0.0
 	github.com/google/uuid v1.6.0
 	github.com/lib/pq v1.10.9
-	golang.org/x/crypto v0.47.0
 	k8s.io/api v0.34.5
 	k8s.io/apimachinery v0.34.5
 	k8s.io/client-go v0.34.5
 )
 
+require golang.org/x/crypto v0.47.0 // indirect
+
 require (
+	github.com/F31/hnb/pkg/iam v0.0.0-00010101000000-000000000000
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/emicklei/go-restful/v3 v3.13.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.0 // indirect
@@ -54,3 +57,7 @@ require (
 )
 
 replace github.com/F31/hnb/pkg/kms => ../../pkg/kms
+
+replace github.com/F31/hnb/pkg/iam => ../../pkg/iam
+
+replace github.com/F31/hnb/pkg/provision => ../../pkg/provision

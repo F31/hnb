@@ -3,6 +3,7 @@ package tunnel
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -80,11 +81,12 @@ func (ts *TunnelServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	go ts.handleAgent(conn, clusterID, expiresAt)
+	go ts.handleAgent(conn, tenantID, clusterID, expiresAt)
 }
 
-func (ts *TunnelServer) handleAgent(conn *websocket.Conn, clusterID string, expiresAt time.Time) {
+func (ts *TunnelServer) handleAgent(conn *websocket.Conn, tenantID, clusterID string, expiresAt time.Time) {
 	info := AgentInfo{
+		TenantID:    tenantID,
 		ClusterID:   clusterID,
 		ConnectedAt: time.Now().UTC(),
 		Status:      "connected",
@@ -146,6 +148,16 @@ func (ts *TunnelServer) handleAgent(conn *websocket.Conn, clusterID string, expi
 			log.Printf("[tunnel] unknown message type from %s: %s", clusterID, msg.Type)
 		}
 	}
+}
+
+// Revoke closes the persistent connection for the exact (tenant, target). The
+// session store is revoked first; this only terminates an already-open socket.
+func (ts *TunnelServer) Revoke(tenantID, clusterID string) {
+	agent, ok := ts.registry.Get(clusterID)
+	if !ok || agent.Info.TenantID != tenantID {
+		return
+	}
+	agent.CloseRevoked()
 }
 
 func (ts *TunnelServer) ProxyRequest(clusterID string, req *RequestPayload) (*ResponsePayload, error) {
@@ -268,6 +280,10 @@ func (ac *AgentClient) ReadMessage() (*Message, error) {
 
 	_, data, err := conn.ReadMessage()
 	if err != nil {
+		var closeErr *websocket.CloseError
+		if errors.As(err, &closeErr) && closeErr.Text == "agent session revoked" {
+			return nil, ErrSessionRevoked
+		}
 		return nil, err
 	}
 

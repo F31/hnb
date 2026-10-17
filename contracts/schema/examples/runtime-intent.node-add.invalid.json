@@ -1,0 +1,17 @@
+{
+  "apiVersion": "hnb.io/v1",
+  "kind": "AddNodesRuntimeTarget",
+  "metadata": {
+    "idempotencyKey": "node-add-bad",
+    "correlationId": "018f6c2a-4a64-7b58-9cc3-9f70462f36c1"
+  },
+  "spec": {
+    "targetId": "018f6c2a-4a64-7b58-9cc3-9f70462f36c2",
+    "targetKind": "KubernetesTarget",
+    "expectedVersion": 3,
+    "sshSecretRef": { "provider": "vault", "scope": "tenant-a", "name": "cluster-ssh" },
+    "parameters": {
+      "nodes": [{ "name": "worker-3", "role": "control-plane" }]
+    }
+  }
+}

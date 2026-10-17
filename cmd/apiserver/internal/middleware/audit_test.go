@@ -70,3 +70,30 @@ func TestStorageBackendAuditClassifiesAndRedactsSecretReference(t *testing.T) {
 		t.Fatal("audit event was not captured")
 	}
 }
+
+func TestAuditOmitsServiceCredentialBodiesAndClassifiesIdentity(t *testing.T) {
+	for _, path := range []string{
+		"/api/v1/service-credentials:renew",
+		"/api/v1/service-identities/00000000-0000-0000-0000-000000000001/credentials",
+	} {
+		t.Run(path, func(t *testing.T) {
+			capture := &auditCapture{events: make(chan *audit.Event, 1)}
+			mw := NewAuditMW(capture)
+			recorder := httptest.NewRecorder()
+			request := httptest.NewRequest(http.MethodPost, path, strings.NewReader(`{"credential":"raw-token","reason":"test"}`))
+			ctx := &Context{Request: request, Response: recorder}
+			mw.Handle(ctx, func() { _, _ = ctx.Response.Write([]byte(`{"credential":"raw-token"}`)) })
+			select {
+			case event := <-capture.events:
+				if event.RequestBody != "" || event.ResponseBody != "" {
+					t.Fatalf("service credential bodies were audited: %#v", event)
+				}
+				if event.ResourceType != "serviceIdentity" {
+					t.Fatalf("unexpected service identity audit resource: %#v", event)
+				}
+			case <-time.After(time.Second):
+				t.Fatal("audit event was not captured")
+			}
+		})
+	}
+}

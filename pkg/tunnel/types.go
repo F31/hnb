@@ -2,9 +2,12 @@ package tunnel
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 )
+
+var ErrSessionRevoked = errors.New("agent session revoked")
 
 type MessageType string
 
@@ -57,6 +60,7 @@ type ResponsePayload struct {
 }
 
 type AgentInfo struct {
+	TenantID      string    `json:"tenant_id,omitempty"`
 	ClusterID     string    `json:"cluster_id"`
 	AgentVersion  string    `json:"agent_version,omitempty"`
 	KubeVersion   string    `json:"kube_version,omitempty"`

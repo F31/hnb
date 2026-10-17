@@ -6,3 +6,4 @@
 - [Artifact storage operations](artifact-storage-operations.md)
 - [Restore runbook](restore-runbook.md)
 - [Governance](governance.md)
+- [产品闭环决策基线（1.4/1.5 批准输入）](deployment/decision-baseline.md)

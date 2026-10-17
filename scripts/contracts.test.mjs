@@ -201,6 +201,186 @@ test("RuntimeIntent fixtures accept references and reject caller-authored steps"
   const invalid = JSON.parse(await readFile(path.join(schemaDirectory, "examples/runtime-intent.invalid.json"), "utf8"));
   assert.equal(validate(valid), true, ajv.errorsText(validate.errors));
   assert.equal(validate(invalid), false);
+  const nodeAddValid = JSON.parse(await readFile(path.join(schemaDirectory, "examples/runtime-intent.node-add.valid.json"), "utf8"));
+  const nodeAddInvalid = JSON.parse(await readFile(path.join(schemaDirectory, "examples/runtime-intent.node-add.invalid.json"), "utf8"));
+  assert.equal(validate(nodeAddValid), true, ajv.errorsText(validate.errors));
+  assert.equal(validate(nodeAddInvalid), false);
+  // The node-add payload may not smuggle caller-authored execution fields.
+  const nodeAddSteps = structuredClone(nodeAddValid);
+  nodeAddSteps.spec.parameters.steps = [];
+  assert.equal(validate(nodeAddSteps), false);
+});
+
+test("Service credential consumer scopes require one exact bounded permission", async () => {
+  const ajv = new Ajv2020({ allErrors: true, strict: true, strictRequired: false });
+  addFormats(ajv);
+  const directory = path.join(repositoryRoot, "contracts/schema");
+  for (const file of (await listFiles(directory)).filter((name) => name.endsWith(".schema.json"))) {
+    ajv.addSchema(JSON.parse(await readFile(file, "utf8")));
+  }
+  const validate = ajv.getSchema("https://schemas.hnb.cloud/identity/v1/service-credential-scope.schema.json");
+  assert.ok(validate);
+  const valid = {
+    subjectId: "operation-worker", audience: "hnb-kubernetes-provider",
+    permission: { tenantId: "tenant-a", resourceKind: "runtimeProvider", resourceId: "k8s", action: "execute" },
+  };
+  assert.equal(validate(valid), true, ajv.errorsText(validate.errors));
+  const namespaced = structuredClone(valid);
+  Object.assign(namespaced.permission, { projectId: "project-a", environmentId: "production", namespaceId: "apps" });
+  assert.equal(validate(namespaced), true, ajv.errorsText(validate.errors));
+  for (const mutate of [
+    (v) => { v.subjectId = "*"; },
+    (v) => { v.audience = "hnb-*"; },
+    (v) => { v.permission.tenantId = "*"; },
+    (v) => { v.permission.resourceKind = "*"; },
+    (v) => { delete v.permission.resourceId; },
+    (v) => { v.permission.resourceId = ""; },
+    (v) => { v.permission.action = "*"; },
+    (v) => { v.permission.namespaceId = "apps"; },
+    (v) => { v.permission.environmentId = "production"; },
+    (v) => { v.permission.extra = "unrecognized"; },
+    (v) => { v.audience = "hnb-provider\n"; },
+    (v) => { v.subjectId = "name with spaces"; },
+  ]) {
+    const invalid = structuredClone(valid);
+    mutate(invalid);
+    assert.equal(validate(invalid), false, "service scope accepted an unbounded or invalid identity");
+  }
+});
+
+test("Service identity and issued credential contracts keep exact bounded scope", async () => {
+  const ajv = new Ajv2020({ allErrors: true, strict: true, strictRequired: false });
+  addFormats(ajv);
+  const directory = path.join(repositoryRoot, "contracts/schema");
+  for (const file of (await listFiles(directory)).filter((name) => name.endsWith(".schema.json"))) {
+    ajv.addSchema(JSON.parse(await readFile(file, "utf8")));
+  }
+  const validateCreate = ajv.getSchema("https://schemas.hnb.cloud/identity/v1/service-identity-create.schema.json");
+  assert.ok(validateCreate);
+  const validCreate = {
+    subjectId: "4e69ee9e-5a18-46e3-b330-1349e0d74166",
+    audience: "hnb-kubernetes-provider",
+    permission: { tenantId: "tenant-a", resourceKind: "runtimeProvider", resourceId: "k8s", action: "execute" },
+  };
+  assert.equal(validateCreate(validCreate), true, ajv.errorsText(validateCreate.errors));
+  for (const mutate of [
+    (v) => { delete v.subjectId; },
+    (v) => { v.subjectId = "operation-worker"; },
+    (v) => { v.audience = "*"; },
+    (v) => { v.audience = "hnb-provider\n"; },
+    (v) => { v.permission.tenantId = "*"; },
+    (v) => { delete v.permission.resourceId; },
+    (v) => { v.permission.resourceId = ""; },
+    (v) => { v.permission.resourceKind = "*"; },
+    (v) => { v.permission.extra = "unrecognized"; },
+    (v) => { v.extra = true; },
+  ]) {
+    const invalid = structuredClone(validCreate);
+    mutate(invalid);
+    assert.equal(validateCreate(invalid), false, "service identity accepted an unbounded or invalid scope");
+  }
+
+  const validateCredential = ajv.getSchema("https://schemas.hnb.cloud/identity/v1/service-credential.schema.json");
+  assert.ok(validateCredential);
+  const validCredential = {
+    credential: "header.payload.signature",
+    credentialId: "a69a8f5f-0872-4c8e-8df9-d9e6179050af",
+    serviceIdentityId: "c9114c57-4265-40fb-9b1b-7d5021637825",
+    subjectId: "4e69ee9e-5a18-46e3-b330-1349e0d74166",
+    tenantId: "tenant-a",
+    audience: "hnb-kubernetes-provider",
+    permission: { tenantId: "tenant-a", resourceKind: "runtimeProvider", resourceId: "k8s", action: "execute" },
+    issuedAt: "2026-10-17T00:00:00Z",
+    expiresAt: "2026-10-17T00:01:00Z",
+    expiresIn: 60,
+  };
+  assert.equal(validateCredential(validCredential), true, ajv.errorsText(validateCredential.errors));
+  for (const mutate of [
+    (v) => { v.credential = ""; },
+    (v) => { v.credentialId = "not-a-uuid"; },
+    (v) => { v.tenantId = "*"; },
+    (v) => { v.expiresIn = 0; },
+    (v) => { v.expiresIn = 61; },
+    (v) => { v.permission.extra = "unrecognized"; },
+    (v) => { v.extra = true; },
+  ]) {
+    const invalid = structuredClone(validCredential);
+    mutate(invalid);
+    assert.equal(validateCredential(invalid), false, "issued credential contract accepted an invalid response");
+  }
+});
+
+test("Agent enrollment is single-use, exact-scope, and short-lived", async () => {
+  const ajv = new Ajv2020({ allErrors: true, strict: true, strictRequired: false });
+  addFormats(ajv);
+  const directory = path.join(repositoryRoot, "contracts/schema");
+  for (const file of (await listFiles(directory)).filter((name) => name.endsWith(".schema.json"))) {
+    ajv.addSchema(JSON.parse(await readFile(file, "utf8")));
+  }
+  const token = "a".repeat(43);
+  const validateCreate = ajv.getSchema("https://schemas.hnb.cloud/identity/v1/agent-enrollment-create.schema.json");
+  assert.ok(validateCreate);
+  const validCreate = {
+    enrollmentId: "4e69ee9e-5a18-46e3-b330-1349e0d74166",
+    enrollmentSecret: token, expiresAt: "2026-10-17T00:15:00Z",
+    tenantId: "tenant-a", targetId: "target-a", subject: "cluster-agent",
+  };
+  assert.equal(validateCreate(validCreate), true, ajv.errorsText(validateCreate.errors));
+  for (const mutate of [
+    (v) => { v.enrollmentSecret = "short"; },
+    (v) => { v.enrollmentId = "not-a-uuid"; },
+    (v) => { v.tenantId = "*"; },
+    (v) => { v.subject = "other-agent"; },
+    (v) => { v.extra = true; },
+  ]) {
+    const invalid = structuredClone(validCreate);
+    mutate(invalid);
+    assert.equal(validateCreate(invalid), false, "agent enrollment accepted an unbounded or invalid response");
+  }
+
+  const validateExchange = ajv.getSchema("https://schemas.hnb.cloud/identity/v1/agent-enrollment-exchange.schema.json");
+  assert.ok(validateExchange);
+  const validExchange = { enrollmentSecret: token, tenantId: "tenant-a", targetId: "target-a" };
+  assert.equal(validateExchange(validExchange), true, ajv.errorsText(validateExchange.errors));
+  for (const mutate of [
+    (v) => { v.enrollmentSecret = "short"; },
+    (v) => { v.tenantId = "*"; },
+    (v) => { v.targetId = ""; },
+    (v) => { v.subject = "other-agent"; },
+    (v) => { v.extra = true; },
+  ]) {
+    const invalid = structuredClone(validExchange);
+    mutate(invalid);
+    assert.equal(validateExchange(invalid), false, "agent exchange accepted an invalid binding");
+  }
+
+  const validateSession = ajv.getSchema("https://schemas.hnb.cloud/identity/v1/agent-session.schema.json");
+  assert.ok(validateSession);
+  const validSession = {
+    credential: "header.payload.signature", expiresAt: "2026-10-17T00:05:00Z",
+    tenantId: "tenant-a", targetId: "target-a", subject: "cluster-agent",
+    sessionId: "a69a8f5f-0872-4c8e-8df9-d9e6179050af", generation: 1,
+  };
+  assert.equal(validateSession(validSession), true, ajv.errorsText(validateSession.errors));
+  for (const mutate of [
+    (v) => { v.credential = ""; },
+    (v) => { v.tenantId = "*"; },
+    (v) => { v.subject = "other-agent"; },
+    (v) => { v.sessionId = "not-a-uuid"; },
+    (v) => { v.generation = 0; },
+    (v) => { v.extra = true; },
+  ]) {
+    const invalid = structuredClone(validSession);
+    mutate(invalid);
+    assert.equal(validateSession(invalid), false, "agent session accepted an invalid credential response");
+  }
+
+  const validateRevoke = ajv.getSchema("https://schemas.hnb.cloud/identity/v1/agent-session-revoke.schema.json");
+  assert.ok(validateRevoke);
+  assert.equal(validateRevoke({ revoked: 0 }), true, ajv.errorsText(validateRevoke.errors));
+  assert.equal(validateRevoke({ revoked: 3 }), true, ajv.errorsText(validateRevoke.errors));
+  assert.equal(validateRevoke({ revoked: -1 }), false);
+  assert.equal(validateRevoke({ revoked: 1, extra: true }), false);
 });
 
 test("Console OpenAPI fixes cluster, RuntimeIntent, Operation, pagination, and Problem Details invariants", async () => {
@@ -268,6 +448,7 @@ test("RuntimeTarget schema examples and semantic ordering boundaries are enforce
     ["https://schemas.hnb.cloud/runtime-target/v1/storage-inventory-section.schema.json", "runtime-target-storage-inventory-section"],
     ["https://schemas.hnb.cloud/runtime-target/v1/capability-section.schema.json", "runtime-target-capability-section"],
     ["https://schemas.hnb.cloud/runtime-target/v1/kubernetes-lifecycle-step-input.schema.json", "kubernetes-lifecycle-step-input"],
+    ["https://schemas.hnb.cloud/runtime-target/v1/kubernetes-lifecycle-step-input.schema.json", "kubernetes-lifecycle-step-input.node-add"],
     ["https://schemas.hnb.cloud/runtime-target/v1/edge-lifecycle-step-input.schema.json", "edge-lifecycle-step-input"],
     ["https://schemas.hnb.cloud/console/v1/dictionary-entry.schema.json", "cluster-dictionary-entry"],
     ["https://schemas.hnb.cloud/gslb/v1/gslb-intent.schema.json", "gslb-intent"],

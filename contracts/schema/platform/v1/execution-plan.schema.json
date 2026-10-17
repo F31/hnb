@@ -37,7 +37,7 @@
         "matrixVersion": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
         "providerProtocolVersion": { "type": "string", "const": "2.0.0" },
         "targetKind": { "type": "string", "enum": ["KubernetesTarget", "EdgeRuntimeTarget"] },
-        "action": { "type": "string", "enum": ["create", "import", "upgrade", "unmanage"] },
+        "action": { "type": "string", "enum": ["create", "import", "upgrade", "unmanage", "node-add"] },
         "status": { "type": "string", "const": "REQUIRED" },
         "providerId": { "type": "string", "minLength": 1, "maxLength": 128 },
         "observationSource": { "type": "string", "enum": ["Agent", "CloudCore"] },

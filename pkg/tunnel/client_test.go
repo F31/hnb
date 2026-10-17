@@ -3,6 +3,7 @@ package tunnel
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -150,5 +151,42 @@ func TestTunnelServerRoutesAgentResponseToProxyRequest(t *testing.T) {
 	}
 	if response.StatusCode != http.StatusOK || string(response.Body) != "ok" {
 		t.Fatalf("response = status %d body %q", response.StatusCode, response.Body)
+	}
+}
+
+func TestTunnelRevokeClosesOnlyTheExactTenantConnection(t *testing.T) {
+	tunnelServer := NewTunnelServer(func(context.Context, string, string, string) (time.Time, error) {
+		return time.Now().Add(time.Minute), nil
+	})
+	server := httptest.NewServer(tunnelServer)
+	defer server.Close()
+
+	client := NewAgentClient("ws"+strings.TrimPrefix(server.URL, "http"), staticTokenSource("service-token"), "tenant-a", "cluster-a")
+	if err := client.Connect(); err != nil {
+		t.Fatal(err)
+	}
+	defer client.Close()
+
+	readErr := make(chan error, 1)
+	go func() {
+		_, err := client.ReadMessage()
+		readErr <- err
+	}()
+	time.Sleep(50 * time.Millisecond)
+	tunnelServer.Revoke("tenant-b", "cluster-a")
+	select {
+	case err := <-readErr:
+		t.Fatalf("wrong-tenant revoke closed the connection: %v", err)
+	default:
+	}
+
+	tunnelServer.Revoke("tenant-a", "cluster-a")
+	select {
+	case err := <-readErr:
+		if !errors.Is(err, ErrSessionRevoked) {
+			t.Fatalf("revocation error = %v, want ErrSessionRevoked", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("revocation did not close the persistent connection")
 	}
 }

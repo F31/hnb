@@ -31,6 +31,7 @@ const (
 	IntentImportRuntimeTarget          IntentKind = "ImportRuntimeTarget"
 	IntentUpgradeRuntimeTarget         IntentKind = "UpgradeRuntimeTarget"
 	IntentDeleteRuntimeTarget          IntentKind = "DeleteRuntimeTarget"
+	IntentAddNodesRuntimeTarget        IntentKind = "AddNodesRuntimeTarget"
 	IntentImportStorageClassBinding    IntentKind = "ImportStorageClassBinding"
 	IntentReconcileStorageClassBinding IntentKind = "ReconcileStorageClassBinding"
 	IntentInstallStorageDriver         IntentKind = "InstallStorageDriver"
@@ -50,6 +51,7 @@ var intentKindValid = map[IntentKind]bool{
 	IntentImportRuntimeTarget:          true,
 	IntentUpgradeRuntimeTarget:         true,
 	IntentDeleteRuntimeTarget:          true,
+	IntentAddNodesRuntimeTarget:        true,
 	IntentImportStorageClassBinding:    true,
 	IntentReconcileStorageClassBinding: true,
 	IntentInstallStorageDriver:         true,
@@ -66,6 +68,7 @@ func requiresReleaseID(kind IntentKind) bool {
 	switch kind {
 	case IntentCreateKubernetesTarget, IntentImportRuntimeTarget,
 		IntentUpgradeRuntimeTarget, IntentDeleteRuntimeTarget,
+		IntentAddNodesRuntimeTarget,
 		IntentImportStorageClassBinding, IntentReconcileStorageClassBinding:
 		return false
 	case IntentInstallStorageDriver, IntentUpgradeStorageDriver, IntentUninstallStorageDriver:
@@ -97,6 +100,37 @@ var forbiddenIntentParamKeys = map[string]bool{
 	"policyresults":     true,
 	"approvalresult":    true,
 	"approvalresults":   true,
+}
+
+// scalarParameterValue reports whether a caller-supplied parameter value is a
+// scalar (string/number/bool/null). Nested objects and arrays are rejected so
+// execution semantics cannot be smuggled under an allowed parameter name.
+func scalarParameterValue(value any) bool {
+	switch value.(type) {
+	case nil, bool, string, float64, float32,
+		int, int8, int16, int32, int64,
+		uint, uint8, uint16, uint32, uint64,
+		json.Number:
+		return true
+	default:
+		return false
+	}
+}
+
+// validateScalarParameters rejects nested parameter values for every intent.
+// The only exception is AddNodesRuntimeTarget's `nodes` list, whose full shape
+// is pinned by validateNodeAdditions.
+func validateScalarParameters(kind IntentKind, parameters map[string]any) error {
+	for key, value := range parameters {
+		if scalarParameterValue(value) {
+			continue
+		}
+		if kind == IntentAddNodesRuntimeTarget && key == "nodes" {
+			continue
+		}
+		return &ValidationError{Field: "spec.parameters." + key, Reason: "only scalar parameter values are allowed"}
+	}
+	return nil
 }
 
 // RuntimeIntent is the parsed client request matching the runtime-intent schema.
@@ -206,7 +240,8 @@ type SecretReferenceEntry struct {
 
 func IsClusterIntentKind(kind IntentKind) bool {
 	return kind == IntentCreateKubernetesTarget || kind == IntentImportRuntimeTarget ||
-		kind == IntentUpgradeRuntimeTarget || kind == IntentDeleteRuntimeTarget
+		kind == IntentUpgradeRuntimeTarget || kind == IntentDeleteRuntimeTarget ||
+		kind == IntentAddNodesRuntimeTarget
 }
 
 func IsStorageIntentKind(kind IntentKind) bool {
@@ -346,6 +381,9 @@ func ParseRuntimeIntent(body []byte) (*RuntimeIntent, error) {
 	}
 	if len(intent.Spec.Parameters) > 64 {
 		return nil, &ValidationError{Field: "spec.parameters", Reason: "max 64 properties"}
+	}
+	if err := validateScalarParameters(intent.Kind, intent.Spec.Parameters); err != nil {
+		return nil, err
 	}
 
 	// secretReferences validated.
@@ -511,6 +549,9 @@ func (v *IntentValidator) Validate(intent *RuntimeIntent) error {
 	if len(intent.Spec.Parameters) > 64 {
 		return &ValidationError{Field: "spec.parameters", Reason: "max 64 properties"}
 	}
+	if err := validateScalarParameters(intent.Kind, intent.Spec.Parameters); err != nil {
+		return err
+	}
 	if len(intent.Spec.SecretReferences) > 32 {
 		return &ValidationError{Field: "spec.secretReferences", Reason: "max 32 items"}
 	}
@@ -661,7 +702,7 @@ func validateClusterIntentSpec(intent *RuntimeIntent) error {
 			}
 			intent.Spec.CloudCoreEndpoint = normalized
 		}
-	case IntentUpgradeRuntimeTarget, IntentDeleteRuntimeTarget:
+	case IntentUpgradeRuntimeTarget, IntentDeleteRuntimeTarget, IntentAddNodesRuntimeTarget:
 		if _, err := uuid.Parse(intent.Spec.TargetID); err != nil {
 			return &ValidationError{Field: "spec.targetId", Reason: "must be a valid UUID"}
 		}
@@ -672,9 +713,68 @@ func validateClusterIntentSpec(intent *RuntimeIntent) error {
 		if intent.Kind == IntentUpgradeRuntimeTarget && strings.TrimSpace(intent.Spec.DesiredVersion) == "" {
 			return &ValidationError{Field: "spec.desiredVersion", Reason: "required"}
 		}
+		if intent.Kind == IntentAddNodesRuntimeTarget {
+			if intent.Spec.SSHSecretRef == nil {
+				return &ValidationError{Field: "spec.sshSecretRef", Reason: "required for node add"}
+			}
+			if err := validateNodeAdditions(intent.Spec.Parameters); err != nil {
+				return err
+			}
+		}
 	}
 	if intent.Spec.CredentialSecretRef != nil && strings.TrimSpace(intent.Spec.CredentialSecretRef.Name) == "" {
 		return &ValidationError{Field: "spec.credentialSecretRef.name", Reason: "required"}
+	}
+	return nil
+}
+
+// nodeAdditionNamePattern accepts RFC-1123 subdomain node names (the same
+// shape kubelet registration requires), rejecting control characters up front.
+var nodeAdditionNamePattern = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`)
+
+// validateNodeAdditions pins the server-owned shape of an AddNodesRuntimeTarget
+// payload: the only permitted parameter is "nodes", a bounded list of worker
+// node identities. The client cannot author execution fields, roles outside
+// "worker", or anything the planner did not ask for.
+func validateNodeAdditions(parameters map[string]any) error {
+	if len(parameters) != 1 {
+		return &ValidationError{Field: "spec.parameters", Reason: "add-nodes intents accept only the nodes parameter"}
+	}
+	raw, ok := parameters["nodes"]
+	if !ok {
+		return &ValidationError{Field: "spec.parameters", Reason: "add-nodes intents require a nodes list"}
+	}
+	entries, ok := raw.([]any)
+	if !ok || len(entries) == 0 {
+		return &ValidationError{Field: "spec.parameters.nodes", Reason: "must be a non-empty list of node objects"}
+	}
+	if len(entries) > 100 {
+		return &ValidationError{Field: "spec.parameters.nodes", Reason: "max 100 nodes per intent"}
+	}
+	seen := make(map[string]bool, len(entries))
+	for index, entry := range entries {
+		object, ok := entry.(map[string]any)
+		if !ok {
+			return &ValidationError{Field: fmt.Sprintf("spec.parameters.nodes[%d]", index), Reason: "must be a node object"}
+		}
+		if len(object) != 2 {
+			return &ValidationError{Field: fmt.Sprintf("spec.parameters.nodes[%d]", index), Reason: "node objects accept only name and role"}
+		}
+		name, nameOK := object["name"].(string)
+		role, roleOK := object["role"].(string)
+		if !nameOK || !roleOK {
+			return &ValidationError{Field: fmt.Sprintf("spec.parameters.nodes[%d]", index), Reason: "node name and role are required strings"}
+		}
+		if !nodeAdditionNamePattern.MatchString(name) || len(name) > 253 {
+			return &ValidationError{Field: fmt.Sprintf("spec.parameters.nodes[%d].name", index), Reason: "must be an RFC-1123 subdomain node name"}
+		}
+		if role != "worker" {
+			return &ValidationError{Field: fmt.Sprintf("spec.parameters.nodes[%d].role", index), Reason: "node add joins worker nodes only; control-plane lifecycle belongs to bootstrap or upgrade"}
+		}
+		if seen[name] {
+			return &ValidationError{Field: fmt.Sprintf("spec.parameters.nodes[%d].name", index), Reason: "duplicate node name in the same intent"}
+		}
+		seen[name] = true
 	}
 	return nil
 }

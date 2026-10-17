@@ -1,0 +1,22 @@
+replicaCount: 2
+image:
+  repository: hnb/portal
+  tag: ""
+  digest: ""
+  pullPolicy: ""
+service:
+  port: 80
+ingress:
+  enabled: false
+  className: ""
+  host: ""
+  tlsSecret: ""
+# Internal same-origin API proxy upstream, not the public Portal URL.
+apiBaseURL: "http://apiserver:8080"
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 250m
+    memory: 256Mi

@@ -12,7 +12,9 @@
     "contracts:check:cluster-management": "node scripts/generate-contracts.mjs --check --cluster-management",
     "contracts:validate": "node scripts/validate-contracts.mjs",
     "contracts:test": "node --test scripts/contracts.test.mjs",
-    "contracts:check": "npm run contracts:test && npm run contracts:validate"
+    "contracts:check": "npm run contracts:test && npm run readiness:test && npm run contracts:validate",
+    "readiness:check": "node scripts/validate-product-readiness.mjs",
+    "readiness:test": "node --test scripts/validate-product-readiness.test.mjs"
   },
   "devDependencies": {
     "@bufbuild/protobuf": "2.12.1",

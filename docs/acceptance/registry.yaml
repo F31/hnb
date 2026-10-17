@@ -6,6 +6,125 @@ policy:
   report_fields: [run_id, commit, command, environment, started_at, finished_at, exit_code, assertions, artifact_digests]
   legacy_results: "Prior chat/log summaries are historical traces only; do not promote without retained reports."
 features:
+  product_loop_readiness_validation:
+    unit:
+      status: passed
+      run_id: product-loop-s0-development-20261016
+      commit: 5e7fc07edd3eb4c1d627ef4c463f9d527676cc93
+      report: reports/20261016-product-loop-s0-development.md
+      commands: ["npm run readiness:test", "npm run contracts:test", "pnpm --dir web exec vitest run packages/api-client/src/__tests__/api-client.test.ts packages/schema-engine/src/__tests__/closure.test.ts"]
+      scope: "offline manifest validator and local contract/UI boundary tests only; working tree differs from commit and source file hashes are retained in report; no S0 exit, identity lifecycle, business E2E, installation authority or HA certification"
+      assertions: [forty_four_readiness_tests_passed, identity_and_configuration_scope_match, independent_target_and_evidence_level_checks, retained_report_content_hashes, approved_numeric_budget_samples, cli_read_only_and_redacted, twenty_five_existing_contract_tests_passed, eighteen_web_boundary_tests_passed]
+      blocked: ["resolved 2026-10-16; see contract_gate_runtime_intent"]
+    db_integration: {status: not_run}
+    real_e2e: {status: not_run}
+    production_ha: {status: not_run}
+  contract_gate_runtime_intent:
+    unit:
+      status: passed
+      run_id: contract-gate-runtime-intent-20261016
+      commit: 5e7fc07edd3eb4c1d627ef4c463f9d527676cc93
+      report: reports/20261016-contract-gate-runtime-intent.md
+      commands: ["node scripts/validate-contracts.mjs", "node scripts/generate-contracts.mjs --check", "npm run contracts:test"]
+      scope: "uncommitted RuntimeIntent node-add contract remodeled additively so the whole-repository contract gate passes on origin/main=e6603d3; working tree differs from commit; not an HTTP API, runtime validation, HA or production certification"
+      assertions: [contract_gate_compatibility_checked, generated_contracts_drift_clean, twenty_five_contract_tests_passed, node_add_fixtures_accepted_and_rejected, engine_still_enforces_node_shape, engine_rejects_nested_parameters]
+      notes: "parameters scalar-union loosened to additive modeling; engine validateScalarParameters rejects nested parameter values for all kinds and validateNodeAdditions retains node shape enforcement"
+    db_integration: {status: not_run}
+    real_e2e: {status: not_run}
+    production_ha: {status: not_run}
+  service_credential_renewal:
+    unit:
+      status: passed
+      run_id: service-credential-renewal-20261017
+      commit: 5e7fc07edd3eb4c1d627ef4c463f9d527676cc93
+      report: reports/20261017-service-credential-renewal.md
+      commands: ["go test -race ./pkg/iam/... -count=1", "go test ./pkg/iam/ -run TestRenewingTokenSource -v -count=1", "go vet ./pkg/iam/...", "npm run contracts:test", "node scripts/validate-contracts.mjs"]
+      scope: "in-process renewing TokenSource and exact service-credential consumer scope; working tree differs from commit and tested file hashes are in report; no online issue/renew/revoke API, worker wiring, atomic enrollment store, 5s revocation measurement, real_e2e or HA"
+      assertions: [thirty_three_renewal_tests_passed, idle_renewal_across_ttls, coalesced_cold_start, bounded_backoff_and_hard_cap, fail_closed_after_expiry, ignore_wider_or_unverifiable_credentials, permanent_rejection_invalidates_cache, close_cancels_shared_issuance, scope_schema_accepts_exact_and_rejects_unbounded]
+    db_integration: {status: not_run}
+    real_e2e: {status: not_run}
+    production_ha: {status: not_run}
+  service_identity_lifecycle:
+    unit:
+      status: passed
+      run_id: service-identity-api-20261017
+      commit: 5e7fc07edd3eb4c1d627ef4c463f9d527676cc93
+      report: reports/20261017-service-identity-lifecycle.md
+      commands: ["go test -race ./pkg/iam/... -count=1", "go test -race ./cmd/apiserver/internal/handler/ -run TestServiceIdentityHandler -count=1", "go vet ./pkg/iam/...", "npm run contracts:test", "node scripts/validate-contracts.mjs"]
+      scope: "in-process authority/handler and contract tests only; working tree differs from commit and tested file hashes are in report; no deployment wiring, real issuer, BFF actor verification, 5s/60s revocation or HA"
+      assertions: [exact_scope_reissued_from_store, revoked_identity_rejected_before_jwt_expiry, cross_tenant_and_scope_rejected, audit_actor_and_service_subject, no_credential_leak, contract_schemas_and_tests, contract_gate_passed]
+    db_integration:
+      status: passed
+      run_id: service-identity-lifecycle-20261017
+      commit: 5e7fc07edd3eb4c1d627ef4c463f9d527676cc93
+      report: reports/20261017-service-identity-lifecycle.md
+      commands: ["HNB_TEST_DATABASE_URL=... go test -tags integration ./pkg/iam/ -run TestServiceIdentityStoreAtomicConsumptionAndRevocation -count=1 -v"]
+      scope: "ephemeral PostgreSQL 16.15 via Docker on 127.0.0.1:55432; migration and three new tables only; not a cloud host, production database or HA drill"
+      assertions: [repeated_migration_idempotent, one_hundred_concurrent_consumptions_one_success, enrollment_replay_rejected, version_conflict_rejected, cross_tenant_rejected, idempotent_revocation, expired_enrollment_rejected]
+    real_e2e: {status: not_run}
+    production_ha: {status: not_run}
+  service_identity_worker_renewal:
+    unit:
+      status: passed
+      run_id: operation-worker-tenant-identity-20261017
+      commit: 5e7fc07edd3eb4c1d627ef4c463f9d527676cc93
+      report: reports/20261017-agent-enrollment-and-worker-identity.md
+      commands: ["go test ./pkg/iam/ -run 'TestHTTPCredentialIssuer|TestTenantRenewingTokenSource|TestHTTPTenantTokenSource' -count=1", "go test ./cmd/operation-worker/internal/config/ -count=1", "go build ./cmd/operation-worker/..."]
+      scope: "per-tenant binding/factory wiring and local tests only; no production rollout, real cross-TTL drill, 5s/60s revocation or HA"
+      assertions: [bootstrap_rotation, bounded_response, error_redaction, tenant_isolation, per_tenant_coalescing, close_stops_renewal, per_tenant_binding_required, unbound_tenant_rejected, no_token_file_fallback, driver_uses_tenant_source]
+    db_integration: {status: not_run}
+    real_e2e: {status: not_run}
+    production_ha: {status: not_run}
+  agent_enrollment_exchange:
+    unit:
+      status: passed
+      run_id: agent-enrollment-exchange-20261017
+      commit: 5e7fc07edd3eb4c1d627ef4c463f9d527676cc93
+      report: reports/20261017-agent-enrollment-and-worker-identity.md
+      commands: ["go test ./cmd/apiserver/internal/handler/ -run TestAgentEnrollment -count=1", "go test ./pkg/iam/ -run 'TestAgentTunnelSignWithTTL|TestNewEnrollmentSecret' -count=1", "npm run contracts:test"]
+      scope: "server-side create/exchange/revoke and contract tests only; no Agent binary exchange wiring, deployment rollout, real long-connection revocation or HA"
+      assertions: [single_use_exchange, replay_rejected, expired_rejected, revoked_rejected, cross_tenant_rejected, cross_target_rejected, wrong_target_type_rejected, five_minute_session, audit_no_secret, contract_schemas]
+    db_integration:
+      status: passed
+      run_id: service-identity-lifecycle-20261017
+      commit: 5e7fc07edd3eb4c1d627ef4c463f9d527676cc93
+      report: reports/20261017-agent-enrollment-and-worker-identity.md
+      commands: ["HNB_TEST_DATABASE_URL=... go test -tags integration ./pkg/iam/ -run TestServiceIdentityStoreAtomicConsumptionAndRevocation -count=1 -v"]
+      scope: "ephemeral PostgreSQL 16.15 via Docker; enrollment consume/revoke and migration only; not a cloud host, production database or HA drill"
+      assertions: [repeated_migration_idempotent, one_hundred_concurrent_consumptions_one_success, enrollment_revocation_rejected, cross_tenant_rejected, expired_enrollment_rejected]
+    real_e2e: {status: not_run}
+    production_ha: {status: not_run}
+  agent_session_lifecycle:
+    unit:
+      status: passed
+      run_id: agent-session-rotation-20261017
+      commit: 5e7fc07edd3eb4c1d627ef4c463f9d527676cc93
+      report: reports/20261017-agent-session-rotation-revocation.md
+      commands: ["go test -race ./pkg/iam/... ./pkg/tunnel/... ./cmd/cluster-agent/...", "go test ./cmd/apiserver/internal/handler/ -run TestAgentEnrollment -count=1", "go test ./pkg/tunnel/ -run TestTunnelRevokeClosesOnlyTheExactTenantConnection -count=1", "npm run contracts:test"]
+      scope: "local rotation/renewal/revocation and websocket close tests only; no real 5s/60s propagation measurement, identity-service outage drill, HA or cloud host"
+      assertions: [exchange_creates_generation, renew_keeps_session_and_generation, renew_rotates_jti, revoked_session_cannot_renew, transient_failure_keeps_old_until_expiry, agent_source_stops_on_permanent_rejection, exact_tenant_target_connection_close, wrong_tenant_not_closed, agent_close_reason_mapped, observer_generation_fenced_by_projector]
+    db_integration:
+      status: passed
+      run_id: agent-session-revocation-20261017
+      commit: 5e7fc07edd3eb4c1d627ef4c463f9d527676cc93
+      report: reports/20261017-agent-session-rotation-revocation.md
+      commands: ["HNB_TEST_DATABASE_URL=... go test -tags integration ./pkg/iam/ -run TestAgentSessionStoreLifecycle -count=1 -v"]
+      scope: "ephemeral PostgreSQL 16.15 via Docker; agent_sessions create/rotate/revoke only; not a cloud host, production database or HA drill"
+      assertions: [generation_increments_per_target, rotate_preserves_generation, cross_tenant_session_read_rejected, cross_tenant_revoke_noop, revoke_marks_all_active_sessions, revoked_session_cannot_rotate, repeated_revoke_idempotent]
+    real_e2e: {status: not_run}
+    production_ha: {status: not_run}
+  identity_drill_20261017:
+    db_integration:
+      status: passed
+      run_id: identity-drill-20261017
+      commit: 5e7fc07edd3eb4c1d627ef4c463f9d527676cc93
+      report: reports/20261017-identity-drill.md
+      artifacts: reports/20261017-agent-session-identity-drill.log
+      commands: ["HNB_TEST_DATABASE_URL=... go test -tags drill ./cmd/apiserver/internal/handler/ -run TestAgentSessionIdentityDrill -count=1 -v"]
+      scope: "local process-level drill with real HTTP, WebSocket, PostgreSQL 16.15, handler/store/tunnel/session source; 4s drill TTL, not production 5min soak; no cloud host, HA, real issuer outage or multi-connection 60s propagation measurement"
+      assertions: [more_than_two_ttls, three_reconnects, generation_stable, auto_renewal_advances_issued_at, restart_from_persisted_session_without_exchange, consumed_enrollment_rejected, cross_tenant_exchange_rejected, revocation_closes_persistent_connection_under_5s, new_renewal_rejected_after_revocation, no_manual_token]
+    real_e2e: {status: not_run}
+    production_ha: {status: not_run}
   ubuntu2604_existing_cluster_deployment:
     unit:
       status: passed

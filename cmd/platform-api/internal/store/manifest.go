@@ -2,8 +2,10 @@ package store
 
 import (
 	"context"
+	"crypto/sha256"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -53,12 +55,20 @@ type CompatibilityEntry struct {
 }
 
 func (s *PGStore) GetManifest(ctx context.Context, providerID string) (*ProviderManifest, error) {
+	return getManifest(ctx, s.db, providerID)
+}
+
+type manifestQuerier interface {
+	QueryRowContext(context.Context, string, ...any) *sql.Row
+}
+
+func getManifest(ctx context.Context, query manifestQuerier, providerID string) (*ProviderManifest, error) {
 	manifest := &ProviderManifest{}
 	var capabilities, actions []string
 	var permissionsJSON, resourceJSON, depsJSON, compatJSON, evidenceJSON, storageDriverPackageJSON string
 	var expiresAt sql.NullTime
 
-	err := s.db.QueryRowContext(ctx, `
+	err := query.QueryRowContext(ctx, `
 		SELECT provider_id, name, version, protocol_version,
 			capabilities, actions, permissions, resource_requirements,
 			dependencies, compatibility, conformance_level,
@@ -72,6 +82,9 @@ func (s *PGStore) GetManifest(ctx context.Context, providerID string) (*Provider
 		&permissionsJSON, &resourceJSON, &depsJSON, &compatJSON,
 		&manifest.ConformanceLevel, &evidenceJSON, &expiresAt, &storageDriverPackageJSON,
 	)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrNotFound
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -92,6 +105,27 @@ func (s *PGStore) GetManifest(ctx context.Context, providerID string) (*Provider
 	return manifest, nil
 }
 
+// ManifestIdentityDigest ignores qualification metadata, so a report cannot
+// qualify a different base manifest and renewals remain bound to the same input.
+func ManifestIdentityDigest(manifest *ProviderManifest) string {
+	copy := *manifest
+	copy.ConformanceLevel = "none"
+	copy.ConformanceEvidence = nil
+	copy.ConformanceExpiresAt = nil
+	copy.ResourceRequirements = nil
+	for key, value := range manifest.ResourceRequirements {
+		if key == "conformanceReport" {
+			continue
+		}
+		if copy.ResourceRequirements == nil {
+			copy.ResourceRequirements = make(map[string]any)
+		}
+		copy.ResourceRequirements[key] = value
+	}
+	data, _ := json.Marshal(copy)
+	return fmt.Sprintf("sha256:%x", sha256.Sum256(data))
+}
+
 func (s *PGStore) SaveManifest(ctx context.Context, manifest *ProviderManifest) error {
 	if manifest.StorageDriverPackage != nil {
 		if err := manifest.StorageDriverPackage.Validate(manifest.Version, time.Now()); err != nil {
@@ -104,37 +138,70 @@ func (s *PGStore) SaveManifest(ctx context.Context, manifest *ProviderManifest) 
 	compatJSON, _ := json.Marshal(manifest.Compatibility)
 	evidenceJSON, _ := json.Marshal(manifest.ConformanceEvidence)
 	storageDriverPackageJSON, _ := json.Marshal(manifest.StorageDriverPackage)
+	// The shipped columns are NOT NULL with a '{}' default, so a nil Go slice
+	// must be sent as an empty array rather than SQL NULL.
+	capabilities, actions := pq.Array(manifest.Capabilities), pq.Array(manifest.Actions)
+	if manifest.Capabilities == nil {
+		capabilities = pq.Array([]string{})
+	}
+	if manifest.Actions == nil {
+		actions = pq.Array([]string{})
+	}
 
-	_, err := s.db.ExecContext(ctx, `
-		INSERT INTO provider_manifests (
-			provider_id, name, version, protocol_version,
-			capabilities, actions, permissions, resource_requirements,
-			dependencies, compatibility, conformance_level,
-			conformance_evidence, conformance_expires_at, storage_driver_package
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
-		ON CONFLICT (provider_id) DO UPDATE SET
-			name = EXCLUDED.name,
-			version = EXCLUDED.version,
-			protocol_version = EXCLUDED.protocol_version,
-			capabilities = EXCLUDED.capabilities,
-			actions = EXCLUDED.actions,
-			permissions = EXCLUDED.permissions,
-			resource_requirements = EXCLUDED.resource_requirements,
-			dependencies = EXCLUDED.dependencies,
-			compatibility = EXCLUDED.compatibility,
-			conformance_level = EXCLUDED.conformance_level,
-			conformance_evidence = EXCLUDED.conformance_evidence,
-			conformance_expires_at = EXCLUDED.conformance_expires_at,
-			storage_driver_package = EXCLUDED.storage_driver_package,
-			updated_at = NOW()`,
-		manifest.ProviderID, manifest.Name, manifest.Version, manifest.ProtocolVersion,
-		pq.Array(manifest.Capabilities), pq.Array(manifest.Actions),
-		string(permissionsJSON), string(resourceJSON),
-		string(depsJSON), string(compatJSON),
-		manifest.ConformanceLevel, string(evidenceJSON),
-		manifest.ConformanceExpiresAt, string(storageDriverPackageJSON),
-	)
-	return err
+	// provider_id carries no unique constraint, so ON CONFLICT cannot express
+	// the upsert. Lock the existing rows instead: exactly one row is updated,
+	// none inserts, and duplicates are reported rather than silently merged.
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	rows, err := tx.QueryContext(ctx, `SELECT id FROM provider_manifests WHERE provider_id = $1 FOR UPDATE`, manifest.ProviderID)
+	if err != nil {
+		return err
+	}
+	locked := 0
+	for rows.Next() {
+		locked++
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	if locked > 1 {
+		return fmt.Errorf("provider %q has %d manifest rows; refusing an ambiguous upsert", manifest.ProviderID, locked)
+	}
+	if locked == 1 {
+		_, err = tx.ExecContext(ctx, `
+			UPDATE provider_manifests SET
+				name = $2, version = $3, protocol_version = $4, capabilities = $5, actions = $6,
+				permissions = $7, resource_requirements = $8, dependencies = $9, compatibility = $10,
+				conformance_level = $11, conformance_evidence = $12, conformance_expires_at = $13,
+				storage_driver_package = $14, updated_at = NOW()
+			WHERE provider_id = $1`,
+			manifest.ProviderID, manifest.Name, manifest.Version, manifest.ProtocolVersion,
+			capabilities, actions, string(permissionsJSON), string(resourceJSON),
+			string(depsJSON), string(compatJSON),
+			manifest.ConformanceLevel, string(evidenceJSON),
+			manifest.ConformanceExpiresAt, string(storageDriverPackageJSON))
+	} else {
+		_, err = tx.ExecContext(ctx, `
+			INSERT INTO provider_manifests (
+				provider_id, name, version, protocol_version,
+				capabilities, actions, permissions, resource_requirements,
+				dependencies, compatibility, conformance_level,
+				conformance_evidence, conformance_expires_at, storage_driver_package
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
+			manifest.ProviderID, manifest.Name, manifest.Version, manifest.ProtocolVersion,
+			capabilities, actions, string(permissionsJSON), string(resourceJSON),
+			string(depsJSON), string(compatJSON),
+			manifest.ConformanceLevel, string(evidenceJSON),
+			manifest.ConformanceExpiresAt, string(storageDriverPackageJSON))
+	}
+	if err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 func (s *PGStore) DeleteManifest(ctx context.Context, providerID string) error {

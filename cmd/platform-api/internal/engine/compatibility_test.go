@@ -45,10 +45,12 @@ func TestCompatibilityMatrixEvaluatesEveryCell(t *testing.T) {
 		{IntentImportRuntimeTarget, "KubernetesTarget", "import", true},
 		{IntentUpgradeRuntimeTarget, "KubernetesTarget", "upgrade", true},
 		{IntentDeleteRuntimeTarget, "KubernetesTarget", "unmanage", true},
+		{IntentAddNodesRuntimeTarget, "KubernetesTarget", "node-add", false},
 		{IntentCreateKubernetesTarget, "EdgeRuntimeTarget", "create", false},
 		{IntentImportRuntimeTarget, "EdgeRuntimeTarget", "import", true},
 		{IntentUpgradeRuntimeTarget, "EdgeRuntimeTarget", "upgrade", true},
 		{IntentDeleteRuntimeTarget, "EdgeRuntimeTarget", "unmanage", true},
+		{IntentAddNodesRuntimeTarget, "EdgeRuntimeTarget", "node-add", false},
 	}
 	for _, test := range tests {
 		t.Run(test.targetKind+"/"+test.action, func(t *testing.T) {
