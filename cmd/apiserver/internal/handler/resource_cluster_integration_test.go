@@ -292,7 +292,7 @@ func TestResourceClusterImportAcceptedButNotAvailable(t *testing.T) {
 	if _, err := db.ExecContext(ctx, `
 		UPDATE runtime_targets
 		SET lifecycle_state='ACTIVE', health_state='HEALTHY', connectivity_state='CONNECTED',
-		    freshness_state='FRESH', observed_at=now()
+		    freshness_state='FRESH', observed_at=now(), observation_generation=2, observation_revision=7, observation_source='agent'
 		WHERE id=$1`, targetID); err != nil {
 		t.Fatal(err)
 	}
@@ -305,7 +305,9 @@ func TestResourceClusterImportAcceptedButNotAvailable(t *testing.T) {
 	if err := json.Unmarshal(rec.Body.Bytes(), &available); err != nil {
 		t.Fatal(err)
 	}
-	if !available.Acceptance.Available || available.Acceptance.ObservationState != "observed" {
-		t.Fatalf("fresh observed target was not available: %+v", available)
+	if !available.Acceptance.Available || available.Acceptance.ObservationState != "observed" ||
+		available.Acceptance.ObservationGeneration != 2 || available.Acceptance.ObservationRevision != 7 ||
+		available.Acceptance.ObservationSource != "agent" {
+		t.Fatalf("fresh observed target was not available with watermark: %+v", available)
 	}
 }

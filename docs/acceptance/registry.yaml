@@ -126,6 +126,25 @@ features:
       assertions: [generation_increments_per_target, rotate_preserves_generation, cross_tenant_session_read_rejected, cross_tenant_revoke_noop, revoke_marks_all_active_sessions, revoked_session_cannot_rotate, repeated_revoke_idempotent]
     real_e2e: {status: not_run}
     production_ha: {status: not_run}
+  s2_observation_watermark:
+    unit:
+      status: passed
+      run_id: s2-observation-watermark-20261017
+      commit: 7079acf
+      report: reports/20261017-s2-observation-watermark.md
+      commands: ["go test ./cmd/platform-api/internal/observer/ -count=1", "go test ./cmd/apiserver/internal/handler/ -count=1", "npm run contracts:test", "node scripts/validate-contracts.mjs"]
+      scope: "observation generation/revision/source watermark in Read Model plus projector ordering/fencing tests; no independent cluster Agent E2E"
+      assertions: [watermark_fields_in_acceptance, list_and_detail_watermark, replay_idempotent, sequence_gap_waits, old_generation_fenced, source_reset_generation, cross_tenant_no_projection, cross_target_no_projection, contracts_28_passed, contract_gate_81_schemas]
+    db_integration:
+      status: passed
+      run_id: s2-observation-watermark-20261017
+      commit: 7079acf
+      report: reports/20261017-s2-observation-watermark.md
+      commands: ["HNB_TEST_POSTGRES_DSN=... go test ./cmd/platform-api/internal/observer/ -count=1", "HNB_TEST_POSTGRES_DSN=... go test ./cmd/apiserver/internal/handler/ -run TestResourceClusterImportAcceptedButNotAvailable -count=1"]
+      scope: "ephemeral PostgreSQL 16.15 with all migrations; projector ordering/fencing and Read Model watermark queries; not independent target or real Agent"
+      assertions: [atomic_target_nodes_capability_projection, replay_does_not_change_nodes, gap_row_recorded, seq_after_gap_accepted, lower_generation_fenced, cross_tenant_target_rejected, watermark_visible_in_read_model]
+    real_e2e: {status: not_run}
+    production_ha: {status: not_run}
   s2_import_acceptance_contract:
     unit:
       status: passed

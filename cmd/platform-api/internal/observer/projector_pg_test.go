@@ -464,3 +464,41 @@ func TestProjectorPGStorageFullDeltaTombstonesFreshnessAndEvidence(t *testing.T)
 		t.Fatalf("full projection resources/evidence/cursor=%d/%d/%d want 1/1/3", active, evidenceCount, cursorSequence)
 	}
 }
+
+func TestProjectorPGCrossTenantAndCrossTargetDoNotProject(t *testing.T) {
+	db := openProjectorPG(t)
+	ctx := context.Background()
+	tenantA := "tenant-obs-a-" + uuid.NewString()[:8]
+	tenantB := "tenant-obs-b-" + uuid.NewString()[:8]
+	targetA := uuid.NewString()
+	targetB := uuid.NewString()
+	seedProjectorTarget(t, db, tenantA, targetA, "kubernetes")
+	seedProjectorTarget(t, db, tenantB, targetB, "kubernetes")
+	projector := NewProjector(NewPGCursorStore(db))
+	identity := Identity{TenantID: tenantA, TargetID: targetA, TargetKind: "KubernetesTarget", ObserverID: "agent-a", ObserverKind: "Agent"}
+	observedAt := time.Now().UTC().Add(-time.Minute)
+
+	if err := projector.Accept(ctx, identity, observationWith(tenantB, targetB, "KubernetesTarget", "Agent", "agent-b", 1, 1, observedAt, "Full", nil)); err == nil {
+		t.Fatal("cross-tenant observation was accepted")
+	}
+	if err := projector.Accept(ctx, identity, observationWith(tenantA, targetB, "KubernetesTarget", "Agent", "agent-a", 1, 1, observedAt, "Full", nil)); err == nil {
+		t.Fatal("cross-target observation was accepted")
+	}
+
+	var cursors int
+	if err := db.QueryRow(`SELECT count(*) FROM runtime_target_observation_cursors
+		WHERE tenant_id IN ($1,$2)`, tenantA, tenantB).Scan(&cursors); err != nil {
+		t.Fatal(err)
+	}
+	if cursors != 0 {
+		t.Fatalf("rejected observations advanced %d cursors", cursors)
+	}
+	var projected int
+	if err := db.QueryRow(`SELECT count(*) FROM runtime_targets
+		WHERE id IN ($1,$2) AND (lifecycle_state = 'ACTIVE' OR observation_generation IS NOT NULL)`, targetA, targetB).Scan(&projected); err != nil {
+		t.Fatal(err)
+	}
+	if projected != 0 {
+		t.Fatalf("rejected observations projected %d targets", projected)
+	}
+}

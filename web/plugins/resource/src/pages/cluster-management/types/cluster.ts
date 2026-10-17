@@ -87,6 +87,9 @@ export interface ClusterAcceptance {
   available: boolean
   observationState: 'pending' | 'observed' | 'stale'
   acceptedAt?: string
+  observationGeneration?: number
+  observationRevision?: number
+  observationSource?: 'agent' | 'cloudcore'
 }
 
 /** 集群 Read Model 投影（列表与详情共用） */

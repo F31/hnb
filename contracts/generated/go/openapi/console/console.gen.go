@@ -33,6 +33,24 @@ func (e ApiVersion) Valid() bool {
 	}
 }
 
+// Defines values for ClusterAcceptanceObservationSource.
+const (
+	Agent     ClusterAcceptanceObservationSource = "agent"
+	Cloudcore ClusterAcceptanceObservationSource = "cloudcore"
+)
+
+// Valid indicates whether the value is a known member of the ClusterAcceptanceObservationSource enum.
+func (e ClusterAcceptanceObservationSource) Valid() bool {
+	switch e {
+	case Agent:
+		return true
+	case Cloudcore:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ClusterAcceptanceObservationState.
 const (
 	ClusterAcceptanceObservationStateObserved ClusterAcceptanceObservationState = "observed"
@@ -1317,9 +1335,15 @@ type ClusterAcceptance struct {
 	AcceptedAt *time.Time `json:"acceptedAt,omitempty"`
 
 	// Available True only when the target is ACTIVE, HEALTHY, CONNECTED and freshly observed.
-	Available        bool                              `json:"available"`
-	ObservationState ClusterAcceptanceObservationState `json:"observationState"`
+	Available             bool                                `json:"available"`
+	ObservationGeneration *int                                `json:"observationGeneration,omitempty"`
+	ObservationRevision   *int                                `json:"observationRevision,omitempty"`
+	ObservationSource     *ClusterAcceptanceObservationSource `json:"observationSource,omitempty"`
+	ObservationState      ClusterAcceptanceObservationState   `json:"observationState"`
 }
+
+// ClusterAcceptanceObservationSource defines model for ClusterAcceptance.ObservationSource.
+type ClusterAcceptanceObservationSource string
 
 // ClusterAcceptanceObservationState defines model for ClusterAcceptance.ObservationState.
 type ClusterAcceptanceObservationState string

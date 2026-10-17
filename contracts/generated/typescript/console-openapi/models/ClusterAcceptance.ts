@@ -13,4 +13,7 @@ export type ClusterAcceptance = {
     available: boolean;
     observationState: 'pending' | 'observed' | 'stale';
     acceptedAt?: string;
+    observationGeneration?: number;
+    observationRevision?: number;
+    observationSource?: 'agent' | 'cloudcore';
 };

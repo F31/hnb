@@ -60,7 +60,8 @@
 进入条件：S1 通过，独立目标可用，复用现有 import 动作与签名 Conformance 登记。
 
 - [x] 3.1 将正式身份、lifecycle Provider、Agent 与观测源绑定接入既有 import/handoff 流程，补齐受理与真实可用分离的状态契约和查询测试。（RTLOOP-001、UXLOOP-001）
-- [ ] 3.2 补齐 import→Agent→能力/节点观测→Read Model 的关联和水位，集成验证重复/乱序/缺口/旧 generation、跨租户/跨目标不更新投影。（RTLOOP-001、IDENT-002）
+- [x] 3.2 补齐 import→Agent→能力/节点观测→Read Model 的关联和水位，集成验证重复/乱序/缺口/旧 generation、跨租户/跨目标不更新投影。（RTLOOP-001、IDENT-002）
+  - 2026-10-17 complete（本地/真实 PG）：`ClusterAcceptance` 增加 observationGeneration/Revision/Source；List/Detail 统一读取；既有 projector 用例覆盖原子投影、重复、缺口、旧 generation、source reset；新增 PG 用例验证跨租户/跨目标不推进 cursor、不更新 target。契约 28/28、81 schemas。独立集群 import→真实 Agent→能力/节点→Read Model 整链 E2E 仍属 3.3/3.4；见 `docs/acceptance/reports/20261017-s2-observation-watermark.md`。
   - 2026-10-17 complete：既有 import/handoff 链路复用受限 RuntimeIntent+delegation、lifecycle Provider、S1 Agent tunnel/session 与 observer；新增 `ClusterAcceptance`（accepted/available/observationState/acceptedAt），List/Detail 同源，OpenAPI 增量生成。单元 + 真实 PostgreSQL 16 查询测试验证 `REGISTERING+pending` 不显示可用、观测后 `ACTIVE+FRESH` 才 available；契约 28/28、门禁 81 schemas。独立集群实机 import、真实 Agent handoff 与 3.2 乱序/generation 仍待后续；见 `docs/acceptance/reports/20261017-s2-import-acceptance.md`。
 
 - [ ] 3.3 在独立业务集群执行正式 CLI/API import 及幂等重放，验证唯一目标、真实 Agent 认证、能力/节点清单和新鲜度，不直写数据库或使用自导入。（RTLOOP-001、PREADY-001）

@@ -7,6 +7,10 @@
 [`统一底座与四档组装契约`](../deployment/profile-composition-contract.md)、
 [`阶段计划/预算/证据校验`](product-readiness-manifests.md)。这些建设记录不提升既有认证。
 
+2026-10-17 新增：[`S2 3.2 观测 watermark/乱序隔离`](reports/20261017-s2-observation-watermark.md)
+（observationGeneration/Revision/Source、重复/缺口/旧 generation/跨租户/跨目标；
+真实 PostgreSQL projector 测试；不含独立集群 Agent E2E）。
+
 2026-10-17 新增：[`S2 3.1 import 受理/可用分离`](reports/20261017-s2-import-acceptance.md)
 （ClusterAcceptance、REGISTERING+pending 不可用、观测后 ACTIVE+FRESH 才可用；
 真实 PostgreSQL 查询测试；不含独立集群 import/真实 Agent handoff/3.2 乱序）。

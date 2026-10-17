@@ -440,19 +440,20 @@ func TestResourceClusterHandlerForwardsKubeconfigDownload(t *testing.T) {
 
 func TestClusterAcceptanceSeparatesAcceptedFromAvailable(t *testing.T) {
 	now := time.Now().UTC()
-	pending := clusterAcceptanceFor("REGISTERING", "UNKNOWN", "UNKNOWN", "UNKNOWN", nil, now)
+	pending := clusterAcceptanceFor("REGISTERING", "UNKNOWN", "UNKNOWN", "UNKNOWN", nil, now, 0, 0, "")
 	if !pending.Accepted || pending.Available || pending.ObservationState != "pending" {
 		t.Fatalf("import accepted but unobserved must not be available: %+v", pending)
 	}
-	observed := clusterAcceptanceFor("ACTIVE", "HEALTHY", "CONNECTED", "FRESH", &now, now)
-	if !observed.Accepted || !observed.Available || observed.ObservationState != "observed" {
-		t.Fatalf("fresh active target should be available: %+v", observed)
+	observed := clusterAcceptanceFor("ACTIVE", "HEALTHY", "CONNECTED", "FRESH", &now, now, 2, 7, "agent")
+	if !observed.Accepted || !observed.Available || observed.ObservationState != "observed" ||
+		observed.ObservationGeneration != 2 || observed.ObservationRevision != 7 || observed.ObservationSource != "agent" {
+		t.Fatalf("fresh active target should be available with watermark: %+v", observed)
 	}
-	stale := clusterAcceptanceFor("ACTIVE", "HEALTHY", "CONNECTED", "STALE", &now, now)
+	stale := clusterAcceptanceFor("ACTIVE", "HEALTHY", "CONNECTED", "STALE", &now, now, 2, 8, "agent")
 	if !stale.Accepted || stale.Available || stale.ObservationState != "stale" {
 		t.Fatalf("stale observation must not be available: %+v", stale)
 	}
-	unknown := clusterAcceptanceFor("UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", nil, time.Time{})
+	unknown := clusterAcceptanceFor("UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", nil, time.Time{}, 0, 0, "")
 	if unknown.Accepted || unknown.Available {
 		t.Fatalf("unknown lifecycle must not be accepted: %+v", unknown)
 	}

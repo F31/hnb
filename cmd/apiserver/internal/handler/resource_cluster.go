@@ -80,10 +80,13 @@ type clusterCapabilitySnapshot struct {
 // "the target is actually available and freshly observed". A successful import
 // Operation alone must never set available=true.
 type clusterAcceptance struct {
-	Accepted         bool   `json:"accepted"`
-	Available        bool   `json:"available"`
-	ObservationState string `json:"observationState"`
-	AcceptedAt       string `json:"acceptedAt,omitempty"`
+	Accepted              bool   `json:"accepted"`
+	Available             bool   `json:"available"`
+	ObservationState      string `json:"observationState"`
+	AcceptedAt            string `json:"acceptedAt,omitempty"`
+	ObservationGeneration int64  `json:"observationGeneration,omitempty"`
+	ObservationRevision   int64  `json:"observationRevision,omitempty"`
+	ObservationSource     string `json:"observationSource,omitempty"`
 }
 
 type clusterSummary struct {
@@ -211,7 +214,7 @@ func mapCombinedStatus(lifecycle, health, connectivity, freshness string) string
 	return "UNKNOWN"
 }
 
-func clusterAcceptanceFor(lifecycle, health, connectivity, fresh string, observed *time.Time, createdAt time.Time) clusterAcceptance {
+func clusterAcceptanceFor(lifecycle, health, connectivity, fresh string, observed *time.Time, createdAt time.Time, generation, revision int64, source string) clusterAcceptance {
 	accepted := lifecycle != "" && lifecycle != "UNKNOWN"
 	observationState := "pending"
 	if observed != nil {
@@ -226,7 +229,7 @@ func clusterAcceptanceFor(lifecycle, health, connectivity, fresh string, observe
 	if !createdAt.IsZero() {
 		acceptedAt = createdAt.UTC().Format(time.RFC3339)
 	}
-	return clusterAcceptance{Accepted: accepted, Available: available, ObservationState: observationState, AcceptedAt: acceptedAt}
+	return clusterAcceptance{Accepted: accepted, Available: available, ObservationState: observationState, AcceptedAt: acceptedAt, ObservationGeneration: generation, ObservationRevision: revision, ObservationSource: source}
 }
 
 func targetTypeToKind(tt string) string {
@@ -381,7 +384,8 @@ func (h *ResourceClusterHandler) ListClusters(w http.ResponseWriter, r *http.Req
 		       rt.created_at, rt.updated_at,
 		       COALESCE(cs.kube_version, ''), COALESCE(cs.cpu_cores, 0), COALESCE(cs.memory_mb, 0),
 		       (SELECT count(*) FROM runtime_target_nodes n WHERE n.target_id = rt.id AND n.deleted_at IS NULL),
-		       COALESCE(rt.projection_version, 0)
+		       COALESCE(rt.projection_version, 0), COALESCE(rt.observation_generation, 0), COALESCE(rt.observation_revision, 0),
+		       COALESCE(rt.observation_source, '')
 		FROM runtime_targets rt
 		LEFT JOIN LATERAL (
 			SELECT kube_version, cpu_cores, memory_mb
@@ -415,12 +419,15 @@ func (h *ResourceClusterHandler) ListClusters(w http.ResponseWriter, r *http.Req
 			nodeCount                                              int
 			lastKnownStateAt                                       sql.NullTime
 			projectionVersion                                      int64
+			observationGeneration                                  int64
+			observationRevision                                    int64
+			observationSource                                      string
 		)
 		if err := rows.Scan(&id, &tenant, &name, &displayName, &description, &targetType,
 			&lifecycleState, &healthState, &connState, &freshState,
 			&observedAt, &lastKnownStateAt,
 			&labelsRaw, &observedAt, &threshold, &createdAt, &updatedAt,
-			&kubeVersion, &cpuCores, &memoryMB, &nodeCount, &projectionVersion); err != nil {
+			&kubeVersion, &cpuCores, &memoryMB, &nodeCount, &projectionVersion, &observationGeneration, &observationRevision, &observationSource); err != nil {
 			continue
 		}
 		kind := targetTypeToKind(targetType)
@@ -463,7 +470,7 @@ func (h *ResourceClusterHandler) ListClusters(w http.ResponseWriter, r *http.Req
 				ObservedAt:      formatTimePtr(observed),
 				Freshness:       freshState,
 			},
-			Acceptance:    clusterAcceptanceFor(lifecycleState, healthState, connState, freshState, observed, createdAt),
+			Acceptance:    clusterAcceptanceFor(lifecycleState, healthState, connState, freshState, observed, createdAt, observationGeneration, observationRevision, observationSource),
 			TenantID:      tenant,
 			EnvironmentID: labels["environmentId"],
 			CreatedAt:     createdAt.UTC().Format(time.RFC3339),
@@ -517,6 +524,9 @@ func (h *ResourceClusterHandler) GetCluster(w http.ResponseWriter, r *http.Reque
 		nodeCount                                                                                      int
 		environmentID                                                                                  string
 		projectionVersion                                                                              int64
+		observationGeneration                                                                          int64
+		observationRevision                                                                            int64
+		observationSource                                                                              string
 	)
 	err := h.db.QueryRowContext(r.Context(), `
 		SELECT rt.name, COALESCE(rt.display_name, rt.name), COALESCE(rt.description, ''),
@@ -526,7 +536,8 @@ func (h *ResourceClusterHandler) GetCluster(w http.ResponseWriter, r *http.Reque
 		       rt.stale_threshold_seconds, rt.created_at, rt.updated_at,
 		       COALESCE(cs.kube_version, ''), COALESCE(cs.cpu_cores, 0), COALESCE(cs.memory_mb, 0),
 		       (SELECT count(*) FROM runtime_target_nodes n WHERE n.target_id = rt.id AND n.deleted_at IS NULL),
-		       COALESCE(rt.projection_version, 0)
+		       COALESCE(rt.projection_version, 0), COALESCE(rt.observation_generation, 0), COALESCE(rt.observation_revision, 0),
+		       COALESCE(rt.observation_source, '')
 		FROM runtime_targets rt
 		LEFT JOIN LATERAL (
 			SELECT kube_version, cpu_cores, memory_mb
@@ -540,7 +551,7 @@ func (h *ResourceClusterHandler) GetCluster(w http.ResponseWriter, r *http.Reque
 		Scan(&name, &displayName, &description, &targetType, &lifecycleState, &healthState,
 			&connState, &freshState, &labelsRaw, &observedAt, &lastKnownStateAt,
 			&threshold, &createdAt, &updatedAt, &kubeVersion, &cpuCores, &memoryMB, &nodeCount,
-			&projectionVersion)
+			&projectionVersion, &observationGeneration, &observationRevision, &observationSource)
 	if errors.Is(err, sql.ErrNoRows) {
 		response.NotFound(w, "cluster not found")
 		return
@@ -593,7 +604,7 @@ func (h *ResourceClusterHandler) GetCluster(w http.ResponseWriter, r *http.Reque
 			ObservedAt:      formatTimePtr(observed),
 			Freshness:       freshState,
 		},
-		Acceptance:    clusterAcceptanceFor(lifecycleState, healthState, connState, freshState, observed, createdAt),
+		Acceptance:    clusterAcceptanceFor(lifecycleState, healthState, connState, freshState, observed, createdAt, observationGeneration, observationRevision, observationSource),
 		TenantID:      trusted.TenantID,
 		EnvironmentID: environmentID,
 		CreatedAt:     createdAt.UTC().Format(time.RFC3339),

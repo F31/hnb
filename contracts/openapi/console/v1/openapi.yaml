@@ -1310,6 +1310,15 @@ components:
         acceptedAt:
           type: string
           format: date-time
+        observationGeneration:
+          type: integer
+          minimum: 0
+        observationRevision:
+          type: integer
+          minimum: 0
+        observationSource:
+          type: string
+          enum: [agent, cloudcore]
     ClusterSummary:
       allOf:
         - $ref: "#/components/schemas/StateDimensions"
