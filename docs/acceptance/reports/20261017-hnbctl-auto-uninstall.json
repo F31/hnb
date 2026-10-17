@@ -1,0 +1,37 @@
+{
+  "exitCode": 0,
+  "command": "sudo /tmp/hnbctl uninstall -all -data --yes --format json",
+  "result": {
+    "schemaVersion": "removal-execution/v1",
+    "namespace": "hnb-system",
+    "deleted": [
+      "deployment,statefulset,daemonset,service,serviceaccount,role,rolebinding (namespace hnb-system)",
+      "persistentvolumeclaim/* (namespace hnb-system)",
+      "logicalvolumes.topolvm.io/*",
+      "secret/* (namespace hnb-system)",
+      "namespace/hnb-system",
+      "namespace/topolvm-system",
+      "storageclass/hnb-topolvm",
+      "csidriver/topolvm.io",
+      "topolvm cluster RBAC",
+      "crd/logicalvolumes.topolvm.io",
+      "clusterrole -l app.kubernetes.io/instance=hnb",
+      "clusterrolebinding -l app.kubernetes.io/instance=hnb"
+    ],
+    "retained": [
+      "external CNI daemonsets/deployments (never modified or replaced)",
+      "external kubernetes cluster lifecycle owner (kubeconfig is the entry point)",
+      "external namespaces/pvs/business workloads outside hnb-system"
+    ],
+    "verified": true
+  },
+  "postState": {
+    "namespaces": ["default", "kube-node-lease", "kube-public", "kube-system"],
+    "persistentVolumes": 0,
+    "logicalVolumes": "resource type removed",
+    "storageClasses": ["local-path"],
+    "csiDrivers": 0,
+    "topolvmCRDs": 0,
+    "pods": ["coredns", "local-path-provisioner", "metrics-server"]
+  }
+}

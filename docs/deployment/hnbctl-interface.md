@@ -44,7 +44,7 @@ hnbctl init --mode bootstrap --os ubuntu-26.04 -f hnb.yaml
 | 安装状态 | `install`、`status`、`resume`、`verify`、`collect` | 接口及部分能力已实现；完整安装/分层验收仍有门禁与未接通项 |
 | 极简入口 | `install --host`、`install --kubeconfig`、`uninstall --installation` | 参数自动生成配置并保存私有快照；无需编辑 YAML。当前仍为计划/只读预检，尚未执行安装或删除 |
 | 进度/历史/日志 | `status --watch`、`history`、`logs` | 进度只呈现记录到的阶段；历史与日志读取本次安装的私有记录；`logs --phase/--reason/--after`、`history --state` 过滤 |
-| 卸载 | `uninstall`、`platform uninstall-hnb\|unmanage\|delete-management-base` | `--plan` 产出删除/保留计划；`uninstall --execute --yes` 实际删除 HNB 工作负载与 RBAC，保留 PVC/Secret/Namespace/StorageClass；`unmanage`/`delete-management-base` 仍走服务端权威契约 |
+| 卸载 | `uninstall [-all] [-data]`、`platform uninstall-hnb\|unmanage\|delete-management-base` | 默认自动检测并删除 HNB 组件；`-all` 加删 TopoLVM/SC/CSIDriver/CRD；`-data` 加删 PVC/PV/LV/Secret/namespace；`--plan` 只看计划；`unmanage`/`delete-management-base` 仍走服务端权威契约 |
 | 纳管操作 | `cluster create/import/list`、`node add`、`operation get`、`handoff` | 服务端 API 驱动；`cluster list` 读取服务端权威 runtime-target 列表（`cluster-list/v1`），平台不可达不回退本地视图；`node list/status` 在平台 API 无契约，诚实拒绝并指向 `cluster list`/`verify` |
 | 生命周期 | `platform`、`recovery verify` | 独立的升级/卸载/恢复身份检查接口；不是所有操作均已端到端认证 |
 
@@ -77,13 +77,17 @@ hnbctl uninstall --installation <runId>          # 从保存的配置恢复卸�
 - `uninstall` 必须绑定记录在案的 run：配置身份不一致直接拒绝；默认计划保留 PVC
   及命名空间，`--delete-data` 才将自有持久卷加入删除计划。旧参数
   `--acknowledge-storage-removal` 继续表示显式同意将自有持久卷加入删除计划。
-- `uninstall --plan` 只读；`uninstall --execute --yes` 在已记录 run/config 匹配后
-  本地删除 `hnb-system` 的 HNB Deployment/StatefulSet/DaemonSet/Service/
-  ServiceAccount/Role/RoleBinding、HNB ConfigMap（保留 `kube-root-ca.crt`）以及
-  带 `app.kubernetes.io/instance=hnb` 的 ClusterRole/ClusterRoleBinding。
-- PVC、Secret、Namespace、StorageClass 与 TopoLVM 等外部存储组件保留；数据删除和
-  `unmanage`/`delete-management-base` 仍不在本地执行。执行结果输出
-  `removal-execution/v1` 并在无 Pod 残留时 `verified=true`。
+- `uninstall` 零配置模式自动解析 `KUBECONFIG`、`~/.kube/config` 或
+  `/etc/rancher/k3s/k3s.yaml`，检测 `hnb-system`、TopoLVM/SC 或 LV 残留后删除
+  HNB Deployment/StatefulSet/DaemonSet/Service/ServiceAccount/Role/RoleBinding、
+  HNB ConfigMap（保留 `kube-root-ca.crt`）以及带 `app.kubernetes.io/instance=hnb`
+  的 ClusterRole/ClusterRoleBinding。
+- 默认保留 PVC、Secret、Namespace、StorageClass/TopoLVM。`-all` 删除
+  `topolvm-system`、`hnb-topolvm`、`topolvm.io` CSIDriver、TopoLVM cluster RBAC；
+  `-data` 删除 PVC/PV/LV/Secret/namespace；`-all -data` 再删除 LV CRD。
+- 旧记录式 `uninstall --installation`/`--run-dir -f` 仍要求 run/config 匹配；
+  `unmanage`/`delete-management-base` 不在本地执行。执行结果输出
+  `removal-execution/v1` 并验证无 Pod/namespace 残留。
 
 ## 极简模式：不编辑配置文件
 

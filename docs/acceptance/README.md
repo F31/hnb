@@ -7,6 +7,10 @@
 [`统一底座与四档组装契约`](../deployment/profile-composition-contract.md)、
 [`阶段计划/预算/证据校验`](product-readiness-manifests.md)。这些建设记录不提升既有认证。
 
+2026-10-17 新增：[`hnbctl 零配置卸载与 -all/-data 全清`](reports/20261017-hnbctl-auto-uninstall.md)
+（auto-detect、`-all` 删 TopoLVM/SC/CSIDriver/CRD、`-data` 删 PVC/PV/LV/Secret/namespace；
+云主机全清后仅保留 K3s 系统组件）。
+
 2026-10-17 新增：[`hnbctl 实际卸载执行器`](reports/20261017-hnbctl-uninstall-execute.md)
 （`uninstall --execute --yes` 真删 HNB 工作负载/RBAC；PVC/Secret/Namespace/
 StorageClass/TopoLVM 保留；不含数据删除、TopoLVM 删除或重装）。

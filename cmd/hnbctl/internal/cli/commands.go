@@ -163,8 +163,8 @@ func init() {
 			Run:   runLogs,
 		},
 		{
-			Name: "uninstall", Summary: "plan removal of a recorded install run's owned resources",
-			Usage: "hnbctl uninstall --installation ID [--runs-dir DIR] [--plan] [--execute --yes] [--format human|json]\n    Also: [--run-dir DIR | --runs-dir DIR --run-id ID] [-f hnb.yaml] [--mode uninstall-hnb|unmanage|delete-management-base]\n    Default plan only. --execute --yes deletes HNB workloads/RBAC in the namespace and retains PVC/Secret/namespace/StorageClass.",
+			Name: "uninstall", Summary: "uninstall HNB; zero-config auto-detection by default",
+			Usage: "hnbctl uninstall [-all] [-data] [--yes] [--plan] [--kubeconfig PATH] [--namespace hnb-system] [--format human|json]\n    -all: also remove TopoLVM/StorageClass/CSIDriver/CRD components\n    -data: also remove PVC/PV/LogicalVolume/Secret/namespace data\n    Legacy: --installation ID | --run-dir DIR -f hnb.yaml [--execute --yes] [--mode uninstall-hnb|unmanage|delete-management-base]",
 			Run:   runUninstall,
 		},
 		{

@@ -20,8 +20,8 @@ import (
 func runUninstall(ctx context.Context, env *Env, args []string) Result {
 	fs := flag.NewFlagSet("uninstall", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
-	var runDir, runsDir, runID, installationID, configPath, mode, format, ownedBaseUID, kubeconfig, instanceLabel string
-	var acknowledgeStorage, installCreatedBase, deleteData, yes, planOnly, execute bool
+	var runDir, runsDir, runID, installationID, configPath, mode, format, ownedBaseUID, kubeconfig, instanceLabel, namespace string
+	var acknowledgeStorage, installCreatedBase, deleteData, yes, planOnly, execute, all, data bool
 	fs.StringVar(&runDir, "run-dir", "", "recorded install run directory")
 	fs.StringVar(&runsDir, "runs-dir", "", "install history root (default: XDG state home/hnbctl/runs)")
 	fs.StringVar(&runID, "run-id", "", "install run id (default: latest under --runs-dir)")
@@ -38,6 +38,9 @@ func runUninstall(ctx context.Context, env *Env, args []string) Result {
 	fs.StringVar(&ownedBaseUID, "owned-base-uid", "", "observed management-base UID (required for delete-management-base)")
 	fs.StringVar(&kubeconfig, "kubeconfig", "", "override kubeconfig used for execution")
 	fs.StringVar(&instanceLabel, "instance-label", "hnb", "app.kubernetes.io/instance label for cluster-scoped RBAC")
+	fs.StringVar(&namespace, "namespace", "hnb-system", "namespace used by zero-config auto-detection")
+	fs.BoolVar(&all, "all", false, "auto mode: also remove TopoLVM/StorageClass/CSI components")
+	fs.BoolVar(&data, "data", false, "auto mode: also remove PVC/PV/LogicalVolume/Secret/namespace data")
 	if err := fs.Parse(args); err != nil {
 		return fail(ReasonInvalidConfig, "invalid uninstall flags")
 	}
@@ -65,8 +68,15 @@ func runUninstall(ctx context.Context, env *Env, args []string) Result {
 	if format != "human" && format != "json" {
 		return fail(ReasonInvalidConfig, "--format must be human or json")
 	}
-	if execute && deleteData {
-		return fail(ReasonInvalidConfig, "--execute currently retains data; omit --delete-data for local uninstall")
+	if data {
+		deleteData = true
+	}
+	legacy := runDir != "" || runsDir != "" || runID != "" || installationID != "" || configPath != ""
+	if all && legacy {
+		return fail(ReasonInvalidConfig, "--all is only valid in zero-config mode; omit --run-dir/--installation/-f")
+	}
+	if !legacy {
+		return runAutoUninstall(ctx, env, namespace, kubeconfig, all, deleteData, yes, planOnly, format)
 	}
 	if runDir != "" && (runsDir != "" || runID != "") {
 		return fail(ReasonInvalidConfig, "provide --run-dir or --runs-dir/--run-id, not both")
@@ -120,7 +130,8 @@ func runUninstall(ctx context.Context, env *Env, args []string) Result {
 	wantsData := deleteData || acknowledgeStorage
 	plan, err := toolkit.PlanRemoval(toolkit.RemovalInput{Manifest: manifest, Run: run,
 		Mode: toolkit.RemovalMode(mode), InstallCreatedBase: installCreatedBase,
-		OwnedBaseUID: ownedBaseUID, DataLossAcknowledged: acknowledgeStorage || (deleteData && yes), RetainData: !wantsData, RetainNamespace: true})
+		OwnedBaseUID: ownedBaseUID, DataLossAcknowledged: acknowledgeStorage || (deleteData && yes),
+		RetainData: !wantsData, RetainNamespace: !deleteData, PurgeData: deleteData})
 	if err != nil {
 		return fail(ReasonInvalidConfig, err.Error())
 	}
@@ -133,7 +144,7 @@ func runUninstall(ctx context.Context, env *Env, args []string) Result {
 		// unrelated ownership or management-base blocks.
 		plan, err = toolkit.PlanRemoval(toolkit.RemovalInput{Manifest: manifest, Run: run,
 			Mode: toolkit.RemovalMode(mode), InstallCreatedBase: installCreatedBase,
-			OwnedBaseUID: ownedBaseUID, DataLossAcknowledged: true, RetainData: false, RetainNamespace: true})
+			OwnedBaseUID: ownedBaseUID, DataLossAcknowledged: true, RetainData: false, RetainNamespace: !deleteData, PurgeData: deleteData})
 		if err != nil {
 			return fail(ReasonInvalidConfig, err.Error())
 		}
@@ -154,15 +165,19 @@ func runUninstall(ctx context.Context, env *Env, args []string) Result {
 		return fail(ReasonTargetActionMissing, "removal blocked: "+strings.Join(plan.Blocked, "; "))
 	}
 	if !execute {
-		return fail(ReasonPlatformNotVerified, "removal plan authorized; pass --execute --yes to delete HNB workloads (PVC/Secret/namespace retained)")
+		return fail(ReasonPlatformNotVerified, "removal plan authorized; pass --execute --yes to delete HNB workloads (PVC/Secret/namespace retained unless --delete-data)")
 	}
-	return executeReviewedRemoval(ctx, env, cfg, plan, format, kubeconfig, instanceLabel, yes)
+	return executeReviewedRemoval(ctx, env, cfg, plan, format, kubeconfig, instanceLabel, yes, deleteData)
 }
 
-func executeReviewedRemoval(ctx context.Context, env *Env, cfg *toolkit.DeploymentConfig, plan toolkit.RemovalPlan, format, kubeconfig, instanceLabel string, yes bool) Result {
+func executeReviewedRemoval(ctx context.Context, env *Env, cfg *toolkit.DeploymentConfig, plan toolkit.RemovalPlan, format, kubeconfig, instanceLabel string, yes, deleteData bool) Result {
 	if !yes {
 		toolkit.FormatRemovalHuman(env.Stderr, plan)
-		if !confirmOperation(env, "Delete HNB workloads in namespace "+plan.Namespace+"? PVCs, Secrets and the namespace will be retained.") {
+		message := "Delete HNB workloads in namespace " + plan.Namespace + "? PVCs, Secrets and the namespace will be retained."
+		if deleteData {
+			message = "DELETE ALL DATA in namespace " + plan.Namespace + "? PVCs, PVs, Secrets and the namespace will be permanently removed."
+		}
+		if !confirmOperation(env, message) {
 			return fail(ReasonPreflightBlocked, "removal not confirmed; no changes made (use --yes for automation)")
 		}
 	}
@@ -173,7 +188,7 @@ func executeReviewedRemoval(ctx context.Context, env *Env, cfg *toolkit.Deployme
 	if selector == "app.kubernetes.io/instance=" {
 		selector = "app.kubernetes.io/instance=hnb"
 	}
-	executor := toolkit.RemovalExecutor{Kubeconfig: kubeconfig, Namespace: plan.Namespace, Selector: selector}
+	executor := toolkit.RemovalExecutor{Kubeconfig: kubeconfig, Namespace: plan.Namespace, Selector: selector, DeleteData: deleteData}
 	result, err := executor.Execute(ctx, plan)
 	if err != nil {
 		return fail(ReasonPlatformNotVerified, err.Error())

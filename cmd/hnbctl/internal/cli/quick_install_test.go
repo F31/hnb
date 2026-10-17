@@ -170,8 +170,14 @@ func TestShortcutUninstallDataSelectionAndConfirmation(t *testing.T) {
 	if !removal.DataLossAcknowledged || !strings.Contains(strings.Join(removal.Delete, "\n"), "persistentvolumeclaim") || removal.ExecutionAuthorized {
 		t.Fatalf("incorrect destructive plan: %+v", removal)
 	}
-	if strings.Contains(strings.Join(removal.Delete, "\n"), "namespace/") {
-		t.Fatal("data deletion removes the namespace and operator-owned secrets")
+	if !strings.Contains(strings.Join(removal.Delete, "\n"), "namespace/") {
+		t.Fatal("data deletion did not schedule namespace removal")
+	}
+	if strings.Contains(strings.Join(removal.Retain, "\n"), "namespace/") {
+		t.Fatal("data deletion still retained the namespace")
+	}
+	if strings.Contains(strings.Join(removal.Retain, "\n"), "secret/") {
+		t.Fatal("data deletion still retained operator-owned secrets")
 	}
 }
 

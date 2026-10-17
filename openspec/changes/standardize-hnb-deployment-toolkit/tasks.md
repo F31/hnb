@@ -99,6 +99,7 @@
 - [x] 6.5 实现数据库前向恢复/备份恢复操作卡及现场管理基座恢复工具；验证：仅处理绑定自有管理资源，不覆写 Operation 历史。（PINST-006、DPLY-007）
 - [x] 6.6 实现卸载/解除纳管/删除自建管理基座的独立入口；验证：共享 PG/原 Kubernetes/客户 PVC/业务工作负载均按 ownership 保留。（PINST-007、DPLY-006）
   - 2026-10-17：`hnbctl uninstall --execute --yes` 已能在 existing cluster 本地删除 HNB 工作负载与带 `instance=hnb` 的 ClusterRole/Binding；默认保留 PVC/Secret/Namespace/StorageClass/TopoLVM，`unmanage`/`delete-management-base` 仍走服务端契约；云主机 43.142.101.136 实测 `verified=true`。见 `docs/acceptance/reports/20261017-hnbctl-uninstall-execute.md`。
+  - 2026-10-17：进一步提供零配置 `hnbctl uninstall`/`-all`/`-all -data`；自动检测 kubeconfig 与 HNB/TopoLVM 残留，`-all` 删除 TopoLVM/SC/CSIDriver/CRD，`-data` 删除 PVC/PV/LV/Secret/namespace。云主机实测 `-all -data` 后仅剩 K3s 系统组件，`verified=true`。见 `docs/acceptance/reports/20261017-hnbctl-auto-uninstall.md`。
 
 ## 7. P3 离线与生产档位认证
 

@@ -216,6 +216,27 @@ features:
       exit_code: 0
       assertions: [observed_os_kernel_within_scoped_evidence, draft_owner_only_without_installing, nineteen_workloads_ready, three_plane_migration_ledgers_103, postgresql_2gi_nats_1gi_on_topolvm, login_read_apis_agent_and_anonymous_rejection, nineteen_workloads_ready_after_recovery, claims_unchanged_across_recovery, three_plane_migration_ledgers_preserved, all_workload_pods_recreated]
     production_ha: {status: not_run}
+  hnbctl_auto_uninstall:
+    unit:
+      status: passed
+      run_id: hnbctl-auto-uninstall-20261017
+      commit: a1219b0
+      report: reports/20261017-hnbctl-auto-uninstall.md
+      commands: ["go test ./cmd/hnbctl/... -count=1", "go vet ./cmd/hnbctl/..."]
+      scope: "zero-config auto-detection and uninstall plan/executor tests; fake kubectl only for CLI plan tests"
+      assertions: [auto_detect_namespace, auto_detect_topolvm_remnant, plan_only, all_removes_topolvm_components, data_removes_pvc_pv_lv_secret_namespace, all_data_removes_lv_crd, default_retains_data]
+    db_integration: {status: not_run}
+    real_e2e:
+      status: passed
+      run_id: hnbctl-auto-uninstall-20261017
+      commit: a1219b0
+      report: reports/20261017-hnbctl-auto-uninstall.md
+      artifacts: reports/20261017-hnbctl-auto-uninstall.json
+      commands: ["sudo /tmp/hnbctl uninstall -all -data --yes --format json"]
+      environment: "43.142.101.136; Ubuntu 26.04; K3s v1.36.5+k3s1"
+      scope: "full HNB + TopoLVM/data removal on the live host; K3s/CNI/OS and external business resources retained; host files outside cluster not removed; no reinstall"
+      assertions: [all_and_data_verified, hnb_namespace_removed, topolvm_namespace_removed, pv_lv_removed, secrets_removed, storageclass_removed, csidriver_removed, crd_removed, k3s_retained]
+    production_ha: {status: not_run}
   hnbctl_uninstall_execute:
     unit:
       status: passed

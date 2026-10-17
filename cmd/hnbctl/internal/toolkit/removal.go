@@ -71,7 +71,11 @@ type RemovalInput struct {
 	// The zero value preserves the legacy platform planner contract.
 	RetainData      bool
 	RetainNamespace bool
-	Now             time.Time
+	// PurgeData is the explicit full-data deletion path: PVCs, PVs, Secrets and
+	// the namespace become deletion targets. It still requires
+	// DataLossAcknowledged and never removes external/business resources.
+	PurgeData bool
+	Now       time.Time
 }
 
 // persistentMarkers identify claimed entries that carry durable state.
@@ -109,14 +113,19 @@ func PlanRemoval(in RemovalInput) (RemovalPlan, error) {
 
 	// Everything the external owner keeps is retained by construction, in every
 	// mode. This is the list that must never shrink.
-	plan.Retain = append(plan.Retain, in.Manifest.RequiredExisting...)
 	plan.Retain = append(plan.Retain, in.Manifest.PreservedExternal...)
 	for _, entry := range in.Manifest.PreservedExternal {
 		plan.RetainedData = append(plan.RetainedData, entry)
 	}
-	// Operator-provided secrets and shared backings are retained data too.
-	for _, entry := range in.Manifest.RequiredExisting {
-		plan.RetainedData = append(plan.RetainedData, entry)
+	if in.PurgeData {
+		in.RetainData = false
+		in.RetainNamespace = false
+	} else {
+		plan.Retain = append(plan.Retain, in.Manifest.RequiredExisting...)
+		// Operator-provided secrets and shared backings are retained data too.
+		for _, entry := range in.Manifest.RequiredExisting {
+			plan.RetainedData = append(plan.RetainedData, entry)
+		}
 	}
 
 	switch in.Mode {
@@ -139,6 +148,12 @@ func PlanRemoval(in RemovalInput) (RemovalPlan, error) {
 			plan.Retain = append(plan.Retain, "namespace/"+in.Manifest.Namespace+" (preserves retained data and operator-owned resources)")
 		} else {
 			plan.Delete = append(plan.Delete, "namespace/"+in.Manifest.Namespace+" (release contents)")
+		}
+		if in.PurgeData {
+			plan.Delete = append(plan.Delete,
+				"persistentvolumeclaim/* (namespace "+in.Manifest.Namespace+")",
+				"persistentvolume/* (claims in namespace "+in.Manifest.Namespace+")",
+				"secret/* (namespace "+in.Manifest.Namespace+")")
 		}
 		if !in.RetainData && carriesPersistentDataIn(in.Manifest.Claimed) && !in.DataLossAcknowledged {
 			plan.Blocked = append(plan.Blocked, "PERSISTENT_STORAGE_REMOVAL_UNACKNOWLEDGED: this release owns persistent storage; explicit acknowledgement is required")

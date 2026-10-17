@@ -158,7 +158,7 @@ func runRemoval(ctx context.Context, env *Env, mode string, args []string) Resul
 		if !plan.Authorized {
 			return fail(ReasonTargetActionMissing, "removal blocked: "+strings.Join(plan.Blocked, "; "))
 		}
-		return executeReviewedRemoval(ctx, env, cfg, plan, format, kubeconfig, instanceLabel, yes)
+		return executeReviewedRemoval(ctx, env, cfg, plan, format, kubeconfig, instanceLabel, yes, false)
 	}
 	if format == "json" {
 		if err := json.NewEncoder(env.Stdout).Encode(plan); err != nil {
