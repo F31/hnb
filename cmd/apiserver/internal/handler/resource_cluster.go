@@ -76,6 +76,16 @@ type clusterCapabilitySnapshot struct {
 	Freshness       string `json:"freshness"`
 }
 
+// clusterAcceptance separates "the platform accepted the target/import" from
+// "the target is actually available and freshly observed". A successful import
+// Operation alone must never set available=true.
+type clusterAcceptance struct {
+	Accepted         bool   `json:"accepted"`
+	Available        bool   `json:"available"`
+	ObservationState string `json:"observationState"`
+	AcceptedAt       string `json:"acceptedAt,omitempty"`
+}
+
 type clusterSummary struct {
 	ClusterID          string                     `json:"clusterId"`
 	DisplayName        string                     `json:"displayName"`
@@ -95,6 +105,7 @@ type clusterSummary struct {
 	CPUTotal           string                     `json:"cpuTotal"`
 	MemoryTotal        string                     `json:"memoryTotal"`
 	CapabilitySnapshot *clusterCapabilitySnapshot `json:"capabilitySnapshot"`
+	Acceptance         clusterAcceptance          `json:"acceptance"`
 	TenantID           string                     `json:"tenantId"`
 	EnvironmentID      string                     `json:"environmentId,omitempty"`
 	CreatedAt          string                     `json:"createdAt"`
@@ -198,6 +209,24 @@ func mapCombinedStatus(lifecycle, health, connectivity, freshness string) string
 		return "RUNNING"
 	}
 	return "UNKNOWN"
+}
+
+func clusterAcceptanceFor(lifecycle, health, connectivity, fresh string, observed *time.Time, createdAt time.Time) clusterAcceptance {
+	accepted := lifecycle != "" && lifecycle != "UNKNOWN"
+	observationState := "pending"
+	if observed != nil {
+		observationState = "observed"
+		if fresh == "STALE" {
+			observationState = "stale"
+		}
+	}
+	available := observed != nil && fresh == "FRESH" && lifecycle == "ACTIVE" &&
+		health == "HEALTHY" && connectivity == "CONNECTED"
+	acceptedAt := ""
+	if !createdAt.IsZero() {
+		acceptedAt = createdAt.UTC().Format(time.RFC3339)
+	}
+	return clusterAcceptance{Accepted: accepted, Available: available, ObservationState: observationState, AcceptedAt: acceptedAt}
 }
 
 func targetTypeToKind(tt string) string {
@@ -434,6 +463,7 @@ func (h *ResourceClusterHandler) ListClusters(w http.ResponseWriter, r *http.Req
 				ObservedAt:      formatTimePtr(observed),
 				Freshness:       freshState,
 			},
+			Acceptance:    clusterAcceptanceFor(lifecycleState, healthState, connState, freshState, observed, createdAt),
 			TenantID:      tenant,
 			EnvironmentID: labels["environmentId"],
 			CreatedAt:     createdAt.UTC().Format(time.RFC3339),
@@ -563,6 +593,7 @@ func (h *ResourceClusterHandler) GetCluster(w http.ResponseWriter, r *http.Reque
 			ObservedAt:      formatTimePtr(observed),
 			Freshness:       freshState,
 		},
+		Acceptance:    clusterAcceptanceFor(lifecycleState, healthState, connState, freshState, observed, createdAt),
 		TenantID:      trusted.TenantID,
 		EnvironmentID: environmentID,
 		CreatedAt:     createdAt.UTC().Format(time.RFC3339),

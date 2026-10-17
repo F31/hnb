@@ -33,6 +33,27 @@ func (e ApiVersion) Valid() bool {
 	}
 }
 
+// Defines values for ClusterAcceptanceObservationState.
+const (
+	ClusterAcceptanceObservationStateObserved ClusterAcceptanceObservationState = "observed"
+	ClusterAcceptanceObservationStatePending  ClusterAcceptanceObservationState = "pending"
+	ClusterAcceptanceObservationStateStale    ClusterAcceptanceObservationState = "stale"
+)
+
+// Valid indicates whether the value is a known member of the ClusterAcceptanceObservationState enum.
+func (e ClusterAcceptanceObservationState) Valid() bool {
+	switch e {
+	case ClusterAcceptanceObservationStateObserved:
+		return true
+	case ClusterAcceptanceObservationStatePending:
+		return true
+	case ClusterAcceptanceObservationStateStale:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ClusterDetailSource.
 const (
 	ClusterDetailSourceCreated  ClusterDetailSource = "created"
@@ -1289,8 +1310,23 @@ type CapabilitySnapshotSummary struct {
 	Version    int                `json:"version"`
 }
 
+// ClusterAcceptance defines model for ClusterAcceptance.
+type ClusterAcceptance struct {
+	// Accepted The platform accepted the target/import request; this alone does not mean it is available.
+	Accepted   bool       `json:"accepted"`
+	AcceptedAt *time.Time `json:"acceptedAt,omitempty"`
+
+	// Available True only when the target is ACTIVE, HEALTHY, CONNECTED and freshly observed.
+	Available        bool                              `json:"available"`
+	ObservationState ClusterAcceptanceObservationState `json:"observationState"`
+}
+
+// ClusterAcceptanceObservationState defines model for ClusterAcceptance.ObservationState.
+type ClusterAcceptanceObservationState string
+
 // ClusterDetail defines model for ClusterDetail.
 type ClusterDetail struct {
+	Acceptance            *ClusterAcceptance         `json:"acceptance,omitempty"`
 	CapabilitySnapshot    *CapabilitySnapshotSummary `json:"capabilitySnapshot,omitempty"`
 	ConnectivityState     ConnectivityState          `json:"connectivityState"`
 	CreatedAt             time.Time                  `json:"createdAt"`
@@ -1361,6 +1397,7 @@ type ClusterRuntimeIntent struct {
 
 // ClusterSummary defines model for ClusterSummary.
 type ClusterSummary struct {
+	Acceptance            *ClusterAcceptance         `json:"acceptance,omitempty"`
 	CapabilitySnapshot    *CapabilitySnapshotSummary `json:"capabilitySnapshot,omitempty"`
 	ConnectivityState     ConnectivityState          `json:"connectivityState"`
 	CreatedAt             time.Time                  `json:"createdAt"`

@@ -437,3 +437,23 @@ func TestResourceClusterHandlerForwardsKubeconfigDownload(t *testing.T) {
 		t.Fatalf("unexpected body: %s", rec.Body.String())
 	}
 }
+
+func TestClusterAcceptanceSeparatesAcceptedFromAvailable(t *testing.T) {
+	now := time.Now().UTC()
+	pending := clusterAcceptanceFor("REGISTERING", "UNKNOWN", "UNKNOWN", "UNKNOWN", nil, now)
+	if !pending.Accepted || pending.Available || pending.ObservationState != "pending" {
+		t.Fatalf("import accepted but unobserved must not be available: %+v", pending)
+	}
+	observed := clusterAcceptanceFor("ACTIVE", "HEALTHY", "CONNECTED", "FRESH", &now, now)
+	if !observed.Accepted || !observed.Available || observed.ObservationState != "observed" {
+		t.Fatalf("fresh active target should be available: %+v", observed)
+	}
+	stale := clusterAcceptanceFor("ACTIVE", "HEALTHY", "CONNECTED", "STALE", &now, now)
+	if !stale.Accepted || stale.Available || stale.ObservationState != "stale" {
+		t.Fatalf("stale observation must not be available: %+v", stale)
+	}
+	unknown := clusterAcceptanceFor("UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", nil, time.Time{})
+	if unknown.Accepted || unknown.Available {
+		t.Fatalf("unknown lifecycle must not be accepted: %+v", unknown)
+	}
+}

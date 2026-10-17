@@ -1293,6 +1293,23 @@ components:
         observedAt:
           type: string
           format: date-time
+    ClusterAcceptance:
+      type: object
+      additionalProperties: false
+      required: [accepted, available, observationState]
+      properties:
+        accepted:
+          type: boolean
+          description: The platform accepted the target/import request; this alone does not mean it is available.
+        available:
+          type: boolean
+          description: True only when the target is ACTIVE, HEALTHY, CONNECTED and freshly observed.
+        observationState:
+          type: string
+          enum: [pending, observed, stale]
+        acceptedAt:
+          type: string
+          format: date-time
     ClusterSummary:
       allOf:
         - $ref: "#/components/schemas/StateDimensions"
@@ -1322,6 +1339,8 @@ components:
               minimum: 0
             capabilitySnapshot:
               $ref: "#/components/schemas/CapabilitySnapshotSummary"
+            acceptance:
+              $ref: "#/components/schemas/ClusterAcceptance"
             createdAt:
               type: string
               format: date-time

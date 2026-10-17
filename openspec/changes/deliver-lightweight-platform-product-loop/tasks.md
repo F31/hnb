@@ -59,8 +59,10 @@
 
 进入条件：S1 通过，独立目标可用，复用现有 import 动作与签名 Conformance 登记。
 
-- [ ] 3.1 将正式身份、lifecycle Provider、Agent 与观测源绑定接入既有 import/handoff 流程，补齐受理与真实可用分离的状态契约和查询测试。（RTLOOP-001、UXLOOP-001）
+- [x] 3.1 将正式身份、lifecycle Provider、Agent 与观测源绑定接入既有 import/handoff 流程，补齐受理与真实可用分离的状态契约和查询测试。（RTLOOP-001、UXLOOP-001）
 - [ ] 3.2 补齐 import→Agent→能力/节点观测→Read Model 的关联和水位，集成验证重复/乱序/缺口/旧 generation、跨租户/跨目标不更新投影。（RTLOOP-001、IDENT-002）
+  - 2026-10-17 complete：既有 import/handoff 链路复用受限 RuntimeIntent+delegation、lifecycle Provider、S1 Agent tunnel/session 与 observer；新增 `ClusterAcceptance`（accepted/available/observationState/acceptedAt），List/Detail 同源，OpenAPI 增量生成。单元 + 真实 PostgreSQL 16 查询测试验证 `REGISTERING+pending` 不显示可用、观测后 `ACTIVE+FRESH` 才 available；契约 28/28、门禁 81 schemas。独立集群实机 import、真实 Agent handoff 与 3.2 乱序/generation 仍待后续；见 `docs/acceptance/reports/20261017-s2-import-acceptance.md`。
+
 - [ ] 3.3 在独立业务集群执行正式 CLI/API import 及幂等重放，验证唯一目标、真实 Agent 认证、能力/节点清单和新鲜度，不直写数据库或使用自导入。（RTLOOP-001、PREADY-001）
 - [ ] 3.4 注入 Agent 断连与重连，验证旧状态保留、陈旧提示、持续身份、目标不重复及观测恢复；保留时间线和重放结果。（RTLOOP-001、IDENT-001、IDENT-002）
 - [ ] 3.5 在实际 Portal 与 CLI 复验同一纳管旅程、跨租户拒绝和迟到响应隔离，登记 S2 证据；Portal 缺失则 UI 验收保持 blocked。（RTLOOP-001、UXLOOP-001、PREADY-001）

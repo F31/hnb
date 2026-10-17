@@ -81,6 +81,14 @@ export interface CapabilitySnapshot {
   freshness: ClusterFreshness
 }
 
+/** 受理与真实可用分离；import 成功不等于目标可用。 */
+export interface ClusterAcceptance {
+  accepted: boolean
+  available: boolean
+  observationState: 'pending' | 'observed' | 'stale'
+  acceptedAt?: string
+}
+
 /** 集群 Read Model 投影（列表与详情共用） */
 export interface ClusterSummary {
   clusterId: string
@@ -93,6 +101,7 @@ export interface ClusterSummary {
   cpuTotal: string
   memoryTotal: string
   capabilitySnapshot: CapabilitySnapshot
+  acceptance?: ClusterAcceptance
   tenantId: string
   environmentId?: string
   createdAt: string

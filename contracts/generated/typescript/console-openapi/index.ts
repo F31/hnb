@@ -9,6 +9,7 @@ export type { OpenAPIConfig } from './core/OpenAPI';
 
 export type { ApiVersion } from './models/ApiVersion';
 export type { CapabilitySnapshotSummary } from './models/CapabilitySnapshotSummary';
+export type { ClusterAcceptance } from './models/ClusterAcceptance';
 export type { ClusterDetail } from './models/ClusterDetail';
 export type { ClusterDetailResponse } from './models/ClusterDetailResponse';
 export type { ClusterIntentKind } from './models/ClusterIntentKind';

@@ -3,6 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { CapabilitySnapshotSummary } from './CapabilitySnapshotSummary';
+import type { ClusterAcceptance } from './ClusterAcceptance';
 import type { StateDimensions } from './StateDimensions';
 import type { TargetKind } from './TargetKind';
 export type ClusterSummary = (StateDimensions & {
@@ -14,6 +15,7 @@ export type ClusterSummary = (StateDimensions & {
     runtimeVersion?: string;
     nodeCount: number;
     capabilitySnapshot?: CapabilitySnapshotSummary;
+    acceptance?: ClusterAcceptance;
     createdAt: string;
     updatedAt: string;
 });

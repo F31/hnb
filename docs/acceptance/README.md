@@ -7,6 +7,10 @@
 [`统一底座与四档组装契约`](../deployment/profile-composition-contract.md)、
 [`阶段计划/预算/证据校验`](product-readiness-manifests.md)。这些建设记录不提升既有认证。
 
+2026-10-17 新增：[`S2 3.1 import 受理/可用分离`](reports/20261017-s2-import-acceptance.md)
+（ClusterAcceptance、REGISTERING+pending 不可用、观测后 ACTIVE+FRESH 才可用；
+真实 PostgreSQL 查询测试；不含独立集群 import/真实 Agent handoff/3.2 乱序）。
+
 2026-10-17 新增：[`S0 1.2 Portal/API/CLI 边界`](reports/20261017-s0-portal-api-boundary.md)
 （同仓 Portal、维护者/版本/构建/测试入口、`@hnb/api-client` 边界与静态守卫；
 不含 Playwright E2E、Portal 镜像部署或 S2/S3 UI 验收）。

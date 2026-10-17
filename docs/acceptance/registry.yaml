@@ -126,6 +126,25 @@ features:
       assertions: [generation_increments_per_target, rotate_preserves_generation, cross_tenant_session_read_rejected, cross_tenant_revoke_noop, revoke_marks_all_active_sessions, revoked_session_cannot_rotate, repeated_revoke_idempotent]
     real_e2e: {status: not_run}
     production_ha: {status: not_run}
+  s2_import_acceptance_contract:
+    unit:
+      status: passed
+      run_id: s2-import-acceptance-20261017
+      commit: 51ab3c4
+      report: reports/20261017-s2-import-acceptance.md
+      commands: ["go test ./cmd/apiserver/internal/handler/ -run TestClusterAcceptanceSeparatesAcceptedFromAvailable -count=1", "go test ./cmd/apiserver/internal/handler/ -count=1", "npm run contracts:test", "node scripts/validate-contracts.mjs"]
+      scope: "accepted-vs-available status contract and local handler/contract tests; no independent cluster import, real Agent handoff or S2 E2E"
+      assertions: [accepted_import_not_available, pending_observation_state, fresh_observed_target_available, stale_observation_not_available, list_and_detail_share_acceptance, openapi_acceptance_additive, contracts_28_passed, contract_gate_81_schemas]
+    db_integration:
+      status: passed
+      run_id: s2-import-acceptance-20261017
+      commit: 51ab3c4
+      report: reports/20261017-s2-import-acceptance.md
+      commands: ["HNB_TEST_POSTGRES_DSN=... go test ./cmd/apiserver/internal/handler/ -run TestResourceClusterImportAcceptedButNotAvailable -count=1 -v"]
+      scope: "ephemeral PostgreSQL 16.15 with all migrations; REGISTERING/UNKNOWN target then ACTIVE/FRESH update; not an independent business cluster or real Agent"
+      assertions: [registering_import_accepted_not_available, observation_pending, active_fresh_observed_available, query_list_and_detail]
+    real_e2e: {status: not_run}
+    production_ha: {status: not_run}
   identity_drill_20261017:
     db_integration:
       status: passed

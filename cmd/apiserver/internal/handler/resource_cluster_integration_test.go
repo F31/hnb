@@ -234,3 +234,78 @@ func TestResourceClusterPluginStatusReadModel(t *testing.T) {
 		t.Fatalf("cross-tenant plugins status = %d body=%s", orec.Code, orec.Body.String())
 	}
 }
+
+func TestResourceClusterImportAcceptedButNotAvailable(t *testing.T) {
+	dsn := os.Getenv("HNB_TEST_POSTGRES_DSN")
+	if dsn == "" {
+		t.Skip("HNB_TEST_POSTGRES_DSN is not set")
+	}
+	db, err := sql.Open("postgres", dsn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	ctx := context.Background()
+	tenantID := "resource-acceptance-" + uuid.NewString()
+	targetID := uuid.NewString()
+	if _, err := db.ExecContext(ctx, `INSERT INTO tenants (id, name, display_name) VALUES ($1,$1,$1)`, tenantID); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		_, _ = db.ExecContext(ctx, `DELETE FROM runtime_targets WHERE id=$1`, targetID)
+		_, _ = db.ExecContext(ctx, `DELETE FROM tenants WHERE id=$1`, tenantID)
+	})
+	if _, err := db.ExecContext(ctx, `
+		INSERT INTO runtime_targets (id, tenant_id, name, display_name, target_type, connection_type, status,
+		                               lifecycle_state, health_state, connectivity_state, freshness_state,
+		                               labels, observed_at, stale_threshold_seconds)
+		VALUES ($1,$2,$3,$4,'kubernetes','agent','unknown',
+		        'REGISTERING','UNKNOWN','UNKNOWN','UNKNOWN',
+		        $5, NULL, 300)`,
+		targetID, tenantID, "import-pending", "import pending", `{"hnb.source":"imported"}`); err != nil {
+		t.Fatal(err)
+	}
+
+	handler := NewResourceClusterHandler(db, "")
+	trusted := iam.WithTrustedContext(ctx, iam.TrustedContext{
+		SubjectID: "subject-a", TenantID: tenantID,
+		ScopedPermissions: []iam.ScopedPermission{{TenantID: tenantID, ResourceKind: "cluster", Action: iam.ActionRead}},
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/resources/clusters/"+targetID, nil).WithContext(trusted)
+	req.SetPathValue("id", targetID)
+	rec := httptest.NewRecorder()
+	handler.GetCluster(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("get status = %d body=%s", rec.Code, rec.Body.String())
+	}
+	var pending clusterSummary
+	if err := json.Unmarshal(rec.Body.Bytes(), &pending); err != nil {
+		t.Fatal(err)
+	}
+	if pending.Status != "REGISTERING" || !pending.Acceptance.Accepted || pending.Acceptance.Available ||
+		pending.Acceptance.ObservationState != "pending" {
+		t.Fatalf("import accepted but not observed was reported available: %+v", pending)
+	}
+
+	if _, err := db.ExecContext(ctx, `
+		UPDATE runtime_targets
+		SET lifecycle_state='ACTIVE', health_state='HEALTHY', connectivity_state='CONNECTED',
+		    freshness_state='FRESH', observed_at=now()
+		WHERE id=$1`, targetID); err != nil {
+		t.Fatal(err)
+	}
+	rec = httptest.NewRecorder()
+	handler.GetCluster(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("get after observation status = %d body=%s", rec.Code, rec.Body.String())
+	}
+	var available clusterSummary
+	if err := json.Unmarshal(rec.Body.Bytes(), &available); err != nil {
+		t.Fatal(err)
+	}
+	if !available.Acceptance.Available || available.Acceptance.ObservationState != "observed" {
+		t.Fatalf("fresh observed target was not available: %+v", available)
+	}
+}
