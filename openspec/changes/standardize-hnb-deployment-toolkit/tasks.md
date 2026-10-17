@@ -98,6 +98,7 @@
 - [x] 6.4 实现平台版本 diff、升级及资源回滚流程；验证：计划固定版本、强制 DB 兼容/备份检查、API 不可用时拒绝通用目标执行。（PINST-006、DPLY-006）
 - [x] 6.5 实现数据库前向恢复/备份恢复操作卡及现场管理基座恢复工具；验证：仅处理绑定自有管理资源，不覆写 Operation 历史。（PINST-006、DPLY-007）
 - [x] 6.6 实现卸载/解除纳管/删除自建管理基座的独立入口；验证：共享 PG/原 Kubernetes/客户 PVC/业务工作负载均按 ownership 保留。（PINST-007、DPLY-006）
+  - 2026-10-17：`hnbctl uninstall --execute --yes` 已能在 existing cluster 本地删除 HNB 工作负载与带 `instance=hnb` 的 ClusterRole/Binding；默认保留 PVC/Secret/Namespace/StorageClass/TopoLVM，`unmanage`/`delete-management-base` 仍走服务端契约；云主机 43.142.101.136 实测 `verified=true`。见 `docs/acceptance/reports/20261017-hnbctl-uninstall-execute.md`。
 
 ## 7. P3 离线与生产档位认证
 

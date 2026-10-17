@@ -164,7 +164,7 @@ func init() {
 		},
 		{
 			Name: "uninstall", Summary: "plan removal of a recorded install run's owned resources",
-			Usage: "hnbctl uninstall --installation ID [--runs-dir DIR] [--delete-data] [--yes] [--plan] [--format human|json]\n    Also: [--run-dir DIR | --runs-dir DIR --run-id ID] [-f hnb.yaml] [--mode uninstall-hnb|unmanage|delete-management-base]\n    Retains data by default. Currently outputs a removal plan; no deletion is executed.",
+			Usage: "hnbctl uninstall --installation ID [--runs-dir DIR] [--plan] [--execute --yes] [--format human|json]\n    Also: [--run-dir DIR | --runs-dir DIR --run-id ID] [-f hnb.yaml] [--mode uninstall-hnb|unmanage|delete-management-base]\n    Default plan only. --execute --yes deletes HNB workloads/RBAC in the namespace and retains PVC/Secret/namespace/StorageClass.",
 			Run:   runUninstall,
 		},
 		{
@@ -189,7 +189,7 @@ func init() {
 		},
 		{
 			Name: "platform", Summary: "platform upgrade/rollback/uninstall (server-authoritative)",
-			Usage: "hnbctl platform uninstall-hnb|unmanage|delete-management-base --run-dir <dir> -f hnb.yaml\n       hnbctl platform upgrade|rollback --current-lock <a> --release-lock <b> --api-reachable --db-compatible",
+			Usage: "hnbctl platform uninstall-hnb|unmanage|delete-management-base --run-dir <dir> -f hnb.yaml [--execute --yes]\n       hnbctl platform upgrade|rollback --current-lock <a> --release-lock <b> --api-reachable --db-compatible",
 			Run:   runPlatform,
 		},
 		{

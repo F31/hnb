@@ -91,13 +91,13 @@ func runChange(env *Env, direction string, args []string) Result {
 	return fail(ReasonPlatformNotVerified, "platform change plan authorized; execution runs through the formal Operation contract")
 }
 
-// runRemoval produces a reviewable removal plan. It never executes deletion:
-// actual removal runs through the formal platform/Operation contract.
-func runRemoval(_ context.Context, env *Env, mode string, args []string) Result {
+// runRemoval produces a reviewable removal plan. uninstall-hnb can be executed
+// locally with --execute; unmanage/delete-management-base remain server actions.
+func runRemoval(ctx context.Context, env *Env, mode string, args []string) Result {
 	fs := flag.NewFlagSet("platform "+mode, flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
-	var runDir, configPath, format string
-	var acknowledgeStorage, installCreatedBase bool
+	var runDir, configPath, format, kubeconfig, instanceLabel string
+	var acknowledgeStorage, installCreatedBase, execute, yes bool
 	var ownedBaseUID string
 	fs.StringVar(&runDir, "run-dir", "", "private install run directory")
 	fs.StringVar(&configPath, "f", "", "DeploymentConfig of the recorded install run")
@@ -105,6 +105,10 @@ func runRemoval(_ context.Context, env *Env, mode string, args []string) Result 
 	fs.BoolVar(&acknowledgeStorage, "acknowledge-storage-removal", false, "confirm removal of persistent storage owned by this release")
 	fs.BoolVar(&installCreatedBase, "install-created-base", false, "assert this install created the management base")
 	fs.StringVar(&ownedBaseUID, "owned-base-uid", "", "observed management-base UID (required for delete-management-base)")
+	fs.BoolVar(&execute, "execute", false, "execute the reviewed uninstall-hnb plan")
+	fs.BoolVar(&yes, "yes", false, "confirm execution for automation")
+	fs.StringVar(&kubeconfig, "kubeconfig", "", "override kubeconfig used for execution")
+	fs.StringVar(&instanceLabel, "instance-label", "hnb", "app.kubernetes.io/instance label for cluster-scoped RBAC")
 	if err := fs.Parse(args); err != nil {
 		return fail(ReasonInvalidConfig, err.Error())
 	}
@@ -113,6 +117,9 @@ func runRemoval(_ context.Context, env *Env, mode string, args []string) Result 
 	}
 	if format != "human" && format != "json" {
 		return fail(ReasonInvalidConfig, "--format must be human or json")
+	}
+	if execute && acknowledgeStorage {
+		return fail(ReasonInvalidConfig, "--execute currently retains data; omit --acknowledge-storage-removal")
 	}
 	if runDir == "" || configPath == "" {
 		return fail(ReasonInvalidConfig, "--run-dir and -f are required")
@@ -147,6 +154,12 @@ func runRemoval(_ context.Context, env *Env, mode string, args []string) Result 
 	if err != nil {
 		return fail(ReasonInvalidConfig, err.Error())
 	}
+	if execute {
+		if !plan.Authorized {
+			return fail(ReasonTargetActionMissing, "removal blocked: "+strings.Join(plan.Blocked, "; "))
+		}
+		return executeReviewedRemoval(ctx, env, cfg, plan, format, kubeconfig, instanceLabel, yes)
+	}
 	if format == "json" {
 		if err := json.NewEncoder(env.Stdout).Encode(plan); err != nil {
 			return fail(ReasonOutputFailed, "cannot write removal plan")
@@ -157,9 +170,7 @@ func runRemoval(_ context.Context, env *Env, mode string, args []string) Result 
 	if !plan.Authorized {
 		return fail(ReasonTargetActionMissing, "removal blocked: "+strings.Join(plan.Blocked, "; "))
 	}
-	// An authorized plan is still not an execution: removal runs through the
-	// formal platform/Operation contract, never as a local side effect.
-	return fail(ReasonPlatformNotVerified, "removal plan authorized; execution requires the server-authoritative removal contract")
+	return fail(ReasonPlatformNotVerified, "removal plan authorized; pass --execute --yes for local uninstall-hnb (PVC/Secret/namespace retained)")
 }
 
 // readValidatedStandaloneLock parses and validates a release lock that is not

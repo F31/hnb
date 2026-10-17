@@ -7,6 +7,10 @@
 [`统一底座与四档组装契约`](../deployment/profile-composition-contract.md)、
 [`阶段计划/预算/证据校验`](product-readiness-manifests.md)。这些建设记录不提升既有认证。
 
+2026-10-17 新增：[`hnbctl 实际卸载执行器`](reports/20261017-hnbctl-uninstall-execute.md)
+（`uninstall --execute --yes` 真删 HNB 工作负载/RBAC；PVC/Secret/Namespace/
+StorageClass/TopoLVM 保留；不含数据删除、TopoLVM 删除或重装）。
+
 2026-10-17 新增：[`S2 3.2 观测 watermark/乱序隔离`](reports/20261017-s2-observation-watermark.md)
 （observationGeneration/Revision/Source、重复/缺口/旧 generation/跨租户/跨目标；
 真实 PostgreSQL projector 测试；不含独立集群 Agent E2E）。

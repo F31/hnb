@@ -16,10 +16,13 @@ go build -o hnbctl .
 ./hnbctl logs --tail 50
 ./hnbctl uninstall -f hnb.yaml
 ./hnbctl uninstall --installation <runId> --plan
+./hnbctl uninstall --installation <runId> --execute --yes
 ```
 
-极简参数自动生成并保存配置；当前 `install` / `uninstall` 仍为计划与部分只读预检，
-不会实际完成平台安装或删除。卸载默认保留数据，删除数据需显式 `--delete-data`。
+极简参数自动生成并保存配置。`install --execute` 在证据门禁通过后实际应用已渲染
+平台；`uninstall --plan` 只输出计划，`uninstall --execute --yes` 实际删除
+`hnb-system` 内的 HNB 工作负载与 RBAC，保留 PVC、Secret、Namespace、StorageClass
+和外部存储组件。`--delete-data` 的数据删除仍不开放本地执行。
 
 命令范围、版本化 JSON、退出码与 OS 适配边界见
 [CLI 接口说明](../../docs/deployment/hnbctl-interface.md)。

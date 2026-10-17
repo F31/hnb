@@ -216,6 +216,27 @@ features:
       exit_code: 0
       assertions: [observed_os_kernel_within_scoped_evidence, draft_owner_only_without_installing, nineteen_workloads_ready, three_plane_migration_ledgers_103, postgresql_2gi_nats_1gi_on_topolvm, login_read_apis_agent_and_anonymous_rejection, nineteen_workloads_ready_after_recovery, claims_unchanged_across_recovery, three_plane_migration_ledgers_preserved, all_workload_pods_recreated]
     production_ha: {status: not_run}
+  hnbctl_uninstall_execute:
+    unit:
+      status: passed
+      run_id: hnbctl-uninstall-execute-20261017
+      commit: 0d783e3
+      report: reports/20261017-hnbctl-uninstall-execute.md
+      commands: ["go test ./cmd/hnbctl/internal/toolkit/ -run TestRemovalExecutor -count=1", "go test ./cmd/hnbctl/internal/cli/ -count=1"]
+      scope: "local uninstall-hnb executor tests; retains PVC/Secret/namespace/StorageClass; no data deletion or topolvm removal"
+      assertions: [workload_and_namespaced_rbac_delete, configmap_excludes_kube_root_ca, cluster_rbac_selected_by_label, pvc_secret_namespace_not_deleted, unmanage_and_delete_base_refuse_local_execution, pod_termination_polled, incomplete_pods_fail_closed]
+    db_integration: {status: not_run}
+    real_e2e:
+      status: passed
+      run_id: hnbctl-uninstall-execute-20261017
+      commit: 0d783e3
+      report: reports/20261017-hnbctl-uninstall-execute.md
+      artifacts: reports/20261017-hnbctl-uninstall-execute.json
+      commands: ["sudo /tmp/hnbctl uninstall --run-dir /home/ubuntu/e2e/runs/5b88c013669545032676b42dcee0a64a -f /home/ubuntu/e2e/hnb.yaml --execute --yes --kubeconfig /etc/rancher/k3s/k3s.yaml --instance-label hnb --format json"]
+      environment: "43.142.101.136; Ubuntu 26.04; existing single-node K3s v1.36.5+k3s1"
+      scope: "real existing-cluster uninstall-hnb only; HNB workloads/RBAC removed, PVC/Secret/namespace/StorageClass/TopoLVM retained; no data deletion, no reinstall"
+      assertions: [hnb_workloads_deleted, hnb_rbac_deleted, pvc_retained, secrets_retained, namespace_retained, storageclass_retained, topolvm_retained, verified_true, exit_zero]
+    production_ha: {status: not_run}
   hnbctl_install_execute_uninstall:
     unit:
       status: passed

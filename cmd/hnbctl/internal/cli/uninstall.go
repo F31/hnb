@@ -20,8 +20,8 @@ import (
 func runUninstall(ctx context.Context, env *Env, args []string) Result {
 	fs := flag.NewFlagSet("uninstall", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
-	var runDir, runsDir, runID, installationID, configPath, mode, format, ownedBaseUID string
-	var acknowledgeStorage, installCreatedBase, deleteData, yes, planOnly bool
+	var runDir, runsDir, runID, installationID, configPath, mode, format, ownedBaseUID, kubeconfig, instanceLabel string
+	var acknowledgeStorage, installCreatedBase, deleteData, yes, planOnly, execute bool
 	fs.StringVar(&runDir, "run-dir", "", "recorded install run directory")
 	fs.StringVar(&runsDir, "runs-dir", "", "install history root (default: XDG state home/hnbctl/runs)")
 	fs.StringVar(&runID, "run-id", "", "install run id (default: latest under --runs-dir)")
@@ -33,8 +33,11 @@ func runUninstall(ctx context.Context, env *Env, args []string) Result {
 	fs.BoolVar(&deleteData, "delete-data", false, "include this installation's persistent data (default: retain)")
 	fs.BoolVar(&yes, "yes", false, "confirm data removal for automation; never bypass ownership/execution gates")
 	fs.BoolVar(&planOnly, "plan", false, "only output the removal plan; no deletion")
+	fs.BoolVar(&execute, "execute", false, "execute the reviewed uninstall-hnb plan (retains PVC/Secret/namespace)")
 	fs.BoolVar(&installCreatedBase, "install-created-base", false, "assert this install created the management base")
 	fs.StringVar(&ownedBaseUID, "owned-base-uid", "", "observed management-base UID (required for delete-management-base)")
+	fs.StringVar(&kubeconfig, "kubeconfig", "", "override kubeconfig used for execution")
+	fs.StringVar(&instanceLabel, "instance-label", "hnb", "app.kubernetes.io/instance label for cluster-scoped RBAC")
 	if err := fs.Parse(args); err != nil {
 		return fail(ReasonInvalidConfig, "invalid uninstall flags")
 	}
@@ -61,6 +64,9 @@ func runUninstall(ctx context.Context, env *Env, args []string) Result {
 	}
 	if format != "human" && format != "json" {
 		return fail(ReasonInvalidConfig, "--format must be human or json")
+	}
+	if execute && deleteData {
+		return fail(ReasonInvalidConfig, "--execute currently retains data; omit --delete-data for local uninstall")
 	}
 	if runDir != "" && (runsDir != "" || runID != "") {
 		return fail(ReasonInvalidConfig, "provide --run-dir or --runs-dir/--run-id, not both")
@@ -132,12 +138,14 @@ func runUninstall(ctx context.Context, env *Env, args []string) Result {
 			return fail(ReasonInvalidConfig, err.Error())
 		}
 	}
-	if format == "json" {
-		if err := json.NewEncoder(env.Stdout).Encode(plan); err != nil {
-			return fail(ReasonOutputFailed, "cannot write removal plan")
+	if !execute {
+		if format == "json" {
+			if err := json.NewEncoder(env.Stdout).Encode(plan); err != nil {
+				return fail(ReasonOutputFailed, "cannot write removal plan")
+			}
+		} else {
+			toolkit.FormatRemovalHuman(env.Stdout, plan)
 		}
-	} else {
-		toolkit.FormatRemovalHuman(env.Stdout, plan)
 	}
 	if planOnly {
 		return success("")
@@ -145,5 +153,37 @@ func runUninstall(ctx context.Context, env *Env, args []string) Result {
 	if !plan.Authorized {
 		return fail(ReasonTargetActionMissing, "removal blocked: "+strings.Join(plan.Blocked, "; "))
 	}
-	return fail(ReasonPlatformNotVerified, "removal plan authorized; execute via the server-authoritative removal contract (platform uninstall-hnb|unmanage|delete-management-base)")
+	if !execute {
+		return fail(ReasonPlatformNotVerified, "removal plan authorized; pass --execute --yes to delete HNB workloads (PVC/Secret/namespace retained)")
+	}
+	return executeReviewedRemoval(ctx, env, cfg, plan, format, kubeconfig, instanceLabel, yes)
+}
+
+func executeReviewedRemoval(ctx context.Context, env *Env, cfg *toolkit.DeploymentConfig, plan toolkit.RemovalPlan, format, kubeconfig, instanceLabel string, yes bool) Result {
+	if !yes {
+		toolkit.FormatRemovalHuman(env.Stderr, plan)
+		if !confirmOperation(env, "Delete HNB workloads in namespace "+plan.Namespace+"? PVCs, Secrets and the namespace will be retained.") {
+			return fail(ReasonPreflightBlocked, "removal not confirmed; no changes made (use --yes for automation)")
+		}
+	}
+	if kubeconfig == "" {
+		kubeconfig = cfg.Spec.Cluster.KubeconfigFile
+	}
+	selector := "app.kubernetes.io/instance=" + strings.TrimSpace(instanceLabel)
+	if selector == "app.kubernetes.io/instance=" {
+		selector = "app.kubernetes.io/instance=hnb"
+	}
+	executor := toolkit.RemovalExecutor{Kubeconfig: kubeconfig, Namespace: plan.Namespace, Selector: selector}
+	result, err := executor.Execute(ctx, plan)
+	if err != nil {
+		return fail(ReasonPlatformNotVerified, err.Error())
+	}
+	if format == "json" {
+		if err := json.NewEncoder(env.Stdout).Encode(result); err != nil {
+			return fail(ReasonOutputFailed, "cannot write removal result")
+		}
+	} else {
+		fmt.Fprintf(env.Stdout, "uninstalled HNB workloads in %s; retained %d resource groups; verified=%v\n", plan.Namespace, len(result.Retained), result.Verified)
+	}
+	return success("")
 }

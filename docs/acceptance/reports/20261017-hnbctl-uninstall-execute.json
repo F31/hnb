@@ -1,0 +1,28 @@
+{
+  "exitCode": 0,
+  "result": {
+    "schemaVersion": "removal-execution/v1",
+    "namespace": "hnb-system",
+    "deleted": [
+      "deployment,statefulset,daemonset,service,serviceaccount,role,rolebinding (namespace hnb-system)",
+      "clusterrole -l app.kubernetes.io/instance=hnb",
+      "clusterrolebinding -l app.kubernetes.io/instance=hnb"
+    ],
+    "retained": [
+      "external CNI daemonsets/deployments (never modified or replaced)",
+      "external kubernetes cluster lifecycle owner (kubeconfig is the entry point)",
+      "external namespaces/pvs/business workloads outside hnb-system",
+      "namespace/hnb-system (preserves retained data and operator-owned resources)",
+      "persistentvolumeclaim/postgresql+jetstream data (hnb-system)",
+      "secret/hnb-artifact-nats",
+      "secret/hnb-artifact-pg",
+      "secret/hnb-market-nats",
+      "secret/hnb-market-pg",
+      "secret/hnb-nats-tls",
+      "secret/hnb-platform-nats",
+      "secret/hnb-platform-pg",
+      "storageclass/hnb-topolvm"
+    ],
+    "verified": true
+  }
+}
