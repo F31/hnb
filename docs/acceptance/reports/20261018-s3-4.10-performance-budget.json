@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "lab-performance-budget/v1",
+  "runId": "s3-4.10-performance-20261018",
+  "status": "approved",
+  "approval": {
+    "approvedBy": "lab-operator",
+    "approvedAt": "2026-10-18T12:10:00Z",
+    "scope": "S3 lab only; not production capacity or SLA"
+  },
+  "environment": {
+    "management": "single K3s node 4C/8GiB",
+    "target": "2 K3s nodes, total 4C/8GiB",
+    "storage": "TopoLVM",
+    "gateway": "Traefik 3.7.13"
+  },
+  "budgets": [
+    {"id": "bff_readiness_p95", "metric": "http_latency", "limit": 500, "unit": "ms", "window": "200 requests, concurrency 8"},
+    {"id": "bff_cluster_detail_p95", "metric": "http_latency", "limit": 500, "unit": "ms", "window": "200 requests, concurrency 8"},
+    {"id": "action_submit_p95", "metric": "http_latency", "limit": 1000, "unit": "ms", "window": "20 idempotent replays"},
+    {"id": "operation_end_to_end", "metric": "operation_duration", "limit": 30, "unit": "s", "window": "deploy/upgrade Operations"},
+    {"id": "error_rate", "metric": "http_error_rate", "limit": 0, "unit": "ratio", "window": "all measured requests"}
+  ]
+}

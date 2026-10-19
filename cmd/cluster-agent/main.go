@@ -49,6 +49,9 @@ func main() {
 	}
 	if sessionSource != nil {
 		defer sessionSource.Close()
+		if cfg.ObserverTokenFile != "" {
+			sessionSource.ConfigureObserverTokenFile(cfg.ObserverTokenFile)
+		}
 	}
 	client := tunnel.NewAgentClient(cfg.TunnelURL, tokenSource, cfg.TenantID, cfg.ClusterID)
 
@@ -62,13 +65,32 @@ func main() {
 			ObserverID:   "agent-" + cfg.ClusterID,
 			ObserverKind: "Agent",
 		}
-		producer := observer.NewProducer(identity, cfg.ObserverGeneration, 1, nil)
+		sequence := int64(1)
+		previousGeneration := int64(0)
+		if cfg.ObserverStateFile != "" {
+			state, ok, err := observer.LoadState(cfg.ObserverStateFile)
+			if err != nil {
+				log.Fatalf("observer state: %v", err)
+			}
+			if ok {
+				if state.Generation > cfg.ObserverGeneration {
+					log.Fatalf("observer state generation %d is newer than configured %d", state.Generation, cfg.ObserverGeneration)
+				}
+				if state.Generation == cfg.ObserverGeneration {
+					sequence = state.NextSequence
+				} else {
+					previousGeneration = state.Generation
+				}
+			}
+		}
+		producer := observer.NewProducer(identity, cfg.ObserverGeneration, sequence, nil)
 		kubeClient, err := newKubeHTTPClient(cfg.KubeCAFile, 15*time.Second)
 		if err != nil {
 			log.Fatalf("configure observer Kubernetes client: %v", err)
 		}
 		discovery := observer.NewKubeDiscoveryWithClient(cfg.KubeAPI, cfg.KubeToken, kubeClient)
 		reporter := observer.NewReporter(cfg.ObservationIngestURL, cfg.ObserverTokenFile, producer, discovery)
+		reporter.ConfigureState(cfg.ObserverStateFile, previousGeneration)
 		go reporter.Run(ctx, cfg.ObservationInterval)
 		log.Printf("[agent] observation reporter enabled -> %s", cfg.ObservationIngestURL)
 	}

@@ -16,17 +16,22 @@ import (
 )
 
 type clusterFlags struct {
-	baseURL   string
-	tokenFile string
-	tenant    string
-	idemKey   string
-	corrID    string
-	targetID  string
-	kind      string
-	offering  string
-	format    string
-	operation string
-	timeout   time.Duration
+	baseURL            string
+	tokenFile          string
+	tenant             string
+	idemKey            string
+	corrID             string
+	targetID           string
+	kind               string
+	offering           string
+	format             string
+	operation          string
+	displayName        string
+	credentialProvider string
+	credentialScope    string
+	credentialName     string
+	credentialVersion  string
+	timeout            time.Duration
 }
 
 func parseClusterFlags(sub string, args []string) (clusterFlags, error) {
@@ -43,6 +48,11 @@ func parseClusterFlags(sub string, args []string) (clusterFlags, error) {
 	fs.StringVar(&c.offering, "offering-id", "", "service offering id (create)")
 	fs.StringVar(&c.format, "format", "human", "stdout format: human or json")
 	fs.StringVar(&c.operation, "operation", "", "operation id (operation get)")
+	fs.StringVar(&c.displayName, "display-name", "", "runtime target display name")
+	fs.StringVar(&c.credentialProvider, "credential-provider", "", "registered kubeconfig secret provider")
+	fs.StringVar(&c.credentialScope, "credential-scope", "", "registered kubeconfig secret scope")
+	fs.StringVar(&c.credentialName, "credential-name", "", "registered kubeconfig secret name")
+	fs.StringVar(&c.credentialVersion, "credential-version", "", "registered kubeconfig secret version")
 	fs.DurationVar(&c.timeout, "timeout", 30*time.Second, "platform request timeout")
 	if err := fs.Parse(args); err != nil {
 		return c, err
@@ -169,9 +179,19 @@ func runClusterSubmit(ctx context.Context, env *Env, sub string, args []string) 
 	if err != nil {
 		return fail(ReasonInvalidConfig, err.Error())
 	}
-	spec := toolkit.IntentSpec{TargetKind: c.kind, OfferingID: c.offering, TargetID: c.targetID}
-	if sub == "import" && c.targetID == "" {
-		return fail(ReasonInvalidConfig, "cluster import requires --target-id")
+	targetKind := c.kind
+	switch strings.ToLower(c.kind) {
+	case "kubernetes", "kubernetestarget":
+		targetKind = "KubernetesTarget"
+	case "edge", "edgeruntime", "edgeruntimetarget":
+		targetKind = "EdgeRuntimeTarget"
+	}
+	spec := toolkit.IntentSpec{TargetKind: targetKind, OfferingID: c.offering, TargetID: c.targetID, DisplayName: c.displayName}
+	if sub == "import" {
+		if c.credentialProvider == "" || c.credentialScope == "" || c.credentialName == "" || c.credentialVersion == "" {
+			return fail(ReasonInvalidConfig, "import requires --credential-provider, --credential-scope, --credential-name and --credential-version")
+		}
+		spec.CredentialSecretRef = &toolkit.IntentSecretRef{Provider: c.credentialProvider, Scope: c.credentialScope, Name: c.credentialName, Version: c.credentialVersion}
 	}
 	kind := toolkit.IntentCreateKubernetesTarget
 	if sub == "import" {

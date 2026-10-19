@@ -212,6 +212,19 @@ func (s *PGCursorStore) LoadCursor(ctx context.Context, tenantID, targetID, obse
 	return row, true, nil
 }
 
+func targetFreshness(observedAt time.Time, thresholdSeconds int64, now time.Time) string {
+	if observedAt.IsZero() {
+		return "UNKNOWN"
+	}
+	if thresholdSeconds <= 0 {
+		thresholdSeconds = 300
+	}
+	if observedAt.Add(time.Duration(thresholdSeconds) * time.Second).After(now) {
+		return "FRESH"
+	}
+	return "STALE"
+}
+
 func (s *PGCursorStore) SaveObservation(ctx context.Context, o *Observation, identity Identity, digest string) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -220,15 +233,16 @@ func (s *PGCursorStore) SaveObservation(ctx context.Context, o *Observation, ide
 	defer tx.Rollback()
 
 	if o.Target != nil {
+		freshness := targetFreshness(o.ObservedAt, o.Target.StaleThresholdSeconds, time.Now().UTC())
 		if _, err := tx.ExecContext(ctx, `
 			UPDATE runtime_targets
 			SET lifecycle_state = $1, health_state = $2, connectivity_state = $3,
-			    last_known_state_at = $4, stale_threshold_seconds = $5,
-			    observation_source = $6, observation_source_id = $7,
-			    observation_generation = $8, observation_revision = $9,
-			    observed_at = $10, updated_at = now()
-			WHERE id = $11 AND tenant_id = $12`,
-			o.Target.LifecycleState, o.Target.HealthState, o.Target.ConnectivityState,
+			    freshness_state = $4, last_known_state_at = $5, stale_threshold_seconds = $6,
+			    observation_source = $7, observation_source_id = $8,
+			    observation_generation = $9, observation_revision = $10,
+			    observed_at = $11, updated_at = now()
+			WHERE id = $12 AND tenant_id = $13`,
+			o.Target.LifecycleState, o.Target.HealthState, o.Target.ConnectivityState, freshness,
 			o.Target.LastKnownStateAt, o.Target.StaleThresholdSeconds,
 			observerSourceFor(o.TargetKind), identity.ObserverID,
 			o.ObserverGeneration, o.Sequence, o.ObservedAt,
@@ -394,19 +408,54 @@ func insertCapabilitySnapshot(ctx context.Context, tx *sql.Tx, o *Observation, i
 	if err != nil {
 		return fmt.Errorf("marshal capability content: %w", err)
 	}
+	kubeVersion, _ := o.Capability.Content["kubernetesVersion"].(string)
+	if kubeVersion == "" {
+		kubeVersion, _ = o.Capability.Content["runtimeVersion"].(string)
+	}
+	arch := ""
+	if archs, ok := o.Capability.Content["architectures"].([]string); ok && len(archs) > 0 {
+		arch = archs[0]
+	} else if values, ok := o.Capability.Content["architectures"].([]any); ok && len(values) > 0 {
+		arch, _ = values[0].(string)
+	}
+	var cpuMillis, memoryBytes int64
+	if resources, ok := o.Capability.Content["resources"].(map[string]any); ok {
+		cpuMillis = int64Number(resources["cpuMillis"])
+		memoryBytes = int64Number(resources["memoryBytes"])
+	}
 	_, err = tx.ExecContext(ctx, `
 		INSERT INTO capability_snapshots (
 			target_id, tenant_id, target_kind, observation_source,
 			observation_source_id, observation_generation, observation_revision,
-			content_digest, snapshot_json, observed_at, created_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10, now())
-		ON CONFLICT (tenant_id, target_id, content_digest) WHERE content_digest IS NOT NULL DO NOTHING`,
+			content_digest, snapshot_json, observed_at, created_at,
+			kube_version, arch, cpu_cores, memory_mb
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10, now(), $11, $12, $13, $14)
+		ON CONFLICT (tenant_id, target_id, content_digest) WHERE content_digest IS NOT NULL DO UPDATE
+		SET kube_version = EXCLUDED.kube_version, arch = EXCLUDED.arch,
+		    cpu_cores = EXCLUDED.cpu_cores, memory_mb = EXCLUDED.memory_mb`,
 		o.TargetID, o.TenantID, o.TargetKind, observerSourceFor(o.TargetKind),
-		identity.ObserverID, o.ObserverGeneration, o.Sequence, digest, string(content), o.ObservedAt)
+		identity.ObserverID, o.ObserverGeneration, o.Sequence, digest, string(content), o.ObservedAt,
+		kubeVersion, arch, cpuMillis/1000, memoryBytes/(1024*1024))
 	if err != nil {
 		return fmt.Errorf("insert capability snapshot: %w", err)
 	}
 	return nil
+}
+
+func int64Number(value any) int64 {
+	switch v := value.(type) {
+	case float64:
+		return int64(v)
+	case int64:
+		return v
+	case int:
+		return int64(v)
+	case json.Number:
+		n, _ := v.Int64()
+		return n
+	default:
+		return 0
+	}
 }
 
 func projectNodes(ctx context.Context, tx *sql.Tx, o *Observation, identity Identity) error {

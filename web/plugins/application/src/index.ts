@@ -5,6 +5,7 @@ import ApplicationApps from './pages/ApplicationApps.vue'
 import EnvManager from './pages/EnvManager.vue'
 import AppMarket from './pages/AppMarket.vue'
 import AppTemplates from './pages/AppTemplates.vue'
+import ApplicationDelivery from './pages/ApplicationDelivery.vue'
 import ObservabilityLayout from './pages/ObservabilityLayout.vue'
 import AppAnalysis from './pages/observability/AppAnalysis.vue'
 import Topology from './pages/observability/Topology.vue'
@@ -12,6 +13,7 @@ import SmartGuard from './pages/observability/SmartGuard.vue'
 import TimeTravel from './pages/observability/TimeTravel.vue'
 import messages from './locales'
 import { setMarketApiClient } from './marketApi'
+import { setDeliveryApiClient } from './deliveryApi'
 
 const plugin: HNBPlugin = definePlugin({
   name: 'application',
@@ -27,6 +29,7 @@ const plugin: HNBPlugin = definePlugin({
     EnvManager,
     AppMarket,
     AppTemplates,
+    ApplicationDelivery,
     ObservabilityLayout,
     AppAnalysis,
     Topology,
@@ -37,6 +40,7 @@ const plugin: HNBPlugin = definePlugin({
   async create(ctx: PluginContext) {
     ctx.i18n.registerMessages(messages)
     setMarketApiClient(ctx.apiClient)
+    setDeliveryApiClient(ctx.apiClient)
     const t = ctx.i18n.t
     return {
       routes: [
@@ -46,6 +50,7 @@ const plugin: HNBPlugin = definePlugin({
         { path: '/application/environments', componentKey: 'EnvManager' },
         { path: '/application/market', componentKey: 'AppMarket' },
         { path: '/application/templates', componentKey: 'AppTemplates' },
+        { path: '/application/delivery', componentKey: 'ApplicationDelivery' },
         { path: '/application/observability', componentKey: 'ObservabilityLayout' },
         { path: '/application/observability/analysis', componentKey: 'AppAnalysis' },
         { path: '/application/observability/topology', componentKey: 'Topology' },
@@ -58,6 +63,7 @@ const plugin: HNBPlugin = definePlugin({
         { title: t('menu.env'), path: '/application/environments', icon: 'env' },
         { title: t('menu.market'), path: '/application/market', icon: 'market' },
         { title: t('menu.templates'), path: '/application/templates', icon: 'template' },
+        { title: t('menu.delivery'), path: '/application/delivery', icon: 'app' },
         { title: t('menu.observability'), path: '/application/observability', icon: 'eye' },
       ],
       async onActivate() {

@@ -1,0 +1,49 @@
+# K3s bundled chart 40.1.5+up40.1.0 and the exact cached v3.7.13 image.
+image:
+  registry: docker.io
+  repository: rancher/mirrored-library-traefik
+  digest: sha256:f86a2cab1b5c649070c49f883c743dd32d8485a56e3368c5f93b9e91f1e91259
+  pullPolicy: IfNotPresent
+versionOverride: v3.7.13
+providers:
+  kubernetesCRD:
+    enabled: false
+  kubernetesIngress:
+    enabled: false
+  kubernetesGateway:
+    enabled: true
+ingressClass:
+  enabled: false
+api:
+  dashboard: false
+gatewayClass:
+  name: hnb-traefik
+gateway:
+  name: hnb-lab
+  listeners:
+    web:
+      port: 8000
+      protocol: HTTP
+      namespacePolicy:
+        from: Selector
+        selector:
+          matchLabels:
+            hnb.io/gateway-access: "true"
+    websecure:
+      port: 8443
+      protocol: HTTPS
+      namespacePolicy:
+        from: Selector
+        selector:
+          matchLabels:
+            hnb.io/gateway-access: "true"
+      certificateRefs:
+        - name: hnb-lab-tls
+nodeSelector:
+  kubernetes.io/hostname: hnb-target-control
+resources:
+  requests: {cpu: 25m, memory: 64Mi}
+  limits: {cpu: 250m, memory: 192Mi}
+global:
+  checkNewVersion: false
+  sendAnonymousUsage: false

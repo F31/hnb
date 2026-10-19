@@ -1,0 +1,55 @@
+{
+  "schemaVersion": "observer-session-binding/v1",
+  "runId": "observer-session-binding-20261018",
+  "commit": "533d8ae41b386d9ae738528f73641720d40f997f",
+  "scope": "local unit/HTTP and management deployment; no independent-target Agent, import, application or HA acceptance",
+  "startedAt": "2026-10-18T09:45:00Z",
+  "finishedAt": "2026-10-18T10:20:00Z",
+  "exitCode": 0,
+  "commands": [
+    "go test ./pkg/iam/... ./cmd/apiserver/... ./cmd/cluster-agent/... ./cmd/platform-api/internal/observer/...",
+    "go vet ./pkg/iam/... ./cmd/apiserver/... ./cmd/cluster-agent/...",
+    "python3 scripts/lab/build-management.py --output-dir /tmp/opencode/hnb-lab-build",
+    "/home/ubuntu/deploy-management.sh /home/ubuntu/management-full.yaml full",
+    "POST /api/v1/runtime-intents (ImportRuntimeTarget)"
+  ],
+  "images": {
+    "apiserver": {
+      "repository": "docker.io/hnb-lab/apiserver",
+      "digest": "sha256:12977a5a138e1c3d69e7a427db3623845da4bc6d661e030b30773c18d058413e"
+    },
+    "operation-worker": {
+      "repository": "docker.io/hnb-lab/operation-worker",
+      "digest": "sha256:980baefdb2d6b40d6b423da013e484e8a548f45a32996ffe31788fbf1cc77941"
+    },
+    "runtime-target-lifecycle-provider": {
+      "repository": "docker.io/hnb-lab/runtime-target-lifecycle-provider",
+      "digest": "sha256:121a8efde0c0d687fa47a613f402ec309c50fd0ec5980df7e5579cdae7604ff9"
+    },
+    "cluster-agent": {
+      "repository": "docker.io/hnb-lab/cluster-agent",
+      "digest": "sha256:eba5f4197da7fbcc5d1f854ddc195d1a56b4fa65a2e8ea48d250c768e8859383"
+    }
+  },
+  "assertions": {
+    "observer_token_bound_to_session": true,
+    "observer_token_reissued_on_renew": true,
+    "observer_token_file_private_and_rotated": true,
+    "provider_service_identity_created_via_api": true,
+    "worker_provider_route_bound": true,
+    "lifecycle_provider_ready": true,
+    "target_kubeconfig_registered_as_secret_reference": true,
+    "admin_login_still_200": true
+  },
+  "blockers": [
+    "provider manifest conformance_level=none; matrix requires production_ready and exact-cell evidence",
+    "import returns 503 PROVIDER_INCOMPATIBLE",
+    "formal service-subject provisioning API is absent; lab subject was provisioned directly",
+    "no Agent installed on independent target; no import/replay/observation E2E"
+  ],
+  "nonClaims": [
+    "S2 3.3-3.5 not complete",
+    "S3 not complete",
+    "HA and production not certified"
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "schemaVersion": "s4-candidate-inventory/v1",
+  "runId": "s4-5.1-candidate-inventory-20261018",
+  "status": "blocked",
+  "commit": "533d8ae41b386d9ae738528f73641720d40f997f",
+  "worktreeDirtyFiles": 119,
+  "releaseLock": "absent",
+  "chart": {
+    "version": "0.1.0",
+    "chartDigest": "sha256:80b1cdd1c1e335731efd33550fdfc3a2a7f0dda7ffa15d7872a1b42c1a34748d",
+    "lockDigest": "sha256:92de651f0093585a64b5c4c0c40ea7dae9755f3708a9532300040a4c578ff8b8",
+    "valuesDigest": "sha256:899da9d7ed4637aaeb2dcdb39783a1f9b7774fa9e1c549b3409585b4c84069aa",
+    "imageDigestsPinned": false
+  },
+  "cli": {
+    "version": "0.2.0 candidate",
+    "sha256": "sha256:42ea6b012ba495bdda3e63e9eaa5d3762357eddd1c967ecfe4bf78d865424a50"
+  },
+  "migrations": {
+    "sqlFiles": 185,
+    "latest": "108_application_delivery_resource_names.sql",
+    "lockBound": false
+  },
+  "runtimeImages": {
+    "apiserver": "hnb-lab/apiserver:4-11-test5",
+    "platform-api": "hnb-lab/platform-api:4-11-test4",
+    "portal": "hnb-lab/portal:4-11-test2",
+    "app-market": "hnb-lab/app-market@sha256:8c2ed0ea",
+    "cluster-router": "hnb-lab/cluster-router@sha256:a404eece",
+    "extension-controller": "hnb-lab/extension-controller@sha256:c3ef7695",
+    "operation-worker": "hnb-lab/operation-worker@sha256:980baefd",
+    "runtime-target-lifecycle-provider": "hnb-lab/runtime-target-lifecycle-provider@sha256:121a8efd",
+    "tunnel-server": "hnb-lab/tunnel-server@sha256:5cc8c7b2"
+  },
+  "checks": {
+    "cli_chart_image_migration_lock_consistent": false,
+    "runtime_rebuildable_from_candidate": false,
+    "s1_s3_evidence_matches_runtime": false,
+    "dependencies_pinned": false,
+    "provider_conformance_valid": false,
+    "clean_install_verified": false
+  },
+  "blockers": [
+    "no formal release lock/Chart package/CLI release",
+    "dirty worktree 119 files",
+    "runtime lab tags not package digests",
+    "provider/action conformance not production-ready",
+    "no independent implementer/clean environment"
+  ]
+}

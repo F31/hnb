@@ -270,6 +270,9 @@ func isOperationDelegationPath(method, path string) bool {
 	if method == http.MethodGet && (path == "/v1/operations" || strings.HasPrefix(path, "/v1/operations/")) {
 		return true
 	}
+	if method == http.MethodPost && path == "/v1/operations" {
+		return true
+	}
 	if method != http.MethodPost || !strings.HasPrefix(path, "/v1/operations/") {
 		return false
 	}
@@ -852,6 +855,23 @@ func (s *Server) handleSubmitOperation(w http.ResponseWriter, r *http.Request) {
 	if err := decodeJSON(w, r, &req); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid_request", err.Error())
 		return
+	}
+	if claims, ok := iam.DelegationClaimsFrom(r.Context()); ok {
+		if claims.Action != iam.ActionExecute || claims.Scope.ResourceKind != string(iam.ResourceApplicationDelivery) ||
+			claims.Scope.ResourceID != req.ApplicationBindingID || claims.ActorSubject != trusted.SubjectID ||
+			claims.TenantID != trusted.TenantID || claims.CorrelationID != trusted.CorrelationID {
+			writeError(w, http.StatusUnauthorized, "invalid_delegation", "operation submission delegation does not match the request")
+			return
+		}
+		if s.permissionResolver != nil {
+			policy, permissions, err := s.permissionResolver.ResolvePermissions(r.Context(), trusted.SubjectID, trusted.MembershipID, trusted.TenantID)
+			if err != nil {
+				writeError(w, http.StatusForbidden, "permission_denied", "permission denied")
+				return
+			}
+			trusted.PolicyVersion, trusted.ScopedPermissions = policy, permissions
+			r = r.WithContext(iam.WithTrustedContext(r.Context(), trusted))
+		}
 	}
 	req.TenantID = trusted.TenantID
 	req.InitiatedBy = trusted.SubjectID

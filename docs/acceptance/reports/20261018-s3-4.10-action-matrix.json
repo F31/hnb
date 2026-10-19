@@ -1,0 +1,128 @@
+{
+  "schemaVersion": "s3-action-matrix/v1",
+  "runId": "s3-4.10-action-matrix-20261018",
+  "generatedAt": "2026-10-18T12:12:00Z",
+  "status": "lab_passed",
+  "productionReady": false,
+  "note": "lab validation only; platform-api production-ready promotion remains not granted",
+  "actions": [
+    {
+      "action": "service.deploy",
+      "contract": "pass",
+      "functional": "pass (demo-http)",
+      "security": "pass (tenant/owner/workload/RBAC)",
+      "idempotent": "pass (replay)",
+      "fencing": "pass (stale generation)",
+      "failure": "pass (missing workload/port)",
+      "performance": "covered by provider process/deploy budget"
+    },
+    {
+      "action": "pvc.deploy",
+      "contract": "pass",
+      "functional": "pass (TopoLVM Bound)",
+      "security": "pass (tenant/owner/RBAC)",
+      "idempotent": "pass (replay)",
+      "fencing": "pass",
+      "failure": "pass (size/quota/WFFC)",
+      "performance": "covered by provider process/deploy budget"
+    },
+    {
+      "action": "pvc.delete",
+      "contract": "pass",
+      "functional": "pass (authorized cleanup)",
+      "security": "pass (explicit authorization/UID/owner)",
+      "idempotent": "pass (re-confirm)",
+      "fencing": "pass",
+      "failure": "pass (unmanaged reject)",
+      "performance": "covered by provider process/deploy budget"
+    },
+    {
+      "action": "workload.upgrade",
+      "contract": "pass",
+      "functional": "pass (v1->v2)",
+      "security": "pass (pinned digest/UID)",
+      "idempotent": "pass (replay)",
+      "fencing": "pass",
+      "failure": "pass (bad rollout detected)",
+      "performance": "pass (Operation 0.889s, <=30s)"
+    },
+    {
+      "action": "workload.rollback",
+      "contract": "pass",
+      "functional": "pass (v2 restored)",
+      "security": "pass (irreversible reject)",
+      "idempotent": "pass (replay)",
+      "fencing": "pass",
+      "failure": "pass (bad v3->v2)",
+      "performance": "covered by Operation/provider budget"
+    },
+    {
+      "action": "deploy (application)",
+      "contract": "pass (BFF/CLI)",
+      "functional": "pass (Portal/CLI)",
+      "security": "pass (applicationDelivery delegation)",
+      "idempotent": "pass (same Operation)",
+      "fencing": "pass (tombstone)",
+      "failure": "pass (provider errors)",
+      "performance": "pass (0.856/1.436s, <=30s)"
+    },
+    {
+      "action": "delete (application)",
+      "contract": "pass (BFF/CLI)",
+      "functional": "pass (Deployment 0/0, PVC retained)",
+      "security": "pass (approve required)",
+      "idempotent": "pass (replay)",
+      "fencing": "pass (late deploy rejected)",
+      "failure": "pass",
+      "performance": "covered by Operation/provider budget"
+    },
+    {
+      "action": "gateway.route",
+      "contract": "pass",
+      "functional": "pass (Traefik external probe)",
+      "security": "pass (route/Gateway RBAC)",
+      "idempotent": "pass (route update)",
+      "fencing": "n/a",
+      "failure": "pass (CRD/controller/network negatives)",
+      "performance": "not individually timed; provider process covered"
+    }
+  ],
+  "performance": {
+    "budget": "20261018-s3-4.10-performance-budget.json",
+    "result": "20261018-s3-4.10-performance-result.json",
+    "readinessP95ms": 4.04,
+    "clusterDetailP95ms": 6.24,
+    "actionReplayP95ms": 6.89,
+    "operationSeconds": [
+      0.156,
+      0.856,
+      0.889,
+      1.436
+    ],
+    "errors": 0,
+    "checks": {
+      "readiness": true,
+      "cluster": true,
+      "action": true,
+      "errorRate": true,
+      "operation": true
+    }
+  },
+  "assertions": {
+    "service_deploy_all_dimensions": true,
+    "pvc_deploy_all_dimensions": true,
+    "pvc_delete_all_dimensions": true,
+    "upgrade_all_dimensions": true,
+    "rollback_all_dimensions": true,
+    "application_deploy_all_dimensions": true,
+    "application_delete_all_dimensions": true,
+    "gateway_route_functional_failure_security": true,
+    "performance_budget_measured_and_passed": true,
+    "production_matrix_promotion": false
+  },
+  "limitations": [
+    "lab budget, not S0 production capacity",
+    "gateway.route not individually timed",
+    "platform-api production-ready matrix promotion not granted"
+  ]
+}

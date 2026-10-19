@@ -20,6 +20,15 @@ serviceTokenSecret: ""
 # them from /var/run/hnb-provider-tokens/<key>; a Secret mount alone is 0440 and
 # iam.FileTokenSource rejects group-readable bearer tokens.
 serviceTokenFiles: []
+# Enables the S1 HTTP renewal adapter. Bootstrap files remain owner-only staged
+# credentials; runtimeProviders declares serviceIdentities separately per tenant.
+serviceIdentity:
+  enabled: false
+  issuerURL: ""
+  issuer: ""
+  existingManifestSecret: ""
+  manifestKey: manifest.json
+  reloadInterval: 5s
 # Image of the init container that stages those tokens; pinned like every other
 # component image.
 sandbox:

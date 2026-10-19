@@ -1,0 +1,8 @@
+# Merge after values-minimal.yaml. Root-backed lab storage only, not production.
+# Hosts prepare hnb-lab-vg using scripts/lab/prepare-loop-storage.sh.
+lvmd:
+  deviceClasses:
+    - name: hnb
+      volume-group: hnb-lab-vg
+      default: true
+      spare-gb: 1

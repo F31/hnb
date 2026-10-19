@@ -1,0 +1,157 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: hnb-agent-default
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: hnb-cluster-agent
+  namespace: hnb-agent-default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: hnb-agent-default-observer
+rules:
+  - apiGroups: [""]
+    resources: ["nodes", "namespaces", "services", "persistentvolumes", "persistentvolumeclaims", "configmaps", "secrets", "events", "pods"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["pods/log"]
+    verbs: ["get"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets", "daemonsets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["batch"]
+    resources: ["jobs", "cronjobs"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses", "networkpolicies"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["storage.k8s.io"]
+    resources: ["storageclasses", "csidrivers", "csinodes", "csistoragecapacities", "volumeattachments"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["snapshot.storage.k8s.io"]
+    resources: ["volumesnapshots", "volumesnapshotclasses", "volumesnapshotcontents"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: hnb-agent-default-observer
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: hnb-agent-default-observer
+subjects:
+  - kind: ServiceAccount
+    name: hnb-cluster-agent
+    namespace: hnb-agent-default
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hnb-cluster-agent
+  namespace: hnb-agent-default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: hnb-cluster-agent
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: hnb-cluster-agent
+    spec:
+      serviceAccountName: hnb-cluster-agent
+      securityContext:
+        fsGroup: 65532
+      initContainers:
+        - name: stage-enrollment
+          image: docker.io/rancher/mirrored-library-busybox@sha256:101b4afd76732482eff9b95cae5f94bcf295e521fbec4e01b69c5421f3f3f3e5
+          command: [sh, -ec]
+          args:
+            - cp /source/enrollment /staged/enrollment; chown 65532:65532 /staged/enrollment; chmod 0400 /staged/enrollment; chown 65532:65532 /state
+          securityContext:
+            runAsUser: 0
+            runAsNonRoot: false
+          volumeMounts:
+            - name: enrollment-source
+              mountPath: /source
+              readOnly: true
+            - name: enrollment
+              mountPath: /staged
+            - name: state
+              mountPath: /state
+      containers:
+        - name: agent
+          image: docker.io/hnb-lab/cluster-agent@sha256:73fe87049ed7001af544ea3f01c346dd6e331d1648e6bf84a92648087afb2572
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 65532
+            runAsGroup: 65532
+          env:
+            - name: TUNNEL_URL
+              value: ws://10.9.180.147:30083/tunnel
+            - name: AGENT_ENROLLMENT_SECRET_FILE
+              value: /etc/hnb/enrollment/enrollment
+            - name: AGENT_SESSION_FILE
+              value: /var/lib/hnb/agent/session.json
+            - name: AGENT_EXCHANGE_URL
+              value: http://10.9.180.147:30081
+            - name: AGENT_TOKEN_KEY_MANIFEST_FILE
+              value: /etc/hnb/identity/manifest.json
+            - name: AGENT_TOKEN_ISSUER
+              value: https://issuer.hnb.test/
+            - name: AGENT_TOKEN_AUDIENCE
+              value: hnb-apiserver-tunnel
+            - name: TENANT_ID
+              value: default
+            - name: CLUSTER_ID
+              value: ef14ba93-f2df-523f-9231-cd2fad333cc3
+            - name: KUBE_API
+              value: https://kubernetes.default.svc
+            - name: KUBE_TOKEN_FILE
+              value: /var/run/secrets/kubernetes.io/serviceaccount/token
+            - name: KUBE_CA_FILE
+              value: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+            - name: OBSERVATION_INGEST_URL
+              value: http://10.9.180.147:30082/v1/observations
+            - name: OBSERVER_TOKEN_FILE
+              value: /var/lib/hnb/agent/observer-token
+            - name: OBSERVER_GENERATION
+              value: "6"
+            - name: OBSERVER_STATE_FILE
+              value: /var/lib/hnb/agent/observer-state.json
+            - name: OBSERVATION_INTERVAL
+              value: 30s
+            - name: RECONNECT_INTERVAL
+              value: "10"
+          volumeMounts:
+            - name: enrollment
+              mountPath: /etc/hnb/enrollment
+              readOnly: true
+            - name: identity
+              mountPath: /etc/hnb/identity
+              readOnly: true
+            - name: state
+              mountPath: /var/lib/hnb/agent
+          resources:
+            requests: {cpu: 50m, memory: 64Mi}
+            limits: {cpu: 250m, memory: 256Mi}
+      volumes:
+        - name: enrollment-source
+          secret:
+            secretName: hnb-agent-enrollment
+        - name: enrollment
+          emptyDir: {}
+        - name: identity
+          secret:
+            secretName: hnb-agent-identity
+            defaultMode: 0440
+        - name: state
+          persistentVolumeClaim:
+            claimName: hnb-agent-state

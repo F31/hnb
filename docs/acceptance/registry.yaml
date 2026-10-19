@@ -6,6 +6,262 @@ policy:
   report_fields: [run_id, commit, command, environment, started_at, finished_at, exit_code, assertions, artifact_digests]
   legacy_results: "Prior chat/log summaries are historical traces only; do not promote without retained reports."
 features:
+  s0_three_host_lab_infrastructure:
+    real_e2e:
+      status: passed
+      run_id: s2-s3-lab-20261018
+      commit: 533d8ae41b386d9ae738528f73641720d40f997f
+      report: reports/20261018-s2-s3-lab-infrastructure.md
+      artifacts: reports/20261018-s2-s3-lab-infrastructure.json
+      commands: ["python3 scripts/lab/verify-environment.py --output docs/acceptance/reports/20261018-s2-s3-lab-infrastructure.json"]
+      scope: "three dedicated Ubuntu 24.04 hosts; independent 1-node management and 2-node target K3s, real TopoLVM and Traefik Gateway/TLS infrastructure only; HNB management was deployed later (see management_deployment); no S2 import/Agent E2E, S3 application, release qualification or HA"
+      assertions: [independent_cluster_identities, three_nodes_ready, csi_ready_both_clusters, cross_node_dns_service_read, persistent_data_after_pod_recreation_and_worker_reboot, gateway_programmed, route_accepted_and_resolved, external_http_and_verified_tls, minimum_seven_gib_free]
+      notes: "working tree source hashes in artifact; retained initial Job refusal, upstream Chart version rejection and verifier IP-SNI TLS failure; production budgets and HA unchanged"
+    production_ha: {status: blocked}
+  management_deployment:
+    real_e2e:
+      status: passed
+      run_id: management-deployment-20261018
+      commit: 533d8ae41b386d9ae738528f73641720d40f997f
+      report: reports/20261018-management-deployment.md
+      artifacts: reports/20261018-management-deployment.json
+      commands: ["python3 scripts/lab/build-management.py --output-dir /tmp/opencode/hnb-lab-build", "/home/ubuntu/deploy-management.sh /home/ubuntu/management-infra.yaml infra", "/tmp/hnb-migrate -owner platform|market|artifact -dir /tmp/migrations -dsn-file /tmp/dsn-*", "/home/ubuntu/deploy-management.sh /home/ubuntu/management-full.yaml full", "curl http://127.0.0.1:18080/api/v1/auth/login"]
+      scope: "management cluster startup deployment of 10 workloads from digest-pinned current checkout images, three-plane migrations, real admin login and authenticated reads; no lifecycle/kubernetes provider, target SecretReference, formal observer token issue/renew, independent-target import, Agent, S3 application, HA or production certification"
+      assertions: [thirteen_images_digest_pinned, three_plane_migrations_applied, ten_workloads_ready, admin_login_real, authenticated_reads, anonymous_rejected, service_identity_revoke_route_registered, credentials_not_in_report]
+      notes: "route registration bug fixed: Go 1.26 rejects wildcard+literal suffix {credentialId}:revoke; now /credentials/{credentialId}/revoke with regression test; management deployment is a prerequisite, not S2 completion"
+    production_ha: {status: blocked}
+  observer_session_binding:
+    unit:
+      status: passed
+      run_id: observer-session-binding-20261018
+      commit: 533d8ae41b386d9ae738528f73641720d40f997f
+      report: reports/20261018-observer-session-binding.md
+      commands: ["go test ./pkg/iam/... ./cmd/apiserver/... ./cmd/cluster-agent/... ./cmd/platform-api/internal/observer/...", "go vet ./pkg/iam/... ./cmd/apiserver/... ./cmd/cluster-agent/..."]
+      scope: "local handler/HTTP/session-source tests and management deployment; observer token bound to persisted Agent session and rotated through exchange/renew; no independent target Agent"
+      assertions: [observer_token_bound_to_session, observer_token_reissued_on_renew, observer_token_file_private_and_rotated, provider_service_identity_created_via_api, worker_provider_route_bound, lifecycle_provider_ready, target_kubeconfig_registered_as_secret_reference, admin_login_still_200]
+    real_e2e: {status: blocked}
+    production_ha: {status: blocked}
+  s2_import_agent_observation:
+    real_e2e:
+      status: partial
+      run_id: s2-import-agent-20261018
+      commit: 533d8ae41b386d9ae738528f73641720d40f997f
+      report: reports/20261018-s2-import-agent-observation.md
+      artifacts: reports/20261018-s2-import-agent-observation.json
+      commands: ["POST /api/v1/runtime-intents", "POST /api/v1/resources/clusters/{id}/agent-enrollments", "kubectl apply agent on target"]
+      scope: "independent 2-node target, formal API import, idempotent replay, single-use enrollment, session-bound observer token, tunnel and FRESH observation with 2 nodes; lab conformance report only; explicit lab cursor repair after generation jump; no 3.4/3.5 or production qualification"
+      assertions: [formal_api_import, operation_succeeded, idempotent_replay, real_agent_enrollment_and_tunnel, observer_token_session_bound, nodes_and_capability_observed, freshness_fresh_and_available, generation_fencing]
+      notes: "partial because source-reset and Agent sequence persistence are not wired; generation 2 required an explicit lab cursor repair; not promoted to passed"
+    production_ha: {status: blocked}
+  s2_agent_reconnect:
+    real_e2e:
+      status: passed
+      run_id: s2-reconnect-portal-cli-20261018
+      commit: 533d8ae41b386d9ae738528f73641720d40f997f
+      report: reports/20261018-s2-reconnect-portal-cli.md
+      artifacts: reports/20261018-s2-reconnect-portal-cli.json
+      scope: "independent target Agent stopped 373s; stale preserved ACTIVE/HEALTHY/CONNECTED; re-enrollment generation 5; PVC generation 4 triggered source-reset; recovery FRESH/available with 2 nodes and no duplicate target"
+      assertions: [agent_state_persisted_on_pvc, agent_restart_resumes_sequence, stale_preserves_old_state, re_enrollment_new_generation, source_reset_used, recovery_fresh_and_available, no_duplicate_target]
+    production_ha: {status: blocked}
+  s2_portal_cli:
+    real_e2e:
+      status: partial
+      run_id: s2-reconnect-portal-cli-20261018
+      commit: 533d8ae41b386d9ae738528f73641720d40f997f
+      report: reports/20261018-s2-reconnect-portal-cli.md
+      artifacts: reports/20261018-s2-reconnect-portal-cli.json
+      scope: "same admin token sees the same target via Portal BFF and hnbctl cluster list; CLI contract fixed to /api/v1/resources/clusters; lab TLS proxy only"
+      assertions: [portal_and_cli_same_target, portal_and_cli_same_import_replay]
+      partial: ["cross-tenant rejection with a second tenant token", "late-response isolation"]
+    production_ha: {status: blocked}
+  s3_application_delivery_binding:
+    db_integration:
+      status: passed
+      run_id: s3-4.1-application-delivery-20261018
+      commit: 533d8ae41b386d9ae738528f73641720d40f997f
+      report: reports/20261018-s3-4.1-application-delivery-bindings.md
+      artifacts: reports/20261018-s3-4.1-application-delivery-bindings.json
+      commands: ["/tmp/hnb-migrate -owner platform -dir /tmp/migrations -dsn-file /tmp/dsn-106", "GET /api/v1/application-deliveries?targetId=…"]
+      scope: "additive migration on existing platform schema, tenant-scoped latest-revision query, fixed release/target/namespace/revision/UID/PVC/ingress/operation/observation fields; no application write"
+      assertions: [additive_migration_on_existing_schema, tenant_scoped_query, latest_revision_selected, invalid_target_rejected_before_query, pvc_ingress_uid_operation_observation_fields_recorded, no_credentials_recorded]
+    real_e2e: {status: not_run}
+    production_ha: {status: not_run}
+  s3_composition_planning:
+    real_e2e:
+      status: passed
+      run_id: s3-4.2-composition-planning-20261018
+      commit: 533d8ae41b386d9ae738528f73641720d40f997f
+      report: reports/20261018-s3-4.2-composition-planning.md
+      artifacts: reports/20261018-s3-4.2-composition-planning.json
+      commands: ["POST /api/v1/application-plans:preview"]
+      scope: "strict application composition schema, deterministic dependency ordering, namespace/secret/quota/fixed capability snapshot checks; preview only"
+      assertions: [strict_unknown_field_rejection, unknown_manifest_rejected, dependency_order_stable, dependency_cycle_rejected, namespace_ownership_checked, secret_reference_ownership_checked, namespace_quota_checked, fixed_snapshot_checked, storage_capability_checked, gateway_capability_checked, unpinned_image_rejected, tenant_scoped_sql]
+    production_ha: {status: not_run}
+  s3_service_workload_action:
+    unit:
+      status: passed
+      run_id: s3-4.3-service-workload-20261018
+      commit: 533d8ae41b386d9ae738528f73641720d40f997f
+      report: reports/20261018-s3-4.3-service-workload-actions.md
+      artifacts: reports/20261018-s3-4.3-service-workload-actions.json
+      commands: ["go test ./cmd/kubernetes-provider/internal/provider -run TestService", "kubectl auth can-i --as=system:serviceaccount:hnb-app:hnb-provider"]
+      scope: "provider service.deploy with workload association, ownership annotations, idempotency, CAS retries, fencing and partial-failure prevention; minimal lab RBAC allow/deny checks"
+      assertions: [typed_service_deploy, associated_workload_ownership, tenant_ownership_annotations, idempotent_replay, cas_conflict_retry, fencing_reject, no_partial_service_without_workload, invalid_port_rejected, minimal_target_rbac]
+    real_e2e: {status: not_run}
+    production_ha: {status: not_run}
+  s3_pvc_secret_mounts:
+    unit:
+      status: passed
+      run_id: s3-4.4-pvc-secret-20261018
+      commit: 533d8ae41b386d9ae738528f73641720d40f997f
+      report: reports/20261018-s3-4.4-pvc-secret-mounts.md
+      artifacts: reports/20261018-s3-4.4-pvc-secret-mounts.json
+      commands: ["go test ./cmd/kubernetes-provider/..."]
+      scope: "provider pvc.deploy bound wait/ownership/fencing and typed Deployment PVC/Secret mounts; no real target execution"
+      assertions: [pvc_create_and_bound_wait_implemented, pvc_owner_idempotency_fencing, invalid_size_rejected, deployment_pvc_secret_mounts_implemented, secret_read_not_required]
+    real_e2e:
+      status: passed
+      run_id: s3-4.4-pvc-secret-20261018
+      commit: 533d8ae41b386d9ae738528f73641720d40f997f
+      report: reports/20261018-s3-4.4-pvc-secret-mounts.md
+      artifacts: reports/20261018-s3-4.4-pvc-secret-mounts.json
+      scope: "real TopoLVM PVC Bound, Redis PVC/Secret mounts, marker read/write, Secret mount without echo, workload delete retains PVC; provider unit tests and minimal RBAC"
+      assertions: [pvc_create, pvc_bound, real_volume_read_write, secret_mount_verified, secret_value_not_echoed, workload_delete_retains_pvc, pvc_replay, fencing, minimal_target_rbac]
+    production_ha: {status: blocked}
+  s3_gateway_route:
+    real_e2e:
+      status: passed
+      run_id: s3-4.5-gateway-route-20261018
+      commit: 533d8ae41b386d9ae738528f73641720d40f997f
+      report: reports/20261018-s3-4.5-gateway-route.md
+      artifacts: reports/20261018-s3-4.5-gateway-route.json
+      commands: ["/home/ubuntu/lab-route -kubeconfig provider-kubeconfig ...", "curl -H Host: app2.hnb.test http://10.9.14.115/"]
+      scope: "actual Traefik Gateway/HTTPRoute route binding, Accepted/ResolvedRefs/Programmed checks, external probe, and negative backend/controller/CRD/network cases"
+      assertions: [route_accepted, route_resolved, gateway_programmed, external_probe_passed, missing_backend_fails, missing_controller_fails, unreachable_entry_fails, missing_crd_fails]
+    production_ha: {status: not_run}
+  s3_application_readiness:
+    db_integration:
+      status: passed
+      run_id: s3-4.6-readiness-20261018
+      commit: 533d8ae41b386d9ae738528f73641720d40f997f
+      report: reports/20261018-s3-4.6-readiness-aggregation.md
+      artifacts: reports/20261018-s3-4.6-readiness-aggregation.json
+      commands: ["POST /api/v1/application-deliveries/{id}/verification", "GET /api/v1/application-deliveries/{id}/readiness"]
+      scope: "four-dimension readiness aggregation with binding revision/UID/observation generation/revision; execution success separated from failed verification; DB/API integration only"
+      assertions: [revision_bound, resource_uid_bound, observation_generation_revision_bound, execution_observation_external_volume_separate, ready_requires_all, execution_succeeded_but_verification_failed_not_ready, operation_terminal_state_not_rewritten, readiness_query_returns_latest]
+    real_e2e: {status: not_run}
+    production_ha: {status: not_run}
+  s3_application_upgrade:
+    real_e2e:
+      status: passed
+      run_id: s3-4.7-upgrade-20261018
+      commit: 533d8ae41b386d9ae738528f73641720d40f997f
+      report: reports/20261018-s3-4.7-upgrade.md
+      artifacts: reports/20261018-s3-4.7-upgrade.json
+      commands: ["provider workload.upgrade v1->v2", "lab-route app4.hnb.test probe", "POST /application-deliveries/{id}/verification"]
+      scope: "real Nginx v1-to-v2 digest upgrade with source/target/UID/compatibility/backup checks, PVC/Secret preservation, route probe and readiness revision 2"
+      assertions: [source_target_digest_pinned, uid_checked, data_compatible_checked, backup_ref_required, generation_fencing, image_upgraded, pvc_data_preserved, secret_mount_preserved, external_probe_passed, observation_fresh, readiness_ready, incompatible_rejected]
+    production_ha: {status: not_run}
+  s3_application_rollback:
+    real_e2e:
+      status: passed
+      run_id: s3-4.8-rollback-20261018
+      commit: 533d8ae41b386d9ae738528f73641720d40f997f
+      report: reports/20261018-s3-4.8-rollback.md
+      artifacts: reports/20261018-s3-4.8-rollback.json
+      commands: ["provider workload.upgrade to bad digest", "provider workload.rollback to v2", "lab-route app4.hnb.test probe"]
+      scope: "real failed upgrade detected by strict rolled-out condition, old pods preserved, typed rollback restored v2 with PVC/Secret/route, irreversible rollback rejected, revision 2/3 history preserved; provider-level not platform Operation"
+      assertions: [upgrade_failure_detected, old_pods_preserved_before_rollback, rollback_restores_v2, pvc_data_preserved, secret_preserved, external_probe_passed_after_rollback, observation_fresh, irreversible_rollback_rejected, history_not_overwritten]
+    production_ha: {status: not_run}
+  s3_deletion_retention:
+    real_e2e:
+      status: passed
+      run_id: s3-4.9-deletion-20261018
+      commit: 533d8ae41b386d9ae738528f73641720d40f997f
+      report: reports/20261018-s3-4.9-deletion.md
+      artifacts: reports/20261018-s3-4.9-deletion.json
+      commands: ["GET /application-deliveries/{id}/deletion-preview", "provider workload delete", "provider pvc.delete"]
+      scope: "deletion preview, tombstone generation fencing, late deploy rejection, default PVC retention, explicit data cleanup authorization, unmanaged PVC rejection"
+      assertions: [deletion_preview, pvc_default_retain, tombstone_written, late_deploy_fenced, cleanup_requires_authorization, authorized_cleanup_deletes, unmanaged_rejected]
+    production_ha: {status: not_run}
+  s3_action_conformance:
+    real_e2e:
+      status: passed
+      run_id: s3-4.10-action-conformance-20261018
+      commit: 533d8ae41b386d9ae738528f73641720d40f997f
+      report: reports/20261018-s3-4.10-action-conformance.md
+      artifacts: reports/20261018-s3-4.10-action-conformance.json, reports/20261018-s3-4.10-action-matrix.json, reports/20261018-s3-4.10-performance-budget.json, reports/20261018-s3-4.10-performance-result.json
+      commands: ["provider action tests", "kubectl auth can-i", "ResourceQuota allow/deny", "NetworkPolicy namespace allow/deny", "BFF latency/concurrency measurement"]
+      scope: "new action evidence matrix, RBAC, hard quota, NetworkPolicy and lab performance budgets; production matrix not promoted"
+      assertions: [service_contract_security_idempotency_fencing, pvc_contract_security_idempotency_quota, upgrade_rollback_contract_security_idempotency_fencing, delete_authorization_owner, gateway_contract_controller_network_negatives, rbac_allow_deny, hard_quota_allow_deny, network_isolation_allow_deny, performance_budget_measured, performance_conformance]
+      partial: ["lab performance only; not S0 production capacity", "gateway.route not individually timed", "platform-api production-ready matrix promotion not granted"]
+    production_ha: {status: not_run}
+  s3_portal_cli_application:
+    real_e2e:
+      status: passed
+      run_id: s3-4.11-portal-cli-20261018
+      commit: 533d8ae41b386d9ae738528f73641720d40f997f
+      report: reports/20261018-s3-4.11-portal-cli.md
+      artifacts: reports/20261018-s3-4.11-portal-cli.json
+      commands: ["Portal /application/delivery", "hnbctl application deploy/upgrade/rollback/delete", "POST /api/v1/application-deliveries/{id}/actions"]
+      scope: "Portal page and CLI plan/status/preview plus deploy/upgrade/rollback/delete through real Operations"
+      assertions: [cli_plan, portal_bff_plan, cli_status, portal_bff_status, cli_deletion_preview, portal_bff_deletion_preview, portal_action_page, portal_deploy_operation, cli_deploy_operation, cli_upgrade_operation, cli_rollback_operation, cli_delete_operation, bff_operation_execution, operation_worker_provider_route, high_risk_requires_approval, duplicate_replay_same_operation, tenant_scope_guard]
+      partial: ["readiness verification not auto-triggered by Operation completion", "lab images are not release artifacts"]
+    production_ha: {status: not_run}
+  s2_cross_tenant_portal_cli:
+    real_e2e:
+      status: passed
+      run_id: s2-3.5-cross-tenant-20261018
+      commit: 533d8ae41b386d9ae738528f73641720d40f997f
+      report: reports/20261018-s2-3.5-cross-tenant.md
+      artifacts: reports/20261018-s2-3.5-cross-tenant.json
+      commands: ["Portal Resource -> Clusters as tenantb", "hnbctl cluster list --token-file hnb-token-b", "interleaved A/B HTTP"]
+      scope: "second tenant Portal/CLI empty list, cross-tenant target/readiness 404, action 403, late response isolation"
+      assertions: [portal_tenant_b_empty, cli_tenant_b_empty, cross_tenant_read_denied, cross_tenant_action_denied, late_response_isolated, no_cache_bleed_20_runs]
+    production_ha: {status: not_run}
+  s4_candidate_inventory:
+    real_e2e:
+      status: blocked
+      run_id: s4-5.1-candidate-inventory-20261018
+      commit: 533d8ae41b386d9ae738528f73641720d40f997f
+      report: reports/20261018-s4-5.1-candidate-inventory.md
+      artifacts: reports/20261018-s4-5.1-candidate-inventory.json
+      commands: ["kubectl get deploy", "ctr images ls", "sha256sum Chart/lock/values", "git status"]
+      scope: "S4 candidate material inventory and entry blockers"
+      assertions: [inventory_recorded, blockers_recorded]
+      partial: ["no release lock/package", "dirty worktree", "lab runtime images", "no independent clean install"]
+    production_ha: {status: not_run}
+  s4_implementation_runbook:
+    real_e2e:
+      status: partial
+      run_id: s4-5.2-runbook-draft-20261018
+      commit: 533d8ae41b386d9ae738528f73641720d40f997f
+      report: ../deployment/s4-implementation-runbook.md
+      commands: []
+      scope: "draft implementation cards: install, onboarding, application, upgrade/recovery, retention/uninstall"
+      assertions: [prerequisites_ports_cache_window, identity_storage_retention, capability_tier_software_upgrade_distinction]
+      partial: ["not validated by independent implementer", "formal release package absent"]
+    production_ha: {status: not_run}
+  provider_conformance_gate:
+    real_e2e:
+      status: blocked
+      run_id: observer-session-binding-20261018
+      report: reports/20261018-observer-session-binding.md
+      scope: "lifecycle provider manifest registered with conformance_level=none; platform-api returns 503 PROVIDER_INCOMPATIBLE; no target import or Agent observation"
+      blocked: ["signed production_ready conformance report and exact matrix-cell evidence are required", "formal service-subject provisioning API is absent", "no Agent on independent target"]
+    production_ha: {status: blocked}
+  service_identity_renewal_wire_contract:
+    unit:
+      status: passed
+      run_id: service-identity-renewal-wire-20261018
+      commit: 533d8ae41b386d9ae738528f73641720d40f997f
+      report: reports/20261018-s2-s3-lab-infrastructure.md
+      commands: ["go test -race ./pkg/iam/... ./cmd/apiserver/internal/handler/...", "python3 deploy/charts/hnb/test_candidate_components.py", "python3 deploy/charts/hnb/test_profiles.py"]
+      scope: "real HTTP client against actual renewal handler with in-memory store; recognizes existing response metadata; Chart renewal env/public-key bindings; no cloud HNB worker rollout or cross-TTL production acceptance"
+      assertions: [regression_failed_before_fix, full_wire_response_accepted, repeated_credential_rotation, authoritative_verification, revoked_identity_rejected, chart_identity_env_and_public_keys, missing_identity_inputs_rejected, legacy_render_compatible]
+    db_integration: {status: not_run}
+    real_e2e: {status: not_run}
+    production_ha: {status: not_run}
   s0_portal_api_boundary:
     unit:
       status: passed

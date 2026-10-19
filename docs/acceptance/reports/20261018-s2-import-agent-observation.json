@@ -1,0 +1,59 @@
+{
+  "schemaVersion": "s2-import-agent/v1",
+  "runId": "s2-import-agent-20261018",
+  "commit": "533d8ae41b386d9ae738528f73641720d40f997f",
+  "scope": "three-host lab independent target import, idempotent replay, Agent session/tunnel and FRESH observation; 3.3 functional/partial; no 3.4/3.5 closure, source-reset or production conformance",
+  "tenantId": "default",
+  "targetId": "ef14ba93-f2df-523f-9231-cd2fad333cc3",
+  "displayName": "hnb-target-live3",
+  "intentId": "914b4bc5-0594-4bac-940f-8f8408a3045e",
+  "operationId": "600fabde-2c0e-4ca3-8cb0-91208cf85168",
+  "import": {
+    "status": "succeeded",
+    "replayed": true
+  },
+  "agent": {
+    "sessionGeneration": 2,
+    "observerGeneration": 2,
+    "observationRevision": 19
+  },
+  "target": {
+    "status": "RUNNING",
+    "lifecycleState": "ACTIVE",
+    "healthState": "HEALTHY",
+    "connectivityState": "CONNECTED",
+    "freshnessState": "FRESH",
+    "available": true,
+    "nodeCount": 2,
+    "runtimeVersion": "v1.36.5+k3s1",
+    "cpuTotal": "4C",
+    "memoryTotal": "8 GiB",
+    "observedAt": "2026-10-18T03:12:46Z",
+    "observationRevision": 19
+  },
+  "assertions": {
+    "formal_api_import": true,
+    "operation_succeeded": true,
+    "idempotent_replay": true,
+    "real_agent_enrollment_and_tunnel": true,
+    "observer_token_session_bound": true,
+    "nodes_and_capability_observed": true,
+    "freshness_fresh_and_available": true,
+    "generation_fencing": true
+  },
+  "fixes": [
+    "tenant middleware bypass for public identity routes",
+    "tunnel-server verifies Agent session tokens and generation",
+    "projector writes freshness and capability normalized columns",
+    "periodic freshness sweeper",
+    "provider worker bound to plan-pinned manifest digest"
+  ],
+  "caveats": [
+    "provider conformance is a one-hour lab report, not production conformance",
+    "lab service subject was provisioned directly because no formal subject API exists",
+    "source-reset is not wired; generation 2 required an explicit lab cursor repair",
+    "Agent session/observer token use emptyDir and observation sequence persistence is not demonstrated",
+    "S2 3.3 remains partial; 3.4/3.5 not complete",
+    "three failed REGISTERING test targets were removed by lab cleanup; the successful target was retained"
+  ]
+}

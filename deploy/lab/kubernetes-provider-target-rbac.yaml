@@ -1,0 +1,36 @@
+# Lab baseline for a provider-scoped target identity. Do not bind cluster-admin.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: hnb-provider
+  namespace: hnb-app
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: hnb-provider-workloads
+  namespace: hnb-app
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: [""]
+    resources: ["services"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: [""]
+    resources: ["persistentvolumeclaims"]
+    verbs: ["get", "list", "watch", "create", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: hnb-provider-workloads
+  namespace: hnb-app
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: hnb-provider-workloads
+subjects:
+  - kind: ServiceAccount
+    name: hnb-provider
+    namespace: hnb-app

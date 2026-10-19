@@ -3,6 +3,7 @@ package toolkit
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -43,16 +44,18 @@ type IntentSecretRef struct {
 }
 
 type IntentSpec struct {
-	TargetID         string            `json:"targetId,omitempty"`
-	ExpectedVersion  int64             `json:"expectedVersion,omitempty"`
-	TargetKind       string            `json:"targetKind"`
-	OfferingID       string            `json:"offeringId,omitempty"`
-	OfferingVersion  int64             `json:"offeringVersion,omitempty"`
-	BindingID        string            `json:"bindingId,omitempty"`
-	Parameters       map[string]any    `json:"parameters,omitempty"`
-	SecretReferences []IntentSecretRef `json:"secretReferences,omitempty"`
-	SSHSecretRef     *IntentSecretRef  `json:"sshSecretRef,omitempty"`
-	StorageClassName string            `json:"storageClassName,omitempty"`
+	TargetID            string            `json:"targetId,omitempty"`
+	ExpectedVersion     int64             `json:"expectedVersion,omitempty"`
+	TargetKind          string            `json:"targetKind"`
+	DisplayName         string            `json:"displayName,omitempty"`
+	CredentialSecretRef *IntentSecretRef  `json:"credentialSecretRef,omitempty"`
+	OfferingID          string            `json:"offeringId,omitempty"`
+	OfferingVersion     int64             `json:"offeringVersion,omitempty"`
+	BindingID           string            `json:"bindingId,omitempty"`
+	Parameters          map[string]any    `json:"parameters,omitempty"`
+	SecretReferences    []IntentSecretRef `json:"secretReferences,omitempty"`
+	SSHSecretRef        *IntentSecretRef  `json:"sshSecretRef,omitempty"`
+	StorageClassName    string            `json:"storageClassName,omitempty"`
 }
 
 type intentEnvelope struct {
@@ -169,14 +172,22 @@ func (p *PlatformClient) SubmitIntent(ctx context.Context, kind, idempotencyKey,
 		return result, fmt.Errorf("%w: platform returned HTTP %d", ErrPlatformUnavailable, resp.StatusCode)
 	default:
 		var problem struct {
-			Error struct {
+			Code   string `json:"code"`
+			Detail string `json:"detail"`
+			Error  struct {
 				Code    string `json:"code"`
 				Message string `json:"message"`
 			} `json:"error"`
 		}
 		code := ""
 		if json.Unmarshal(payload, &problem) == nil {
-			code = problem.Error.Code
+			code = problem.Code
+			if code == "" {
+				code = problem.Error.Code
+			}
+			if code == "" {
+				code = problem.Detail
+			}
 		}
 		if code == "" {
 			code = fmt.Sprintf("HTTP_%d", resp.StatusCode)
@@ -236,7 +247,7 @@ func (p *PlatformClient) ListRuntimeTargets(ctx context.Context) ([]RuntimeTarge
 	if strings.TrimSpace(p.Token) == "" {
 		return nil, ErrNotAuthenticated
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, strings.TrimRight(p.BaseURL, "/")+"/api/v1/targets", nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, strings.TrimRight(p.BaseURL, "/")+"/api/v1/resources/clusters", nil)
 	if err != nil {
 		return nil, fmt.Errorf("%w: invalid platform URL", ErrRequestRejected)
 	}
@@ -258,16 +269,34 @@ func (p *PlatformClient) ListRuntimeTargets(ctx context.Context) ([]RuntimeTarge
 		return nil, fmt.Errorf("%w: platform returned HTTP %d", ErrRequestRejected, resp.StatusCode)
 	}
 	var decoded struct {
-		Targets []RuntimeTargetSummary `json:"targets"`
-		Total   int                    `json:"total"`
+		Items []struct {
+			ClusterID      string    `json:"clusterId"`
+			DisplayName    string    `json:"displayName"`
+			Kind           string    `json:"kind"`
+			Status         string    `json:"status"`
+			RuntimeVersion string    `json:"runtimeVersion"`
+			CreatedAt      time.Time `json:"createdAt"`
+			Acceptance     struct {
+				Available bool `json:"available"`
+			} `json:"acceptance"`
+		} `json:"items"`
+		Total int `json:"total"`
 	}
 	if err := json.Unmarshal(payload, &decoded); err != nil {
 		return nil, fmt.Errorf("%w: platform returned an unreadable target list", ErrPlatformUnavailable)
 	}
-	if len(decoded.Targets) != decoded.Total {
+	if len(decoded.Items) != decoded.Total {
 		return nil, fmt.Errorf("%w: platform returned an inconsistent target list", ErrPlatformUnavailable)
 	}
-	return decoded.Targets, nil
+	targets := make([]RuntimeTargetSummary, 0, len(decoded.Items))
+	for _, item := range decoded.Items {
+		targets = append(targets, RuntimeTargetSummary{
+			ID: item.ClusterID, Name: item.DisplayName, DisplayName: item.DisplayName,
+			TargetType: item.Kind, Distribution: item.RuntimeVersion, ConnectionType: "agent",
+			Status: item.Status, IsActive: item.Acceptance.Available, CreatedAt: item.CreatedAt,
+		})
+	}
+	return targets, nil
 }
 
 // GetOperation reads server-authoritative operation state. Availability problems
@@ -309,4 +338,74 @@ func (p *PlatformClient) GetOperation(ctx context.Context, operationID string) (
 		return ref, fmt.Errorf("%w: platform returned an unreadable operation", ErrPlatformUnavailable)
 	}
 	return OperationRef{OperationID: decoded.OperationID, Status: decoded.Status}, nil
+}
+
+// TokenTenantID decodes the tenant claim for a client-side mismatch check.
+// It is not used as an authorization decision; the server remains authoritative.
+func (p *PlatformClient) TokenTenantID() string {
+	parts := strings.Split(p.Token, ".")
+	if len(parts) != 3 {
+		return ""
+	}
+	payload, err := base64.RawURLEncoding.DecodeString(parts[1])
+	if err != nil {
+		return ""
+	}
+	var claims struct {
+		TenantID string `json:"tenantId"`
+	}
+	if json.Unmarshal(payload, &claims) != nil {
+		return ""
+	}
+	return claims.TenantID
+}
+
+func (p *PlatformClient) ApplicationData(ctx context.Context, method, path string, body []byte) (json.RawMessage, error) {
+	var reader io.Reader
+	if body != nil {
+		reader = bytes.NewReader(body)
+	}
+	req, err := http.NewRequestWithContext(ctx, method, strings.TrimRight(p.BaseURL, "/")+path, reader)
+	if err != nil {
+		return nil, fmt.Errorf("%w: invalid platform URL", ErrRequestRejected)
+	}
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+	req.Header.Set("Authorization", "Bearer "+p.Token)
+	client := p.Client
+	if client == nil {
+		client = &http.Client{Timeout: 30 * time.Second}
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("%w: platform API unreachable", ErrPlatformUnavailable)
+	}
+	defer resp.Body.Close()
+	payload, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		var problem struct {
+			Code   string `json:"code"`
+			Detail string `json:"detail"`
+		}
+		_ = json.Unmarshal(payload, &problem)
+		code := problem.Code
+		if code == "" {
+			code = problem.Detail
+		}
+		if code == "" {
+			code = fmt.Sprintf("HTTP_%d", resp.StatusCode)
+		}
+		if resp.StatusCode >= 500 {
+			return nil, fmt.Errorf("%w: %s", ErrPlatformUnavailable, code)
+		}
+		return nil, fmt.Errorf("%w: %s", ErrRequestRejected, code)
+	}
+	var envelope struct {
+		Data json.RawMessage `json:"data"`
+	}
+	if err := json.Unmarshal(payload, &envelope); err != nil || len(envelope.Data) == 0 {
+		return nil, fmt.Errorf("%w: platform returned unreadable application data", ErrPlatformUnavailable)
+	}
+	return envelope.Data, nil
 }

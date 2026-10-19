@@ -53,6 +53,16 @@ spec:
               {{- end }}
             - name: RUNTIME_PROVIDERS
               value: {{ required "operation-worker.runtimeProviders with endpoint, audience, and tokenFile is required" .Values.runtimeProviders | quote }}
+            {{- if .Values.serviceIdentity.enabled }}
+            - name: SERVICE_IDENTITY_ISSUER_URL
+              value: {{ required "operation-worker.serviceIdentity.issuerURL is required" .Values.serviceIdentity.issuerURL | quote }}
+            - name: SERVICE_IDENTITY_ISSUER
+              value: {{ required "operation-worker.serviceIdentity.issuer is required" .Values.serviceIdentity.issuer | quote }}
+            - name: SERVICE_IDENTITY_KEY_MANIFEST_FILE
+              value: /var/run/hnb-service-identity/{{ .Values.serviceIdentity.manifestKey }}
+            - name: SERVICE_IDENTITY_KEY_RELOAD_INTERVAL
+              value: {{ .Values.serviceIdentity.reloadInterval | quote }}
+            {{- end }}
           ports:
             - containerPort: 8081
               name: health
@@ -78,6 +88,11 @@ spec:
             failureThreshold: 3
           {{- end }}
           volumeMounts:
+            {{- if .Values.serviceIdentity.enabled }}
+            - name: service-identity-keys
+              mountPath: /var/run/hnb-service-identity
+              readOnly: true
+            {{- end }}
 {{- include "operation-worker.natsAccountMounts" (dict "root" $ "component" .Values.nats) | nindent 12 }}
             - name: nats-client-tls
               mountPath: /var/run/hnb-nats
@@ -89,6 +104,12 @@ spec:
 {{- include "operation-worker.stagedProviderTokenMount" . | nindent 12 }}
             {{- end }}
       volumes:
+        {{- if .Values.serviceIdentity.enabled }}
+        - name: service-identity-keys
+          secret:
+            secretName: {{ required "operation-worker.serviceIdentity.existingManifestSecret is required" .Values.serviceIdentity.existingManifestSecret }}
+            defaultMode: 0440
+        {{- end }}
 {{- include "operation-worker.natsAccountVolumes" (dict "root" $ "component" .Values.nats) | nindent 8 }}
         - name: nats-client-tls
           secret:

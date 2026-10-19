@@ -102,8 +102,16 @@ func (i *HTTPCredentialIssuer) IssueServiceCredential(ctx context.Context, scope
 	}
 
 	var payload struct {
-		Credential string `json:"credential"`
-		ExpiresAt  string `json:"expiresAt"`
+		Credential        string           `json:"credential"`
+		CredentialID      string           `json:"credentialId"`
+		ServiceIdentityID string           `json:"serviceIdentityId"`
+		SubjectID         string           `json:"subjectId"`
+		TenantID          string           `json:"tenantId"`
+		Audience          string           `json:"audience"`
+		Permission        ScopedPermission `json:"permission"`
+		IssuedAt          string           `json:"issuedAt"`
+		ExpiresAt         string           `json:"expiresAt"`
+		ExpiresIn         int              `json:"expiresIn"`
 	}
 	decoder := json.NewDecoder(strings.NewReader(string(body)))
 	decoder.DisallowUnknownFields()

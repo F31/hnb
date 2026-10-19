@@ -26,6 +26,9 @@ import (
 var bypassPaths = []string{
 	"/health", "/ready", "/openapi.json",
 	"/api/v1/auth/login", "/api/v1/auth/refresh",
+	"/api/v1/service-credentials:renew",
+	"/api/v1/agent-enrollments:exchange",
+	"/api/v1/agent-sessions:renew",
 }
 
 func New(db *sql.DB, ts *tunnel.TunnelServer, authMW *middleware.AuthMiddleware, tokenManager *iam.TokenManager, iamStore *iam.IAMDBStore, auditStore *audit.Store, rbac *iam.RBACEngine, reg *Registry, delegationSigner *iam.DelegationSigner, platformAPIURL, clusterProjectionMode, appMarketURL, harborURL, harborUser, harborPass string) http.Handler {
@@ -35,6 +38,18 @@ func New(db *sql.DB, ts *tunnel.TunnelServer, authMW *middleware.AuthMiddleware,
 // NewWithCapabilities wires the cluster-management routes behind the staged
 // server capability gates. Routes gated by a disabled stage fail closed before
 // any application state is touched.
+// registerServiceIdentityRoutes keeps the route set independently testable:
+// Go's ServeMux rejects a wildcard followed by a literal suffix in one segment.
+func registerServiceIdentityRoutes(mux *http.ServeMux, handlers map[string]http.HandlerFunc) {
+	mux.HandleFunc("POST /api/v1/service-identities", handlers["service-identities.create"])
+	mux.HandleFunc("GET /api/v1/service-identities", handlers["service-identities.list"])
+	mux.HandleFunc("GET /api/v1/service-identities/{id}", handlers["service-identities.get"])
+	mux.HandleFunc("POST /api/v1/service-identities/{id}/credentials", handlers["service-identities.issue"])
+	mux.HandleFunc("POST /api/v1/service-credentials:renew", handlers["service-identities.renew"])
+	mux.HandleFunc("DELETE /api/v1/service-identities/{id}", handlers["service-identities.revoke"])
+	mux.HandleFunc("POST /api/v1/service-identities/{id}/credentials/{credentialId}/revoke", handlers["service-identities.revoke-credential"])
+}
+
 func NewWithCapabilities(db *sql.DB, ts *tunnel.TunnelServer, authMW *middleware.AuthMiddleware, tokenManager *iam.TokenManager, iamStore *iam.IAMDBStore, auditStore *audit.Store, rbac *iam.RBACEngine, reg *Registry, delegationSigner *iam.DelegationSigner, agentTunnelSigner *iam.AgentTunnelTokenSigner, serviceIdentityH *handler.ServiceIdentityHandler, agentEnrollmentH *handler.AgentEnrollmentHandler, platformAPIURL, clusterProjectionMode, appMarketURL, harborURL, harborUser, harborPass, publicBaseURL, agentImage string, caps capability.Set) http.Handler {
 	authH := handler.NewIAMHandler(
 		iam.NewAuthenticator(iamStore),
@@ -307,6 +322,13 @@ func NewWithCapabilities(db *sql.DB, ts *tunnel.TunnelServer, authMW *middleware
 	coreMux.HandleFunc("PATCH /api/v1/resources/clusters/{id}/description", coreHandlers["resources.clusters.updateDescription"])
 	coreMux.HandleFunc("POST /api/v1/resources/clusters/{id}/kubeconfig:download", coreHandlers["resources.clusters.downloadKubeconfig"])
 	coreMux.HandleFunc("POST /api/v1/resources/clusters/{id}/agent-onboarding", coreHandlers["resources.clusters.agentOnboarding"])
+	coreMux.HandleFunc("GET /api/v1/application-deliveries", handler.NewApplicationDeliveryHandler(db).List)
+	coreMux.HandleFunc("POST /api/v1/application-deliveries/{id}/actions", resourceClusterH.ApplicationAction)
+	coreMux.HandleFunc("POST /api/v1/application-plans:preview", handler.NewApplicationPlanHandler(db).Preview)
+	readinessHandler := handler.NewApplicationReadinessHandler(db)
+	coreMux.HandleFunc("GET /api/v1/application-deliveries/{id}/readiness", readinessHandler.Get)
+	coreMux.HandleFunc("POST /api/v1/application-deliveries/{id}/verification", readinessHandler.Record)
+	coreMux.HandleFunc("GET /api/v1/application-deliveries/{id}/deletion-preview", handler.NewApplicationDeletionPreviewHandler(db).Preview)
 	coreMux.HandleFunc("GET /api/v1/dictionaries/cluster.status", coreHandlers["resources.clusters.dictionary"])
 	coreMux.HandleFunc("GET /api/v1/dictionaries/cluster.versions", coreHandlers["resources.clusters.versions"])
 	coreMux.HandleFunc("POST /api/v1/runtime-intents", coreHandlers["runtime-intents.submit"])
@@ -368,13 +390,7 @@ func NewWithCapabilities(db *sql.DB, ts *tunnel.TunnelServer, authMW *middleware
 	coreMux.HandleFunc("POST /api/v1/plugin-catalog/installs", coreHandlers["plugin-catalog.install"])
 	coreMux.HandleFunc("DELETE /api/v1/plugin-catalog/installs/{name}", coreHandlers["plugin-catalog.uninstall"])
 	if serviceIdentityH != nil {
-		coreMux.HandleFunc("POST /api/v1/service-identities", coreHandlers["service-identities.create"])
-		coreMux.HandleFunc("GET /api/v1/service-identities", coreHandlers["service-identities.list"])
-		coreMux.HandleFunc("GET /api/v1/service-identities/{id}", coreHandlers["service-identities.get"])
-		coreMux.HandleFunc("POST /api/v1/service-identities/{id}/credentials", coreHandlers["service-identities.issue"])
-		coreMux.HandleFunc("POST /api/v1/service-credentials:renew", coreHandlers["service-identities.renew"])
-		coreMux.HandleFunc("DELETE /api/v1/service-identities/{id}", coreHandlers["service-identities.revoke"])
-		coreMux.HandleFunc("POST /api/v1/service-identities/{id}/credentials/{credentialId}:revoke", coreHandlers["service-identities.revoke-credential"])
+		registerServiceIdentityRoutes(coreMux, coreHandlers)
 	}
 	if agentEnrollmentH != nil {
 		coreMux.HandleFunc("POST /api/v1/resources/clusters/{id}/agent-enrollments", coreHandlers["agent-enrollments.create"])

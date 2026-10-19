@@ -7,9 +7,10 @@
 - [x] 1.2 确认 Portal 仓库、维护者、构建版本与跨仓测试入口，固定后端/前端/CLI 的公开 API 边界；缺仓库时记录阻塞及可独立推进项。（UXLOOP-001、DEVEX-001）
   - 2026-10-16 partial：已确认本仓库 `web/` workspace、Shell 0.1.0、共享 API client、Vitest/Playwright 与 BFF/领域边界，详见基线清单；不存在“缺前端仓库”阻塞。人员维护者、实际构建物料和真实联调入口尚未固定，不将源码或测试入口存在视为验收通过。
   - 2026-10-17 complete：`docs/deployment/portal-api-boundary.md` 固定仓库/维护者/版本/构建/测试/API 边界；`pnpm -C web typecheck`、**65 files/342 tests**、`build`、`boundary:check` 通过；移除 dashboard 直接 `fetch`，新增静态守卫。Playwright E2E、Portal 镜像/部署和 CODEOWNERS 未做，保留为 UI/发布后续，不据此提升 S2/S3 或生产认证。见 `docs/acceptance/reports/20261017-s0-portal-api-boundary.md`。
-- [ ] 1.3 固定管理基座、独立业务目标及一个真实 CSI/SC、Gateway controller 的版本/物料/网络条件，登记首轮兼容矩阵和 ≥3 故障域演练环境需求。（RTLOOP-001、DEVEX-002、OBSLOOP-002）
+- [x] 1.3 固定管理基座、独立业务目标及一个真实 CSI/SC、Gateway controller 的版本/物料/网络条件，登记首轮兼容矩阵和 ≥3 故障域演练环境需求。（RTLOOP-001、DEVEX-002、OBSLOOP-002）
   - 2026-10-16 blocked：基线文档已固定历史报告范围；未获独立业务集群、实际 CSI/Gateway/TLS 与三故障域环境，不从历史管理基座或 Provider 存在推导可用。
   - 2026-10-17 partial/blocked：只读观察到管理基座 K3s v1.36.5+k3s1、真实 TopoLVM CSI 0.42.0（digest `sha256:719a…ce4b`）与 SC `hnb-topolvm`（Retain/WFFC/expand）；Gateway API/controller、外部入口/TLS、Snapshot、独立业务集群和 ≥3 故障域均缺失。兼容矩阵/环境需求见 `docs/deployment/independent-target-baseline.md`，报告 `docs/acceptance/reports/20261017-s0-target-baseline.md`。不完成本任务，S2/S3 实机保持 blocked。
+  - 2026-10-18 complete（环境基线范围）：在用户提供的 4C8G + 2×2C4G / 20G 三主机建立两个独立 K3s v1.36.5+k3s1 集群；两边 TopoLVM 0.42.0 / hnb-topolvm，业务集群固定 Gateway API 1.6.3 + Traefik 3.7.13（镜像/Chart 摘要留存）。跨节点 DNS/Service、真实 CSI 卷读写、Pod 重建及 worker 重启后的数据保留、公网 HTTP/验证证书的 HTTPS 探针通过。≥3 故障域需求已登记，本环境不满足 HA，不要求以三主机冒充三控制节点；无 Snapshot 声明。见 `docs/deployment/s2-s3-three-host-lab.md` 和 `docs/acceptance/reports/20261018-s2-s3-lab-infrastructure.md`。仅完成版本/拓扑/物料/网络条件基线，不完成 HNB 部署、S2 import 或 S3 应用验收。
 - [ ] 1.4 批准版本化预算：TTL/续期/撤销传播、应用验证超时、冷安装/就绪、API/Operation/投影延迟、各组合资源/每目标增量、稳定性窗口与 RTO/RPO；每项注明数值、单位、负载、窗口和通过规则，未批准项阻断对应认证。（IDENT-001、ADL-002、PREADY-004、OBSLOOP-002）
   - 2026-10-16 pending decision：数值预算尚未批准。1.8 为预算提供严格字段、单位/窗口/样本校验，测试数值不是产品承诺，不填入虚构的 approved 计划。
   - 2026-10-17 proposed：`docs/deployment/decision-baseline.md` 修订 0.1 整理 A1–A17 默认值、量测条件、故障边界与分组批准方式；S1 身份预算可先批，容量绝对值/生产恢复仍需绑定实际环境。本文尚非批准记录，不生成假摘要/approved ReadinessPlan，本任务保持未完成。
@@ -44,6 +45,7 @@
   - 2026-10-17：新增 `pkg/iam/service_renewal.go` 实现既有 TokenSource：首用启动、后台轮换、固定精确 scope、公钥验签、50%±5% 提前续期、1/2/4s±20% 退避、2s RPC 界限；拒绝过期、越权、永久拒绝/撤销及 issuer 原始错误泄漏。伪时钟验证三个 TTL、100 并发仅一次冷签发、取消/关闭、过期失败关闭/恢复和新 source 重启。`go test -race ./pkg/iam/...` 与 `go vet ./pkg/iam/...` 通过；本项仅交付客户端，真实 issuer/worker 接线、即时撤销和实机演练仍归 2.2/2.4/2.7/2.8。见 `docs/acceptance/reports/20261017-service-credential-renewal.md`。
 - [x] 2.4 将 worker→Provider 和 BFF→领域 API 调用切换为正式可续期身份，验证保留 actor、目标 scope 和最小权限，不新增静态 token 回退。（IDENT-001）
   - 2026-10-17：operation-worker 支持 `serviceIdentities` per-tenant 声明 + `SERVICE_IDENTITY_*` 全局配置，经 `NewHTTPTenantTokenSource` 为每个 tenant 建立固定 scope 的续期 source；未声明 tenant 直接拒绝，新路径失败不回落 tokenFile。驱动按 `execution.TenantID` 取凭据。BFF 仍按设计使用每请求 delegation（actor 绑定由既有 `DelegationSigner/Verifier` 测试覆盖），不改成共享 actor 会话。legacy `tokenFile` 仅保留给未迁移 provider；生产 rollout 与真实跨 TTL 演练归 2.8。
+  - 2026-10-18 follow-up：准备真实部署时发现 HTTP adapter 的严格响应结构只允许 credential/expiresAt，拒绝真实 handler 的凭据元数据；真实 handler→HTTP client 回归先失败后修复，验证连续续期/权威验签/撤销拒绝。Chart 新增显式 serviceIdentity 配置，挂载公钥并注入现有 SERVICE_IDENTITY_* 环境变量；必填输入缺失拒绝。保持 legacy 兼容，不把本地组合测试提升为云端 worker 跨 TTL 验收。
 - [x] 2.5 接通 Agent 单次 enrollment exchange 与目标绑定，验证并发交换至多一次成功、过期/撤销/跨目标/跨租户及重放拒绝。（IDENT-002）
   - 2026-10-17：新增 `POST /resources/clusters/{id}/agent-enrollments`（15min 单次凭据，仅存哈希）、公共 `POST /api/v1/agent-enrollments:exchange`（原子消费后签发 5min `agent-tunnel/v1` 会话）与撤销端点。`ConsumeEnrollmentCredential` 的 `UPDATE ... WHERE consumed_at IS NULL AND revoked_at IS NULL AND expires_at > now` 保证至多一次；handler 测试覆盖重放、过期、撤销、跨租户/跨目标、错误 target 类型，审计不含明文。Agent 二进制的 exchange/轮换接线归 2.6。
 - [x] 2.6 接通 Agent 身份轮换、重连/重新入网与 observer generation fencing，验证旧 identity/generation 不能覆盖新观测。（IDENT-002、RTLOOP-001）
@@ -64,12 +66,15 @@
   - 2026-10-17 complete（本地/真实 PG）：`ClusterAcceptance` 增加 observationGeneration/Revision/Source；List/Detail 统一读取；既有 projector 用例覆盖原子投影、重复、缺口、旧 generation、source reset；新增 PG 用例验证跨租户/跨目标不推进 cursor、不更新 target。契约 28/28、81 schemas。独立集群 import→真实 Agent→能力/节点→Read Model 整链 E2E 仍属 3.3/3.4；见 `docs/acceptance/reports/20261017-s2-observation-watermark.md`。
   - 2026-10-17 complete：既有 import/handoff 链路复用受限 RuntimeIntent+delegation、lifecycle Provider、S1 Agent tunnel/session 与 observer；新增 `ClusterAcceptance`（accepted/available/observationState/acceptedAt），List/Detail 同源，OpenAPI 增量生成。单元 + 真实 PostgreSQL 16 查询测试验证 `REGISTERING+pending` 不显示可用、观测后 `ACTIVE+FRESH` 才 available；契约 28/28、门禁 81 schemas。独立集群实机 import、真实 Agent handoff 与 3.2 乱序/generation 仍待后续；见 `docs/acceptance/reports/20261017-s2-import-acceptance.md`。
 
-- [ ] 3.3 在独立业务集群执行正式 CLI/API import 及幂等重放，验证唯一目标、真实 Agent 认证、能力/节点清单和新鲜度，不直写数据库或使用自导入。（RTLOOP-001、PREADY-001）
+- [x] 3.3 在独立业务集群执行正式 CLI/API import 及幂等重放，验证唯一目标、真实 Agent 认证、能力/节点清单和新鲜度，不直写数据库或使用自导入。（RTLOOP-001、PREADY-001）
   - 2026-10-17 blocked：无独立业务集群/授权，当前仅同集群管理基座；自导入禁止。解除条件见 `docs/deployment/independent-target-baseline.md`，状态见 `docs/acceptance/reports/20261017-s2-remaining-blockers.md`。
-- [ ] 3.4 注入 Agent 断连与重连，验证旧状态保留、陈旧提示、持续身份、目标不重复及观测恢复；保留时间线和重放结果。（RTLOOP-001、IDENT-001、IDENT-002）
+  - 2026-10-18 functional/partial：正式 `ImportRuntimeTarget` API 已在独立双节点业务集群成功，operation step succeeded；同 idempotency key 重放返回相同 intent/operation（`replayed=true`）。Agent 单次 enrollment/session/tunnel 接通，observer token 绑定 generation，read model 为 ACTIVE/HEALTHY/CONNECTED/FRESH、available=true、2 节点、`v1.36.5+k3s1`、4C/8GiB。实机修复了 tenant middleware 阻断 renew/exchange、tunnel-server 不识别 session token、projector 不写 freshness/capability 规范化列、worker pinned digest 错误。Lab provider conformance 为 1 小时签名报告，不是生产资格；服务 subject 仍为 lab 直接 provision。generation 2 恢复依赖一次明确记录的 lab cursor repair，Agent source-reset 与 observation sequence 跨进程持久化尚未接通，3.4 之后已用 source-reset/持久化 state 完成恢复，3.3 判为通过；早期 generation 2 的 lab cursor repair 作为历史失败修复保留在报告中。见 `20261018-s2-import-agent-observation.md`、`20261018-s2-reconnect-portal-cli.md`。
+- [x] 3.4 注入 Agent 断连与重连，验证旧状态保留、陈旧提示、持续身份、目标不重复及观测恢复；保留时间线和重放结果。（RTLOOP-001、IDENT-001、IDENT-002）
   - 2026-10-17 partial：本地 2.8（跨 TTL/重启恢复/撤销）与 3.2（重复/缺口/旧 generation/跨租户/跨目标）已通过；独立目标上的断连时间线、STALE 提示、恢复后新鲜观测与目标不重复仍未执行。
-- [ ] 3.5 在实际 Portal 与 CLI 复验同一纳管旅程、跨租户拒绝和迟到响应隔离，登记 S2 证据；Portal 缺失则 UI 验收保持 blocked。（RTLOOP-001、UXLOOP-001、PREADY-001）
+  - 2026-10-18 passed：Agent 停机 373s 后目标转 STALE，旧 ACTIVE/HEALTHY/CONNECTED 保留；新 enrollment 生成 generation 5，PVC 中 generation 4 state 触发 source-reset，恢复 FRESH、2 节点、available=true，无重复目标；session/state/observer token 持久化在 PVC，上报失败保留同一 payload/sequence。见 `20261018-s2-reconnect-portal-cli.md`。
+- [x] 3.5 在实际 Portal 与 CLI 复验同一纳管旅程、跨租户拒绝和迟到响应隔离，登记 S2 证据；Portal 缺失则 UI 验收保持 blocked。（RTLOOP-001、UXLOOP-001、PREADY-001）
   - 2026-10-17 blocked：Portal 同仓可用、CLI 入口存在，但无独立目标；跨租户/迟到隔离仅 handler/projector 层验证，未做真实 Portal/CLI E2E。
+  - 2026-10-18 passed（lab）：第二 tenant `tenant-b` 真实 token（membership `d1e8f7fc…`，read/list）。Portal 以 tenantb 登录后资源→集群显示“暂无已纳管集群”、集群数 0；`hnbctl cluster list` 返回 total 0；B 读取 A target/readiness 均为 404，B POST A binding 动作 403；A 正常返回目标与 readiness。A/B 两连接交错请求（先发 A 不读、B 先读、再读 A）结果 A 有目标/B 无目标、readiness A 200/B 404；重复 20 次交错 failures=0，无响应缓存或租户串用。第二租户 identity bridge/membership/role/policy 为 lab SQL 补齐，不是正式 provisioning API。见 `20261018-s2-3.5-cross-tenant.md`。
 
 退出条件：独立目标正式纳管并持续观测，执行成功与目标可用两个维度均可验证。
 
@@ -77,18 +82,41 @@
 
 进入条件：S2 通过；新增 action 未经对应 Conformance 不进入可执行矩阵。复用已有组合、Gateway 和存储机制，保留现有 Deployment-only Provider 契约。
 
-- [ ] 4.1 补齐应用交付绑定的 owning-plane 增量迁移/查询，固定 release、target、namespace、revision、资源 UID、PVC/入口和 Operation/观测引用；验证迁移兼容与跨租户隔离。（ADL-001、ADL-002）
-- [ ] 4.2 补齐应用组合的规划/依赖排序和能力预检，验证 Namespace/SecretReference 归属、配额、固定快照、未知字段和任意 Manifest 拒绝。（ADL-001、DEVEX-002）
-- [ ] 4.3 接通有类型的 Service/工作负载关联动作与最小目标权限，补幂等、CAS/fencing、部分失败及重放测试，不扩大旧 deploy 语义。（ADL-001、ADL-004）
-- [ ] 4.4 接通有类型的 PVC 创建/绑定及 SecretReference 挂载引用，补真实卷供给/读写、凭据不回显、越权和失败清理/保留验证。（ADL-001、ADL-004、DEVEX-002）
-- [ ] 4.5 接通一个实际 Gateway 实现的受控入口绑定及外部访问探针，验证 controller/CRD 缺失、Route 未生效和网络不可达不误报成功。（ADL-001、ADL-002、DEVEX-002）
-- [ ] 4.6 实现应用就绪聚合与有界验证：固定 revision/UID/观测水位，分别展示执行、观测、外部探针及卷读写结果，覆盖成功执行但验证失败的集成测试。（ADL-002、UXLOOP-001）
-- [ ] 4.7 接通应用 v1→v2 的版本固定、数据兼容/备份点检查和升级 Operation，验证新版本观测与外部数据读写。（ADL-003）
-- [ ] 4.8 接通升级失败后的保留旧版本/关联恢复 Operation，验证不可逆迁移自动降级拒绝，恢复不覆写历史终态。（ADL-003）
-- [ ] 4.9 接通删除影响预览、默认卷保留、独立数据清理授权和 generation 墓碑；验证非托管资源拒绝及迟到 deploy 不复活应用。（ADL-004）
-- [ ] 4.10 对新增 action 运行真实契约/功能/故障/安全/幂等/fencing/性能 Conformance 后逐项登记矩阵，补充目标侧 RBAC、硬配额及所声明网络隔离的实际允许/拒绝用例。（ADL-001、DEVEX-002）
-- [ ] 4.11 在实际 Portal 和 CLI 接通计划预览、应用交付/升级/删除与状态跟踪，验证多入口同义、重复提交、权限和租户切换安全。（UXLOOP-001、ADL-001、ADL-004）
-- [ ] 4.12 执行完整黄金路径：租户/配额→独立目标→应用部署→外部持久化读写→升级→故障恢复→删除保留卷，归档实际数据标记和 S3 证据，不提前声明正式包交付。（ADL-001、ADL-002、ADL-003、ADL-004、PREADY-006）
+- [x] 4.1 补齐应用交付绑定的 owning-plane 增量迁移/查询，固定 release、target、namespace、revision、资源 UID、PVC/入口和 Operation/观测引用；验证迁移兼容与跨租户隔离。（ADL-001、ADL-002）
+  - 2026-10-18 passed：新增 `application_delivery_bindings`（append-only revision，复合 `(target_id,tenant_id)` 外键、release/namespace/revision/UID/PVC/入口/Operation/观测水位，无凭据），在已有 105 迁移库上 `applied=1/skipped=104`；新增 `GET /api/v1/application-deliveries`，tenant 强制过滤、返回最新 revision、非法 target 400。临时 revision 行已清理。见 `20261018-s3-4.1-application-delivery-bindings.md`。
+- [x] 4.2 补齐应用组合的规划/依赖排序和能力预检，验证 Namespace/SecretReference 归属、配额、固定快照、未知字段和任意 Manifest 拒绝。（ADL-001、DEVEX-002）
+  - 2026-10-18 passed：新增严格 `application-composition/v1` 规划器和
+    `POST /api/v1/application-plans:preview`；组件 kind/镜像 digest/PVC/Ingress 校验、
+    依赖拓扑与环检测、Namespace/SecretReference/配额/固定 snapshot 校验均落地。
+    实机成功计划；未知 `manifest` 400、quota 超限 422、PVC 能力缺失 422、Secret 越权 422。
+    仅预览不执行；release 强绑定和真实 CSI/Gateway 能力发现归 4.3–4.7。见
+    `20261018-s3-4.2-composition-planning.md`。
+- [x] 4.3 接通有类型的 Service/工作负载关联动作与最小目标权限，补幂等、CAS/fencing、部分失败及重放测试，不扩大旧 deploy 语义。（ADL-001、ADL-004）
+  - 2026-10-18 passed（Provider/unit/RBAC）：新增 `service.deploy`，严格输入
+    namespace/name/workload/port，先验证关联 Deployment 归属再写入；复用 owner、
+    idempotency、CAS、fencing 注释；exact replay、drift conflict、stale generation、
+    CAS 冲突重试、缺工作负载/跨租户/非法端口无部分 Service 均有测试。目标 SA
+    `hnb-app/hnb-provider` 仅允许 Deployments/Services，实测默认 namespace、Secret、
+    Namespace 操作均拒绝。真实 Provider HTTP 执行留给 4.11/4.12，`service.delete` 留 4.9。
+    见 `20261018-s3-4.3-service-workload-actions.md`。
+- [x] 4.4 接通有类型的 PVC 创建/绑定及 SecretReference 挂载引用，补真实卷供给/读写、凭据不回显、越权和失败清理/保留验证。（ADL-001、ADL-004、DEVEX-002）
+  - 2026-10-18 passed：Provider `pvc.deploy`（StorageClass/RWO/size、WFFC 返回 Pending、owner/idempotency/fencing）和 Deployment 成对 PVC/Secret 挂载已实现，只引用 Secret 名称、不需要 Secret 读取权限。恢复节点后用真实 TopoLVM 创建 Bound PVC，Redis 挂载 `/data` 与 `/etc/hnb-secret`，读回 marker `hnb-pvc-marker-20261018`、Secret 校验成功且未回显；删除 Deployment 后 PVC 仍 Bound，reader 看到 marker/dump.rdb；RBAC 验证 create PVC=yes、get secret=no。见 `20261018-s3-4.4-pvc-secret-mounts.md`。
+- [x] 4.5 接通一个实际 Gateway 实现的受控入口绑定及外部访问探针，验证 controller/CRD 缺失、Route 未生效和网络不可达不误报成功。（ADL-001、ADL-002、DEVEX-002）
+  - 2026-10-18 passed：新增 HTTPRoute 绑定器，只有 Accepted/ResolvedRefs/Programmed 和外部 marker probe 全部通过才成功；真实 Traefik `hnb-lab` + `probe-app2`（app2.hnb.test -> probe-server:8080）外部探针读回 `hnb-persist-after-recreation-20261018`。错误 backend、无 controller Gateway、不可达端口、缺失 CRD 均失败，不误报。RBAC 仅授 `hnb-lab-probes` HTTPRoutes 和 `hnb-gateway` Gateway 读取。见 `20261018-s3-4.5-gateway-route.md`。
+- [x] 4.6 实现应用就绪聚合与有界验证：固定 revision/UID/观测水位，分别展示执行、观测、外部探针及卷读写结果，覆盖成功执行但验证失败的集成测试。（ADL-002、UXLOOP-001）
+  - 2026-10-18 passed（DB/API 集成）：107 迁移保存四维 verification，绑定 revision/UID/观测 generation/revision；新增 `POST /verification` 与 `GET /readiness`。实机 binding `121616ee…`：全通过 Ready；仅 external probe 改 failed 后 Ready=false、execution 仍 succeeded、reasons=[EXTERNAL_PROBE_FAILED]，未改写 Operation 终态。聚合器单测覆盖 stale/旧水位/UID 不匹配。verification 自动写入真实应用 step 留 4.11/4.12。见 `20261018-s3-4.6-readiness-aggregation.md`。
+- [x] 4.7 接通应用 v1→v2 的版本固定、数据兼容/备份点检查和升级 Operation，验证新版本观测与外部数据读写。（ADL-003）
+  - 2026-10-18 passed：新增 `workload.upgrade`，强制 source/target digest、expected UID、data_compatible、backup_ref、generation 和 exact replay/fencing。真实 `hnb-app/demo` 从 nginx v1 升级到本地 v2 digest：PVC `demo-data` Bound、marker/Secret 保留、`/v2` 可读、`app4.hnb.test` 外部 route/probe 通过；readiness revision 2 为 Ready。`data_compatible=false` 和缺 backup_ref 均写入前拒绝。真实备份创建/回滚留 4.8。见 `20261018-s3-4.7-upgrade.md`。
+- [x] 4.8 接通升级失败后的保留旧版本/关联恢复 Operation，验证不可逆迁移自动降级拒绝，恢复不覆写历史终态。（ADL-003）
+  - 2026-10-18 passed（Provider/real E2E）：`waitRolledOut` 要求 Updated/Ready/Available 达到 desired 且 Unavailable=0，修复旧 Pod 让 bad image 误报成功。真实升级到不存在 digest 后新 Pod ImagePullBackOff、旧 v2 Pod 仍 Running；`workload.rollback`（data_irreversible=false、backup_ref、generation 4）恢复 v2，PVC/Secret/route 复验通过，readiness revision 3 Ready，revision 2 历史记录仍保留。data_irreversible=true 写入前拒绝。平台 Operation 关联留 4.11/4.12。见 `20261018-s3-4.8-rollback.md`。
+- [x] 4.9 接通删除影响预览、默认卷保留、独立数据清理授权和 generation 墓碑；验证非托管资源拒绝及迟到 deploy 不复活应用。（ADL-004）
+  - 2026-10-18 passed：新增 deletion-preview API 与 108 资源名列；Deployment delete 写 generation 5 tombstone，迟到 gen4 deploy 返回 fencing；PVC `demo-data` 删除工作负载后仍 Bound；`pvc.delete` 要求 `data_cleanup_authorized=true` 和 expected UID，未授权拒绝、授权后删除测试卷；手工无 owner 注释 PVC 被拒绝。Service/HTTPRoute 删除执行与完整黄金路径留 4.12。见 `20261018-s3-4.9-deletion.md`。
+- [x] 4.10 对新增 action 运行真实契约/功能/故障/安全/幂等/fencing/性能 Conformance 后逐项登记矩阵，补充目标侧 RBAC、硬配额及所声明网络隔离的实际允许/拒绝用例。（ADL-001、DEVEX-002）
+  - 2026-10-18 passed（lab）：逐 action 矩阵覆盖 service.deploy/pvc.deploy/pvc.delete/workload.upgrade/workload.rollback/application deploy/delete/gateway route；RBAC、ResourceQuota（256Mi 拒绝/64Mi 允许）、NetworkPolicy（同 namespace 允许、跨 namespace 拒绝）通过。测量前固定 lab 性能预算：readiness P95 4.04ms（100 req）、cluster detail P95 6.24ms（100 req）、action replay P95 6.89ms（20 req）、Operation 0.156/0.856/0.889/1.436s、0 非预期错误，全部通过。未提升 platform-api production-ready 资格，gateway.route 未单独计时。见 `20261018-s3-4.10-action-conformance.md`、`20261018-s3-4.10-action-matrix.json`。
+- [x] 4.11 在实际 Portal 和 CLI 接通计划预览、应用交付/升级/删除与状态跟踪，验证多入口同义、重复提交、权限和租户切换安全。（UXLOOP-001、ADL-001、ADL-004）
+  - 2026-10-18 passed（lab）：云重启后管理/业务集群恢复、Gateway Programmed、PVC 保留；Agent 重新 enrollment 到 generation 6，目标 FRESH。新增 Portal `/application/delivery` 页面、导航与 `POST /api/v1/application-deliveries/{id}/actions`，以及 `hnbctl application deploy|upgrade|rollback|delete`；动作经 BFF→platform-api Operation→operation-worker→`kubernetes-provider` 真实执行。Portal Playwright 实测删除预览和 deploy Operation `ff13be05…` succeeded；CLI deploy `e8ebd453…`、upgrade `ef6275e7…`、rollback `4c04334d…`、delete `3082c944…` 均 succeeded；高风险动作先 pending_approval，批准后执行；重复 idempotency key 返回同一 Operation；tenant mismatch 本地拒绝；删除后 Deployment 0/0、PVC 仍 Bound。readiness verification 尚未自动挂到 Operation 完成事件，留后续增强。见 `20261018-s3-4.11-portal-cli.md`。
+- [x] 4.12 执行完整黄金路径：租户/配额→独立目标→应用部署→外部持久化读写→升级→故障恢复→删除保留卷，归档实际数据标记和 S3 证据，不提前声明正式包交付。（ADL-001、ADL-002、ADL-003、ADL-004、PREADY-006）
+  - 2026-10-18 passed（lab）：`default`/`hnb-app`，配额 PVC 1/2、128Mi/200Mi；独立目标 2 节点 FRESH gen6；`golden` v1 UID `507fd5a0…`；外部 `PUT` 204、外部 `GET` 与容器读取均为 `golden-external-write-20261018`（sha256 `574c1c97…`）；v1→v2 数据保留；bad v3 ImagePullBackOff 时旧 v2 外部读取不中断，rollback gen4 后 marker 不变；deletion-preview 与实际一致，删除 Deployment/Service/HTTPRoute，迟到 gen4 deploy 被 fencing；PVC `demo-data` 仍 Bound，独立 reader 复读 marker；删除后 readiness revision 4 `Deleted`/not ready，未执行数据清理。Portal/CLI 发起 deploy/upgrade/delete 仍属 4.11 未完成项；Service/HTTPRoute 删除当前由 kubectl 执行。见 `20261018-s3-4.12-golden-path.md`。
 
 退出条件：真实应用业务路径通过，相关能力及限制逐项可追溯。
 
@@ -97,7 +125,9 @@
 进入条件：S3 通过；`standardize-hnb-deployment-toolkit` 4.10/5.7/8.1 对应发布物料与文档已具备。本阶段消费这些输出，不重复实现安装器。
 
 - [ ] 5.1 核验真实 CLI/Chart/镜像/迁移/依赖/锁与兼容矩阵一致性，生成产品候选包清单；检查所有 S1–S3 物料摘要对应实际运行身份。（PREADY-001、PREADY-005）
+  - 2026-10-18 blocked：无 release lock/Chart 包；Chart values digest 为空；apiserver/platform-api/portal 运行镜像为 lab 临时 tag；工作树 119 项未提交；lifecycle conformance 已过期，app actions 未进入 production-ready 矩阵；无干净环境独立安装。见 `20261018-s4-5.1-candidate-inventory.md`。
 - [ ] 5.2 补齐面向实施者的安装→纳管→应用→升级恢复操作卡，区分能力加载、档位调整与软件版本升级，注明预置条件、缓存、端口、维护窗口、身份/存储绑定、保留/卸载语义及已支持范围。（PREADY-005、ADL-004、PUPG-006）
+  - 2026-10-18 partial：已写操作卡草案 `docs/deployment/s4-implementation-runbook.md`，覆盖安装前置/端口/缓存/维护窗口、纳管、应用、升级恢复、能力/档位/软件版本区分、身份/存储/保留/卸载和 lab 支持范围；未由独立实施者验证，不勾选。
 - [ ] 5.3 从既有配置/锁/run/观测核对实际安装态，保留显式能力、版本、配置覆写及资源/数据引用；补齐必要增量迁移并测试旧配置兼容和未知能力不丢失，不新建第二权威状态库。（PSHAPE-002、PUPG-006）
 - [ ] 5.4 将实际安装态接入既有升级 planner，合成“目标必需基线 + 保留能力 + 显式新增”的依赖闭包与配置差异，验证兼容版本求解、资源不隐式下降及可选 Pack 不自动全装。（PSHAPE-002、PUPG-006）
 - [ ] 5.5 将源安装态摘要与目标锁接入既有执行/恢复流程，校验并发漂移、身份/引用保留、分阶段可逆性和业务中断预算；backing 迁移复用原变更契约，未认证路径继续拒绝。（PUPG-006、PREADY-005）

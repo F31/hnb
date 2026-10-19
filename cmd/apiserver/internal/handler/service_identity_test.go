@@ -308,3 +308,53 @@ func TestServiceIdentityHandlerRejectsCrossTenantAndInvalidRenewal(t *testing.T)
 		t.Fatal("renewal error leaked the presented credential")
 	}
 }
+
+type serviceCredentialBootstrap string
+
+func (s serviceCredentialBootstrap) Token(context.Context) (string, error) { return string(s), nil }
+
+func TestServiceCredentialHTTPClientAgainstRenewHandler(t *testing.T) {
+	h, authority, store, _, actor := newServiceIdentityHandlerForTest(t)
+	identityID := createServiceIdentityForTest(t, h, actor)
+	ctx := context.Background()
+	bootstrap, err := authority.Issue(ctx, actor, identityID, time.Minute)
+	if err != nil {
+		t.Fatal(err)
+	}
+	identity, err := store.GetServiceIdentity(ctx, actor.TenantID, identityID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/service-credentials:renew", h.Renew)
+	server := httptest.NewServer(mux)
+	defer server.Close()
+	client, err := iam.NewHTTPCredentialIssuer(iam.HTTPCredentialIssuerConfig{
+		BaseURL: server.URL, Bootstrap: serviceCredentialBootstrap(bootstrap.Credential),
+		Now: func() time.Time { return time.Unix(2_000_000_000, 0).UTC() },
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	scope := iam.ServiceCredentialScope{SubjectID: identity.SubjectID, Audience: identity.Audience, Permission: identity.Permission}
+	previous := bootstrap.Credential
+	for range 2 {
+		renewed, err := client.IssueServiceCredential(ctx, scope)
+		if err != nil {
+			t.Fatalf("client rejected the real renewal response: %v", err)
+		}
+		if renewed == previous {
+			t.Fatal("renewal did not rotate the credential")
+		}
+		if _, err := authority.Verify(ctx, renewed); err != nil {
+			t.Fatalf("renewed credential is not authoritative: %v", err)
+		}
+		previous = renewed
+	}
+	if _, err := authority.RevokeIdentity(ctx, actor, identityID, identity.Version, "test retirement"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := client.IssueServiceCredential(ctx, scope); !errors.Is(err, iam.ErrServiceIdentityRevoked) {
+		t.Fatalf("revoked identity was not rejected: %v", err)
+	}
+}

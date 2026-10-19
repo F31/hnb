@@ -217,14 +217,14 @@ func TestListRuntimeTargetsIsServerAuthoritative(t *testing.T) {
 	}
 
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/api/v1/targets" {
+		if r.URL.Path != "/api/v1/resources/clusters" {
 			t.Fatalf("unexpected path: %s", r.URL.Path)
 		}
 		if !strings.HasPrefix(r.Header.Get("Authorization"), "Bearer ") {
 			t.Fatal("missing bearer token")
 		}
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"total":2,"targets":[{"id":"t-1","name":"minimal","targetType":"kubernetes","distribution":"k3s","connectionType":"kubeconfig","status":"active","labels":{},"isActive":true,"createdAt":"2026-10-12T00:00:00Z"},{"id":"t-2","name":"dr","targetType":"kubernetes","distribution":"k3s","connectionType":"kubeconfig","status":"provisioning","labels":{},"isActive":false,"createdAt":"2026-10-13T00:00:00Z"}]}`))
+		_, _ = w.Write([]byte(`{"total":2,"items":[{"clusterId":"t-1","displayName":"minimal","kind":"kubernetes","status":"RUNNING","runtimeVersion":"v1.36.5+k3s1","createdAt":"2026-10-12T00:00:00Z","acceptance":{"available":true}},{"clusterId":"t-2","displayName":"dr","kind":"kubernetes","status":"REGISTERING","runtimeVersion":"","createdAt":"2026-10-13T00:00:00Z","acceptance":{"available":false}}]}`))
 	}))
 	defer server.Close()
 	client = &PlatformClient{BaseURL: server.URL, Token: "t", Client: server.Client()}
@@ -232,13 +232,13 @@ func TestListRuntimeTargetsIsServerAuthoritative(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(targets) != 2 || targets[0].ID != "t-1" || !targets[0].IsActive || targets[1].Status != "provisioning" {
+	if len(targets) != 2 || targets[0].ID != "t-1" || !targets[0].IsActive || targets[1].Status != "REGISTERING" {
 		t.Fatalf("unexpected target list: %+v", targets)
 	}
 
 	// 总数与行数不一致的服务端响应必须按不可读处理。
 	server = httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		_, _ = w.Write([]byte(`{"total":3,"targets":[]}`))
+		_, _ = w.Write([]byte(`{"total":3,"items":[]}`))
 	}))
 	defer server.Close()
 	client = &PlatformClient{BaseURL: server.URL, Token: "t", Client: server.Client()}

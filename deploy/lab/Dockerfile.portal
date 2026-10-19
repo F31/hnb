@@ -1,0 +1,12 @@
+# The pre-existing local runtime image is recorded by digest in build-manifest.
+# All application assets are replaced by this source checkout's web build.
+ARG PORTAL_BASE=hnb-eval/portal:20261013
+FROM ${PORTAL_BASE}
+COPY shell/dist /usr/share/nginx/html/shell
+COPY plugins/dashboard/dist /usr/share/nginx/html/modules/dashboard
+COPY plugins/application/dist /usr/share/nginx/html/modules/application
+COPY plugins/container/dist /usr/share/nginx/html/modules/container
+COPY plugins/resource/dist /usr/share/nginx/html/modules/resource
+COPY plugins/service/dist /usr/share/nginx/html/modules/service
+COPY plugins/ai/dist /usr/share/nginx/html/modules/ai
+COPY plugins/system/dist /usr/share/nginx/html/modules/system

@@ -1,0 +1,84 @@
+# Infrastructure probes only; not an HNB application/Operation E2E.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: hnb-lab-probes
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: probe-data
+  namespace: hnb-lab-probes
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: hnb-topolvm
+  resources:
+    requests:
+      storage: 256Mi
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: probe-server
+  namespace: hnb-lab-probes
+  labels:
+    app: hnb-lab-probe
+spec:
+  nodeSelector:
+    kubernetes.io/hostname: hnb-target-worker
+  containers:
+    - name: http
+      image: docker.io/rancher/mirrored-library-busybox@sha256:101b4afd76732482eff9b95cae5f94bcf295e521fbec4e01b69c5421f3f3f3e5
+      command: [sh, -ec]
+      args:
+        - 'test -f /data/index.html || printf "hnb-s2-s3-volume-marker-20261018\n" > /data/index.html; exec httpd -f -p 8080 -h /data'
+      ports:
+        - name: http
+          containerPort: 8080
+      readinessProbe:
+        httpGet: {path: /, port: http}
+      resources:
+        requests: {cpu: 5m, memory: 8Mi}
+        limits: {cpu: 100m, memory: 32Mi}
+      volumeMounts:
+        - name: data
+          mountPath: /data
+  volumes:
+    - name: data
+      persistentVolumeClaim:
+        claimName: probe-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: probe-server
+  namespace: hnb-lab-probes
+spec:
+  selector: {app: hnb-lab-probe}
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: cross-node-read
+  namespace: hnb-lab-probes
+spec:
+  backoffLimit: 2
+  activeDeadlineSeconds: 180
+  template:
+    spec:
+      restartPolicy: Never
+      nodeSelector:
+        kubernetes.io/hostname: hnb-target-control
+      containers:
+        - name: client
+          image: docker.io/rancher/mirrored-library-busybox@sha256:101b4afd76732482eff9b95cae5f94bcf295e521fbec4e01b69c5421f3f3f3e5
+          command: [sh, -ec]
+          args:
+            - 'test "$(wget -qO- -T 10 http://probe-server:8080/)" = hnb-s2-s3-volume-marker-20261018; printf "cross-node-dns-service-volume-read: passed\n"'
+          resources:
+            requests: {cpu: 5m, memory: 8Mi}
+            limits: {cpu: 100m, memory: 32Mi}

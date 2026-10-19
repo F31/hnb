@@ -7,6 +7,7 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -20,16 +21,17 @@ import (
 )
 
 type fakeAgentSessionIssuer struct {
-	mu            sync.Mutex
-	signer        *AgentTunnelTokenSigner
-	tenantID      string
-	targetID      string
-	sessionID     string
-	generation    int64
-	ttl           time.Duration
-	exchangeCalls int
-	renewCalls    int
-	renewErr      error
+	mu              sync.Mutex
+	signer          *AgentTunnelTokenSigner
+	tenantID        string
+	targetID        string
+	sessionID       string
+	generation      int64
+	ttl             time.Duration
+	exchangeCalls   int
+	renewCalls      int
+	renewErr        error
+	observerVersion int
 }
 
 func (f *fakeAgentSessionIssuer) ExchangeAgentSession(ctx context.Context, secret, tenantID, targetID string) (AgentSessionCredential, error) {
@@ -58,9 +60,11 @@ func (f *fakeAgentSessionIssuer) issue(ctx context.Context) (AgentSessionCredent
 	if err != nil {
 		return AgentSessionCredential{}, err
 	}
+	f.observerVersion++
 	return AgentSessionCredential{
 		Credential: token, ExpiresAt: expiry, SessionID: f.sessionID, Generation: f.generation,
 		TenantID: f.tenantID, TargetID: f.targetID, Subject: "cluster-agent",
+		ObserverToken: fmt.Sprintf("observer-token-%d", f.observerVersion), ObserverTokenExpiresAt: expiry,
 	}, nil
 }
 
@@ -164,6 +168,7 @@ func TestHTTPAgentSessionIssuerExchangeAndRenew(t *testing.T) {
 			"credential": credential, "expiresAt": now.Add(5 * time.Minute).Format(time.RFC3339),
 			"sessionId": sessionID, "generation": 1,
 			"tenantId": "tenant-a", "targetId": "target-a", "subject": "cluster-agent",
+			"observerToken": "observer-" + credential, "observerTokenExpiresAt": now.Add(5 * time.Minute).Format(time.RFC3339),
 		})
 	}))
 	defer server.Close()
@@ -174,6 +179,9 @@ func TestHTTPAgentSessionIssuerExchangeAndRenew(t *testing.T) {
 	exchanged, err := issuer.ExchangeAgentSession(context.Background(), "single-use-secret", "tenant-a", "target-a")
 	if err != nil || exchanged.Credential != "credential-1" || exchanged.SessionID != sessionID || exchanged.Generation != 1 {
 		t.Fatalf("exchange = %+v err=%v", exchanged, err)
+	}
+	if exchanged.ObserverToken != "observer-credential-1" || !exchanged.ObserverTokenExpiresAt.Equal(now.Add(5*time.Minute)) {
+		t.Fatalf("exchange observer token = %+v", exchanged)
 	}
 	renewed, err := issuer.RenewAgentSession(context.Background(), "credential-1")
 	if err != nil || renewed.Credential != "credential-2" {
@@ -278,5 +286,44 @@ func TestAgentSessionTokenSourceResumesFromPersistedSession(t *testing.T) {
 	issuer.mu.Unlock()
 	if exchanges != 1 {
 		t.Fatalf("resume performed another exchange: %d", exchanges)
+	}
+}
+
+func TestAgentSessionTokenSourceWritesRotatedObserverToken(t *testing.T) {
+	source, _, clock, _ := newAgentSessionSourceFixture(t)
+	defer source.Close()
+	dir := t.TempDir()
+	source.ConfigureObserverTokenFile(filepath.Join(dir, "observer-token"))
+	if _, err := source.Token(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	first, err := os.ReadFile(filepath.Join(dir, "observer-token"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(first) != "observer-token-1" {
+		t.Fatalf("observer token = %q", first)
+	}
+	info, err := os.Stat(filepath.Join(dir, "observer-token"))
+	if err != nil || info.Mode().Perm() != 0o600 {
+		t.Fatalf("observer token mode = %v, err=%v", info.Mode().Perm(), err)
+	}
+	clock.Advance(15 * time.Second)
+	if _, err := source.Token(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	deadline := time.Now().Add(time.Second)
+	for {
+		second, err := os.ReadFile(filepath.Join(dir, "observer-token"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if string(second) == "observer-token-2" {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("rotated observer token = %q", second)
+		}
+		time.Sleep(10 * time.Millisecond)
 	}
 }

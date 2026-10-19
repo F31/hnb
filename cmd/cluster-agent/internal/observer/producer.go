@@ -57,6 +57,9 @@ func NewProducer(identity ObserverIdentity, generation, sequence int64, persistG
 	}
 }
 
+// Identity returns the immutable observer binding.
+func (p *Producer) Identity() ObserverIdentity { return p.identity }
+
 // Generation returns the current observer generation.
 func (p *Producer) Generation() int64 {
 	p.mu.Lock()

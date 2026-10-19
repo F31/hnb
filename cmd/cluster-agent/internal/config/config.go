@@ -22,6 +22,7 @@ type Config struct {
 	ReconnectInt         int
 	ObservationIngestURL string
 	ObserverTokenFile    string
+	ObserverStateFile    string
 	ObserverGeneration   int64
 	ObservationInterval  time.Duration
 
@@ -48,6 +49,7 @@ func Load() (*Config, error) {
 	flag.IntVar(&cfg.ReconnectInt, "reconnect-interval", envOrDefaultInt("RECONNECT_INTERVAL", 10), "Reconnection interval in seconds")
 	flag.StringVar(&cfg.ObservationIngestURL, "observation-ingest-url", os.Getenv("OBSERVATION_INGEST_URL"), "Platform observation ingest endpoint")
 	flag.StringVar(&cfg.ObserverTokenFile, "observer-token-file", os.Getenv("OBSERVER_TOKEN_FILE"), "Signed observer identity token file")
+	flag.StringVar(&cfg.ObserverStateFile, "observer-state-file", os.Getenv("OBSERVER_STATE_FILE"), "Durable observer generation/sequence file")
 	flag.Int64Var(&cfg.ObserverGeneration, "observer-generation", envOrDefaultInt64("OBSERVER_GENERATION", 1), "Initial observer generation")
 	flag.DurationVar(&cfg.ObservationInterval, "observation-interval", envOrDefaultDuration("OBSERVATION_INTERVAL", 60*time.Second), "Observation report interval")
 	flag.StringVar(&cfg.EnrollmentSecretFile, "enrollment-secret-file", os.Getenv("AGENT_ENROLLMENT_SECRET_FILE"), "Single-use enrollment secret file")

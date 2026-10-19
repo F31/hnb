@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -1381,6 +1382,7 @@ func (h *ResourceClusterHandler) forwardIntent(w http.ResponseWriter, r *http.Re
 		CorrelationID: trusted.CorrelationID,
 	})
 	if err != nil {
+		log.Printf("runtime intent delegation failed: %v", err)
 		writeUpstreamUnavailable(w, r)
 		return
 	}
@@ -1398,6 +1400,7 @@ func (h *ResourceClusterHandler) forwardIntent(w http.ResponseWriter, r *http.Re
 
 	resp, err := h.client.Do(req)
 	if err != nil {
+		log.Printf("platform-api intent request failed: %v", err)
 		writeUpstreamUnavailable(w, r)
 		return
 	}
@@ -1409,6 +1412,7 @@ func (h *ResourceClusterHandler) forwardIntent(w http.ResponseWriter, r *http.Re
 		return
 	}
 	if resp.StatusCode >= 400 {
+		log.Printf("platform-api intent returned %d: %.500s", resp.StatusCode, respBody)
 		writeMappedUpstreamProblem(w, r, resp.StatusCode, resp.Header.Get("Content-Type"), respBody)
 		return
 	}
@@ -1496,6 +1500,7 @@ func (h *ResourceClusterHandler) RegisterSecret(w http.ResponseWriter, r *http.R
 
 	resp, err := h.client.Do(req)
 	if err != nil {
+		log.Printf("platform-api intent request failed: %v", err)
 		writeUpstreamUnavailable(w, r)
 		return
 	}
@@ -1506,6 +1511,7 @@ func (h *ResourceClusterHandler) RegisterSecret(w http.ResponseWriter, r *http.R
 		return
 	}
 	if resp.StatusCode >= 400 {
+		log.Printf("platform-api intent returned %d: %.500s", resp.StatusCode, respBody)
 		writeMappedUpstreamProblem(w, r, resp.StatusCode, resp.Header.Get("Content-Type"), respBody)
 		return
 	}
@@ -1556,6 +1562,7 @@ func (h *ResourceClusterHandler) UpdateClusterDescription(w http.ResponseWriter,
 
 	resp, err := h.client.Do(req)
 	if err != nil {
+		log.Printf("platform-api intent request failed: %v", err)
 		writeUpstreamUnavailable(w, r)
 		return
 	}
@@ -1566,6 +1573,7 @@ func (h *ResourceClusterHandler) UpdateClusterDescription(w http.ResponseWriter,
 		return
 	}
 	if resp.StatusCode >= 400 {
+		log.Printf("platform-api intent returned %d: %.500s", resp.StatusCode, respBody)
 		writeMappedUpstreamProblem(w, r, resp.StatusCode, resp.Header.Get("Content-Type"), respBody)
 		return
 	}
@@ -1608,6 +1616,7 @@ func (h *ResourceClusterHandler) DownloadKubeConfig(w http.ResponseWriter, r *ht
 
 	resp, err := h.client.Do(req)
 	if err != nil {
+		log.Printf("platform-api intent request failed: %v", err)
 		writeUpstreamUnavailable(w, r)
 		return
 	}
@@ -1618,6 +1627,7 @@ func (h *ResourceClusterHandler) DownloadKubeConfig(w http.ResponseWriter, r *ht
 		return
 	}
 	if resp.StatusCode >= 400 {
+		log.Printf("platform-api intent returned %d: %.500s", resp.StatusCode, respBody)
 		writeMappedUpstreamProblem(w, r, resp.StatusCode, resp.Header.Get("Content-Type"), respBody)
 		return
 	}

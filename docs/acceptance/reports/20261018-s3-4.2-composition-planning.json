@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "s3-composition-planning/v1",
+  "runId": "s3-4.2-composition-planning-20261018",
+  "commit": "533d8ae41b386d9ae738528f73641720d40f997f",
+  "scope": "application composition strict schema, dependency ordering, namespace/secret/quota/fixed-snapshot checks; preview only",
+  "assertions": {
+    "strict_unknown_field_rejection": true,
+    "unknown_manifest_rejected": true,
+    "dependency_order_stable": true,
+    "dependency_cycle_rejected": true,
+    "namespace_ownership_checked": true,
+    "secret_reference_ownership_checked": true,
+    "namespace_quota_checked": true,
+    "fixed_snapshot_checked": true,
+    "storage_capability_checked": true,
+    "gateway_capability_checked": true,
+    "unpinned_image_rejected": true,
+    "tenant_scoped_sql": true
+  },
+  "real_checks": {
+    "plan_success": 200,
+    "unknown_field": 400,
+    "quota_exceeded": 422,
+    "pvc_capability_missing": 422,
+    "secret_not_owned": 422
+  },
+  "caveats": [
+    "preview only; no target write",
+    "release not yet foreign-keyed to app-market",
+    "capability snapshot lacks csi/gateway inventory so PVC/Ingress plans are blocked",
+    "second-tenant token path remains partial"
+  ]
+}

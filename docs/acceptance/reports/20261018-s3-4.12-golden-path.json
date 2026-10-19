@@ -1,0 +1,115 @@
+{
+  "schemaVersion": "s3-golden-path/v1",
+  "runId": "s3-4.12-golden-path-20261018",
+  "commit": "533d8ae41b386d9ae738528f73641720d40f997f",
+  "status": "passed",
+  "scope": "tenant/quota -> independent target -> deploy -> external PVC read/write -> upgrade -> failed upgrade/rollback -> delete retain PVC",
+  "target": {
+    "id": "ef14ba93-f2df-523f-9231-cd2fad333cc3",
+    "name": "hnb-target-live3",
+    "nodes": 2,
+    "k8s": "v1.36.5+k3s1",
+    "status": "RUNNING/FRESH",
+    "observationGeneration": 6,
+    "observationRevision": 130
+  },
+  "tenant": "default",
+  "namespace": "hnb-app",
+  "quota": {
+    "pvc": "1/2",
+    "storage": "128Mi/200Mi"
+  },
+  "pvc": {
+    "name": "demo-data",
+    "volume": "pvc-c5b39346-0835-4a5c-9915-c542aa14fbbc",
+    "capacity": "128Mi",
+    "storageClass": "hnb-topolvm",
+    "finalStatus": "Bound"
+  },
+  "deployment": {
+    "name": "golden",
+    "uid": "507fd5a0-d378-456c-9cfa-7a1aca29f419",
+    "v1": "docker.io/library/nginx@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10",
+    "v2": "docker.io/hnb-lab/nginx-v2@sha256:2677367ac1a1aa70d25a6a4714f298c30357d736838ddd2e7be9fe102765cd02",
+    "badV3": "docker.io/hnb-lab/nginx-v3@sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "finalReplicas": 0,
+    "finalGeneration": 5
+  },
+  "service": {
+    "name": "golden-http",
+    "uid": "5cfb537a-fa47-47f9-a52c-1b79119f4ef2",
+    "final": "deleted"
+  },
+  "route": {
+    "name": "golden-route",
+    "host": "app5.hnb.test",
+    "final": "deleted",
+    "afterDeleteHttp": 404
+  },
+  "externalWrite": {
+    "method": "PUT",
+    "status": 204,
+    "read": "golden-external-write-20261018",
+    "markerSha256": "574c1c9707e36b90b66d5a037e1018e23889abaae590aab61fe5dd6112702ac1"
+  },
+  "failedUpgrade": {
+    "v3ImagePullBackOff": true,
+    "oldVersionContinuedServing": true,
+    "rollbackGeneration": 4,
+    "dataPreserved": true
+  },
+  "bindings": [
+    {
+      "revision": 1,
+      "version": "1.0.0",
+      "id": "4582370f-5df7-4770-8ba5-1c7b39db0fb6",
+      "observationRevision": 119,
+      "ready": true
+    },
+    {
+      "revision": 2,
+      "version": "2.0.0",
+      "id": "cf5931d6-25ac-4002-bdc2-d8e2fc8f883d",
+      "observationRevision": 123,
+      "ready": true
+    },
+    {
+      "revision": 3,
+      "version": "2.0.1-recovered",
+      "id": "e79b68e1-7033-4348-9e5d-50bc6ff6aba6",
+      "observationRevision": 127,
+      "ready": true
+    },
+    {
+      "revision": 4,
+      "version": "2.0.1-deleted",
+      "id": "a6deb6e1-9b91-4b13-bfbb-5af0c3f9d430",
+      "observationRevision": 129,
+      "ready": false,
+      "status": "Deleted"
+    }
+  ],
+  "assertions": {
+    "tenant_quota_present": true,
+    "independent_target_fresh": true,
+    "deploy_succeeded": true,
+    "external_write_204": true,
+    "external_and_internal_marker_equal": true,
+    "upgrade_preserved_data": true,
+    "failed_upgrade_kept_old_serving": true,
+    "rollback_preserved_data": true,
+    "late_deploy_fenced": true,
+    "deployment_service_route_deleted": true,
+    "pvc_retained_bound": true,
+    "reader_recovered_marker": true,
+    "deletion_readiness_not_ready": true,
+    "no_data_cleanup_authorization": true
+  },
+  "limitations": [
+    "Portal/CLI deploy/upgrade/delete not executed (4.11 partial)",
+    "Service/HTTPRoute delete via kubectl, not platform Operation",
+    "readiness verification posted via controlled API",
+    "DAV config hand-patched reference app",
+    "2-node lab; no HA/public DNS/production claim"
+  ]
+}

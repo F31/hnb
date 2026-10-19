@@ -12,6 +12,7 @@ import (
 type Config struct {
 	ListenAddr             string
 	NATSURL                string
+	DBDSN                  string
 	TokenIssuer            string
 	TokenAudience          string
 	TokenKeyManifestPath   string
@@ -24,6 +25,7 @@ func Load() (*Config, error) {
 
 	flag.StringVar(&cfg.ListenAddr, "listen", envOrDefault("LISTEN_ADDR", ":9443"), "Tunnel WebSocket listen address")
 	flag.StringVar(&cfg.NATSURL, "nats-url", envOrDefault("NATS_URL", "nats://localhost:4222"), "NATS server URL")
+	flag.StringVar(&cfg.DBDSN, "db-dsn", os.Getenv("DB_DSN"), "PostgreSQL DSN for Agent session verification")
 	flag.StringVar(&cfg.TokenIssuer, "token-issuer", os.Getenv("API_TOKEN_ISSUER"), "Access-token issuer")
 	flag.StringVar(&cfg.TokenAudience, "token-audience", envOrDefault("API_TOKEN_AUDIENCE", "hnb-apiserver-tunnel"), "Exact tunnel token audience")
 	flag.StringVar(&cfg.TokenKeyManifestPath, "token-key-manifest", os.Getenv("API_TOKEN_KEY_MANIFEST_FILE"), "Versioned signing-key manifest file")

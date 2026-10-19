@@ -195,6 +195,12 @@ func main() {
 		log.Fatalf("service credential authority: %v", err)
 	}
 	serviceIdentityHandler := handler.NewServiceIdentityHandler(serviceIdentityAuthority, serviceIdentityStore)
+	observerTokenSigner, err := iam.NewObserverTokenSigner(iam.ObserverTokenConfig{
+		Issuer: cfg.TokenIssuer, Audience: cfg.ObserverAudience, TTL: 5 * time.Minute, Now: time.Now,
+	}, keySet)
+	if err != nil {
+		log.Fatalf("observer token signer: %v", err)
+	}
 	agentEnrollmentHandler := handler.NewAgentEnrollmentHandler(
 		serviceIdentityStore, serviceIdentityStore, handler.NewSQLAgentTargetResolver(db),
 		agentTunnelSigner, agentTunnelVerifier, handler.DefaultAgentSessionTTL, tunnelServer.Revoke, time.Now,
@@ -211,6 +217,7 @@ func main() {
 				StatusCode:       http.StatusOK,
 			})
 		})
+	agentEnrollmentHandler.ConfigureObserverTokenSigner(observerTokenSigner, 5*time.Minute)
 
 	routesPath := filepath.Join(cfg.ConfigDir, "routes.yaml")
 	routeRegistry := router.NewRegistry(func(rf *router.RouteFile) {

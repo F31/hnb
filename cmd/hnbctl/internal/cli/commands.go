@@ -183,6 +183,11 @@ func init() {
 			Run:   runCluster,
 		},
 		{
+			Name: "application", Summary: "application delivery plan/status/deletion preview/actions (server-authoritative)",
+			Usage: "hnbctl application plan --composition-file FILE --platform-url https://... --token-file PATH [--format human|json]\n    status|delete-preview --delivery-id ID --platform-url ... --token-file PATH\n    deploy|upgrade|rollback|delete --delivery-id ID --idempotency-key KEY --platform-url ... --token-file PATH [action flags] [--approve]",
+			Run:   runApplication,
+		},
+		{
 			Name: "node", Summary: "node operations (server-authoritative)",
 			Usage: "hnbctl node add --target-id <targetId> --expected-version <version> -f nodes.yaml --platform-url https://... --token-file <path> --idempotency-key <key> --correlation-id <uuid> [--tenant-scope <scope>] [--format human|json]",
 			Run:   runNode,

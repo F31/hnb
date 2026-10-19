@@ -20,7 +20,9 @@ type submitStepRequest struct {
 }
 
 type submitOperationRequest struct {
-	TenantID         string              `json:"tenantId"`
+	TenantID             string `json:"tenantId"`
+	ApplicationBindingID string `json:"applicationBindingId,omitempty"`
+
 	ProjectID        string              `json:"projectId"`
 	EnvironmentID    string              `json:"environmentId"`
 	NamespaceID      string              `json:"namespaceId"`
@@ -71,18 +73,18 @@ type stepResponse struct {
 // operationResponse always carries lastStateChangedAt and lastObservedAt from
 // the read model (KERNEL-003).
 type operationResponse struct {
-	ID                 string         `json:"id"`
-	IntentID           string         `json:"intentId,omitempty"`
-	TenantID           string         `json:"tenantId"`
-	ProjectID          string         `json:"projectId,omitempty"`
-	EnvironmentID      string         `json:"environmentId,omitempty"`
-	NamespaceID        string         `json:"namespaceId,omitempty"`
-	PlanID             string         `json:"planId,omitempty"`
-	OperationType      string         `json:"operationType"`
-	Status             string         `json:"status"`
-	InitiatedBy        string         `json:"initiatedBy"`
-	ApprovedBy         string         `json:"approvedBy,omitempty"`
-	IdempotencyKey     string         `json:"idempotencyKey,omitempty"`
+	ID             string `json:"id"`
+	IntentID       string `json:"intentId,omitempty"`
+	TenantID       string `json:"tenantId"`
+	ProjectID      string `json:"projectId,omitempty"`
+	EnvironmentID  string `json:"environmentId,omitempty"`
+	NamespaceID    string `json:"namespaceId,omitempty"`
+	PlanID         string `json:"planId,omitempty"`
+	OperationType  string `json:"operationType"`
+	Status         string `json:"status"`
+	InitiatedBy    string `json:"initiatedBy"`
+	ApprovedBy     string `json:"approvedBy,omitempty"`
+	IdempotencyKey string `json:"idempotencyKey,omitempty"`
 	// CorrelationID is only populated when the store model carries it; the
 	// read-model projection does not include correlation_id yet, so GET paths
 	// may omit it until that projection is extended.
@@ -100,20 +102,20 @@ type operationResponse struct {
 }
 
 type operationSummaryResponse struct {
-	ID                 string     `json:"id"`
-	IntentID           string     `json:"intentId,omitempty"`
-	TenantID           string     `json:"tenantId"`
-	ProjectID          string     `json:"projectId,omitempty"`
-	EnvironmentID      string     `json:"environmentId,omitempty"`
-	NamespaceID        string     `json:"namespaceId,omitempty"`
-	OperationType      string     `json:"operationType"`
-	Status             string     `json:"status"`
-	TotalSteps         int        `json:"totalSteps"`
-	CompletedSteps     int        `json:"completedSteps"`
-	FailedSteps        int        `json:"failedSteps"`
-	InitiatedBy        string     `json:"initiatedBy"`
-	ApprovedBy         string     `json:"approvedBy,omitempty"`
-	Summary            string     `json:"summary,omitempty"`
+	ID             string `json:"id"`
+	IntentID       string `json:"intentId,omitempty"`
+	TenantID       string `json:"tenantId"`
+	ProjectID      string `json:"projectId,omitempty"`
+	EnvironmentID  string `json:"environmentId,omitempty"`
+	NamespaceID    string `json:"namespaceId,omitempty"`
+	OperationType  string `json:"operationType"`
+	Status         string `json:"status"`
+	TotalSteps     int    `json:"totalSteps"`
+	CompletedSteps int    `json:"completedSteps"`
+	FailedSteps    int    `json:"failedSteps"`
+	InitiatedBy    string `json:"initiatedBy"`
+	ApprovedBy     string `json:"approvedBy,omitempty"`
+	Summary        string `json:"summary,omitempty"`
 	// CorrelationID has the same read-model limitation as operationResponse:
 	// operation_read_model does not project correlation_id, so list responses
 	// omit it until the projection is extended.

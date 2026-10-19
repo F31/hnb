@@ -7,6 +7,43 @@
 [`统一底座与四档组装契约`](../deployment/profile-composition-contract.md)、
 [`阶段计划/预算/证据校验`](product-readiness-manifests.md)。这些建设记录不提升既有认证。
 
+2026-10-18 新增：[`S3 4.4 PVC 与 Secret 挂载（实现完成，真实环境阻塞）`](reports/20261018-s3-4.4-pvc-secret-mounts.md)
+（`pvc.deploy`、真实 TopoLVM Bound、Redis PVC/Secret 挂载、marker 读写、
+Secret 不回显、删除工作负载后 PVC 保留；最小 RBAC 已验证）。
+
+2026-10-18 新增：[`S3 4.3 类型化 Service/工作负载动作`](reports/20261018-s3-4.3-service-workload-actions.md)
+（`service.deploy`、工作负载归属、幂等/CAS/fencing、无部分创建；最小目标 RBAC
+allow/deny 已验证；真实 Provider HTTP 执行留 4.12）。
+
+2026-10-18 新增：[`S3 4.2 应用组合规划与能力预检`](reports/20261018-s3-4.2-composition-planning.md)
+（严格 Schema、依赖排序、Namespace/SecretReference/配额/固定快照预检；PVC/Ingress
+能力缺失和未知 Manifest 均正确拒绝；仅计划不执行）。
+
+2026-10-18 新增：[`S3 4.1 应用交付绑定迁移与查询`](reports/20261018-s3-4.1-application-delivery-bindings.md)
+（106 增量迁移、tenant 过滤、最新 revision、UID/PVC/入口/Operation/观测水位；
+临时测试行已清理；应用写入仍属 4.3–4.5）。
+
+2026-10-18 新增：[`S2 断连恢复、source-reset 与 Portal/CLI`](reports/20261018-s2-reconnect-portal-cli.md)
+（Agent 停机 373s 后 STALE 保留旧状态；新 enrollment generation 5、PVC state 触发
+source-reset、恢复 FRESH 且无重复目标；Portal/CLI 同一目标列表一致；3.5 仍 partial）。
+
+2026-10-18 新增：[`S2 独立目标 import 与 Agent 观测`](reports/20261018-s2-import-agent-observation.md)
+（正式 API import、幂等重放、enrollment/session/tunnel、2 节点与 FRESH 观测；修复
+tunnel session 校验、tenant bypass、freshness/capability 投影；因 source-reset/序列
+持久化缺口保留 partial，3.4/3.5 未完成）。
+
+2026-10-18 新增：[`Observer 会话绑定与 Provider 接线`](reports/20261018-observer-session-binding.md)
+（observer token 绑定 session tenant/target/generation、exchange/renew 轮换、
+Agent 私有文件写入；Provider/worker 已接线；conformance 证据缺失使 import 保持 blocked）。
+
+2026-10-18 新增：[`管理面当前源码部署与真实登录`](reports/20261018-management-deployment.md)
+（13 个 digest 固定镜像、三平面迁移 104、10 工作负载 Ready、真实 admin 登录及鉴权读取；
+修复 Go 1.26 服务身份撤销路由注册 panic；不含独立目标 import、Agent、S3 或 HA）。
+
+2026-10-18 新增：[`S0 1.3 三主机独立集群 / CSI / Gateway 基线`](reports/20261018-s2-s3-lab-infrastructure.md)
+（两个独立 K3s 集群、TopolVM、Gateway/TLS、真实卷读写/Pod 重建/worker 重启；
+另修复续期客户端真实响应兼容性并补 worker Chart 接线；尚未部署新 HNB，不含 S2/S3 产品验收）。
+
 2026-10-17 新增：[`hnbctl 零配置卸载与 -all/-data 全清`](reports/20261017-hnbctl-auto-uninstall.md)
 （auto-detect、`-all` 删 TopoLVM/SC/CSIDriver/CRD、`-data` 删 PVC/PV/LV/Secret/namespace；
 云主机全清后仅保留 K3s 系统组件）。

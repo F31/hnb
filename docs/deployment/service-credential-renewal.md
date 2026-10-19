@@ -90,7 +90,7 @@ issuer 明确返回撤销/永久拒绝时立即停用，不能被当作“运行
 | `POST /api/v1/service-identities/{id}/credentials` | `update` | 签发短 TTL 凭据；默认/上限 60s |
 | `POST /api/v1/service-credentials:renew` | public route + bearer 校验 | 用当前凭据换取同 scope 新 jti |
 | `DELETE /api/v1/service-identities/{id}` | `delete` | `{version,reason}` CAS 撤销整个身份 |
-| `POST /api/v1/service-identities/{id}/credentials/{credentialId}:revoke` | `delete` | 撤销单个凭据，幂等 |
+| `POST /api/v1/service-identities/{id}/credentials/{credentialId}/revoke` | `delete` | 撤销单个凭据，幂等 |
 
 - Schema：`service-identity-create.schema.json`、`service-credential.schema.json`；
   credential 字段标为 `writeOnly`，契约测试覆盖通配/越权/未知字段/非法 UUID/TTL 边界。

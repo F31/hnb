@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -403,6 +404,9 @@ func installAvailableUpdateReactor(client *fake.Clientset) {
 	client.PrependReactor("update", "deployments", func(action ktesting.Action) (bool, runtime.Object, error) {
 		updated := action.(ktesting.UpdateAction).GetObject().(*appsv1.Deployment).DeepCopy()
 		updated.Status.AvailableReplicas = *updated.Spec.Replicas
+		updated.Status.UpdatedReplicas = *updated.Spec.Replicas
+		updated.Status.ReadyReplicas = *updated.Spec.Replicas
+		updated.Status.UnavailableReplicas = 0
 		updated.Status.ObservedGeneration = updated.Generation
 		err := client.Tracker().Update(appsv1.SchemeGroupVersion.WithResource("deployments"), updated, updated.Namespace)
 		return true, updated, err
@@ -432,4 +436,374 @@ func actions(client *fake.Clientset, verb string) int {
 
 func allowedNamespaces() map[string]struct{} {
 	return map[string]struct{}{"hnb-e2e": {}}
+}
+
+func serviceExecution(generation int64, port string) ExecutionContext {
+	execution := testExecution("service.deploy", generation)
+	execution.Inputs = stringMapToAny(map[string]string{
+		"namespace": "hnb-e2e", "name": "demo-svc", "workload": "demo", "port": port,
+	})
+	return execution
+}
+
+func managedService(execution ExecutionContext) *corev1.Service {
+	service := desiredService(execution, "hnb-e2e", "demo-svc", "demo", 8080)
+	service.UID = types.UID("service-uid")
+	service.ResourceVersion = "1"
+	return service
+}
+
+func TestServiceDeployCreatesTypedAssociation(t *testing.T) {
+	execution := serviceExecution(1, "8080")
+	client := fake.NewClientset(managedDeployment(testExecution("deploy", 1)))
+	client.PrependReactor("create", "services", func(action ktesting.Action) (bool, runtime.Object, error) {
+		created := action.(ktesting.CreateAction).GetObject().(*corev1.Service).DeepCopy()
+		created.UID = types.UID("service-uid")
+		created.ResourceVersion = "1"
+		err := client.Tracker().Create(corev1.SchemeGroupVersion.WithResource("services"), created, created.Namespace)
+		return true, created, err
+	})
+	result, err := NewExecutor(client, allowedNamespaces(), 10).Execute(context.Background(), execution)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Outputs["uid"] != "service-uid" || result.Outputs["action"] != "service.deploy" {
+		t.Fatalf("result = %#v", result)
+	}
+	service, err := client.CoreV1().Services("hnb-e2e").Get(context.Background(), "demo-svc", metav1.GetOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if service.Spec.Selector["hnb.io/workload"] != "demo" || service.Spec.Ports[0].Port != 8080 || service.Annotations[tenantAnnotation] != "tenant-a" {
+		t.Fatalf("service = %#v", service)
+	}
+}
+
+func TestServiceDeployReplayAndFencing(t *testing.T) {
+	execution := serviceExecution(1, "8080")
+	service := managedService(execution)
+	client := fake.NewClientset(managedDeployment(testExecution("deploy", 1)), service)
+	result, err := NewExecutor(client, allowedNamespaces(), 10).Execute(context.Background(), execution)
+	if err != nil || result.Outputs["uid"] != "service-uid" {
+		t.Fatalf("replay = %#v/%v", result, err)
+	}
+	if serviceActions(client, "update") != 0 {
+		t.Fatal("exact replay updated the service")
+	}
+
+	stale := serviceExecution(1, "9090")
+	_, err = NewExecutor(client, allowedNamespaces(), 10).Execute(context.Background(), stale)
+	assertStatusError(t, err, ErrorResourceConflict, false)
+
+	newer := managedService(serviceExecution(2, "8080"))
+	newer.Annotations[operationAnnotation] = "22222222-2222-4222-8222-222222222222"
+	client = fake.NewClientset(managedDeployment(testExecution("deploy", 1)), newer)
+	_, err = NewExecutor(client, allowedNamespaces(), 10).Execute(context.Background(), execution)
+	assertStatusError(t, err, ErrorFenced, false)
+}
+
+func TestServiceDeployDoesNotPartiallyCreateWithoutOwnedWorkload(t *testing.T) {
+	execution := serviceExecution(1, "8080")
+	client := fake.NewClientset()
+	_, err := NewExecutor(client, allowedNamespaces(), 10).Execute(context.Background(), execution)
+	assertStatusError(t, err, ErrorResourceConflict, false)
+	if serviceActions(client, "create") != 0 {
+		t.Fatal("service was created without an owned workload")
+	}
+
+	foreign := managedDeployment(testExecution("deploy", 1))
+	foreign.Annotations[tenantAnnotation] = "tenant-b"
+	client = fake.NewClientset(foreign)
+	_, err = NewExecutor(client, allowedNamespaces(), 10).Execute(context.Background(), execution)
+	assertStatusError(t, err, ErrorResourceConflict, false)
+	if serviceActions(client, "create") != 0 {
+		t.Fatal("service was created for a foreign workload")
+	}
+}
+
+func TestServiceDeployRejectsInvalidPortBeforeWrite(t *testing.T) {
+	execution := serviceExecution(1, "08080")
+	client := fake.NewClientset(managedDeployment(testExecution("deploy", 1)))
+	_, err := NewExecutor(client, allowedNamespaces(), 10).Execute(context.Background(), execution)
+	assertStatusError(t, err, ErrorInvalidRequest, false)
+	if serviceActions(client, "create") != 0 {
+		t.Fatal("service was created for an invalid port")
+	}
+}
+
+func serviceActions(client *fake.Clientset, verb string) int {
+	count := 0
+	for _, action := range client.Actions() {
+		if action.GetVerb() == verb && action.GetResource().Resource == "services" {
+			count++
+		}
+	}
+	return count
+}
+
+func TestServiceDeployRetriesCASConflict(t *testing.T) {
+	execution := serviceExecution(2, "8080")
+	previous := serviceExecution(1, "8080")
+	client := fake.NewClientset(managedDeployment(testExecution("deploy", 1)), managedService(previous))
+	conflicted := false
+	client.PrependReactor("update", "services", func(action ktesting.Action) (bool, runtime.Object, error) {
+		if !conflicted {
+			conflicted = true
+			return true, nil, apierrors.NewConflict(schema.GroupResource{Group: "", Resource: "services"}, "demo-svc", nil)
+		}
+		updated := action.(ktesting.UpdateAction).GetObject().(*corev1.Service).DeepCopy()
+		updated.UID = types.UID("service-uid")
+		updated.ResourceVersion = "2"
+		err := client.Tracker().Update(corev1.SchemeGroupVersion.WithResource("services"), updated, updated.Namespace)
+		return true, updated, err
+	})
+	result, err := NewExecutor(client, allowedNamespaces(), 10).Execute(context.Background(), execution)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Outputs["uid"] != "service-uid" || serviceActions(client, "update") != 2 {
+		t.Fatalf("result=%#v updates=%d", result, serviceActions(client, "update"))
+	}
+}
+
+func pvcExecution(generation int64, size string) ExecutionContext {
+	execution := testExecution("pvc.deploy", generation)
+	execution.Inputs = stringMapToAny(map[string]string{
+		"namespace": "hnb-e2e", "name": "demo-data", "storage_class": "fast", "size": size,
+	})
+	return execution
+}
+
+func TestPVCCreateAndReplay(t *testing.T) {
+	execution := pvcExecution(1, "128Mi")
+	client := fake.NewClientset()
+	client.PrependReactor("create", "persistentvolumeclaims", func(action ktesting.Action) (bool, runtime.Object, error) {
+		created := action.(ktesting.CreateAction).GetObject().(*corev1.PersistentVolumeClaim).DeepCopy()
+		created.UID = types.UID("pvc-uid")
+		created.ResourceVersion = "1"
+		created.Spec.VolumeName = "pv-1"
+		created.Status.Phase = corev1.ClaimBound
+		err := client.Tracker().Create(corev1.SchemeGroupVersion.WithResource("persistentvolumeclaims"), created, created.Namespace)
+		return true, created, err
+	})
+	result, err := NewExecutor(client, allowedNamespaces(), 10).Execute(context.Background(), execution)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Outputs["uid"] != "pvc-uid" || result.Outputs["volumeName"] != "pv-1" || result.Outputs["action"] != "pvc.deploy" {
+		t.Fatalf("result = %#v", result)
+	}
+	claim, err := client.CoreV1().PersistentVolumeClaims("hnb-e2e").Get(context.Background(), "demo-data", metav1.GetOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if claim.Spec.Resources.Requests.Storage().String() != "128Mi" || *claim.Spec.StorageClassName != "fast" || claim.Annotations[tenantAnnotation] != "tenant-a" {
+		t.Fatalf("claim = %#v", claim)
+	}
+	result, err = NewExecutor(client, allowedNamespaces(), 10).Execute(context.Background(), execution)
+	if err != nil || result.Outputs["uid"] != "pvc-uid" {
+		t.Fatalf("replay = %#v/%v", result, err)
+	}
+	if claims := actionsFor(client, "persistentvolumeclaims", "update"); claims != 0 {
+		t.Fatal("exact replay updated the pvc")
+	}
+}
+
+func TestPVCFencingAndInvalidSize(t *testing.T) {
+	client := fake.NewClientset()
+	desired := &corev1.PersistentVolumeClaim{}
+	// Create a managed PVC at generation 2 without binding it.
+	execution := pvcExecution(2, "128Mi")
+	desired.ObjectMeta = metav1.ObjectMeta{Name: "demo-data", Namespace: "hnb-e2e", UID: types.UID("pvc-uid")}
+	desired.Spec.StorageClassName = new(string)
+	*desired.Spec.StorageClassName = "fast"
+	setPVCExecutionAnnotations(desired, execution, "pvc.deploy")
+	client = fake.NewClientset(desired)
+	_, err := NewExecutor(client, allowedNamespaces(), 10).Execute(context.Background(), pvcExecution(1, "128Mi"))
+	assertStatusError(t, err, ErrorFenced, false)
+
+	client = fake.NewClientset()
+	_, err = NewExecutor(client, allowedNamespaces(), 10).Execute(context.Background(), pvcExecution(1, "0Mi"))
+	assertStatusError(t, err, ErrorInvalidRequest, false)
+	if actionsFor(client, "persistentvolumeclaims", "create") != 0 {
+		t.Fatal("invalid pvc was created")
+	}
+}
+
+func TestDeploymentMountsPVCAndSecretWithoutReadingSecret(t *testing.T) {
+	execution := testExecution("deploy", 1)
+	execution.Inputs = stringMapToAny(map[string]string{
+		"namespace": "hnb-e2e", "name": "demo", "image": "registry.example/app@sha256:" + strings.Repeat("a", 64),
+		"replicas": "1", "pvc_name": "demo-data", "pvc_mount_path": "/data",
+		"secret_name": "demo-secret", "secret_mount_path": "/etc/hnb-secret",
+	})
+	executor := NewExecutor(fake.NewClientset(), allowedNamespaces(), 10)
+	deployment, err := executor.desiredDeployment(execution, "hnb-e2e", "demo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(deployment.Spec.Template.Spec.Volumes) != 2 || len(deployment.Spec.Template.Spec.Containers[0].VolumeMounts) != 2 {
+		t.Fatalf("volumes = %#v mounts = %#v", deployment.Spec.Template.Spec.Volumes, deployment.Spec.Template.Spec.Containers[0].VolumeMounts)
+	}
+	if deployment.Spec.Template.Spec.Volumes[0].PersistentVolumeClaim.ClaimName != "demo-data" ||
+		deployment.Spec.Template.Spec.Volumes[1].Secret.SecretName != "demo-secret" {
+		t.Fatalf("volumes = %#v", deployment.Spec.Template.Spec.Volumes)
+	}
+}
+
+func actionsFor(client *fake.Clientset, resource, verb string) int {
+	count := 0
+	for _, action := range client.Actions() {
+		if action.GetVerb() == verb && action.GetResource().Resource == resource {
+			count++
+		}
+	}
+	return count
+}
+
+func upgradeExecution(generation int64, source, target, compatible, backup string) ExecutionContext {
+	execution := testExecution("workload.upgrade", generation)
+	execution.Inputs = stringMapToAny(map[string]string{
+		"namespace": "hnb-e2e", "name": "demo", "source_image": source, "target_image": target,
+		"expected_uid": "deployment-uid", "data_compatible": compatible, "backup_ref": backup,
+	})
+	return execution
+}
+
+func TestWorkloadUpgradeUsesPinnedSourceTargetAndBackup(t *testing.T) {
+	base := managedDeployment(testExecution("deploy", 1))
+	source := "registry.example/v1@sha256:" + strings.Repeat("c", 64)
+	base.Spec.Template.Spec.Containers[0].Image = source
+	target := "registry.example/v2@sha256:" + strings.Repeat("d", 64)
+	execution := upgradeExecution(2, source, target, "true", "backup-20261018")
+	client := fake.NewClientset(base)
+	installAvailableUpdateReactor(client)
+	result, err := NewExecutor(client, allowedNamespaces(), 10).Execute(context.Background(), execution)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Outputs["action"] != "workload.upgraded" {
+		t.Fatalf("result = %#v", result)
+	}
+	current, err := client.AppsV1().Deployments("hnb-e2e").Get(context.Background(), "demo", metav1.GetOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if current.Spec.Template.Spec.Containers[0].Image != target ||
+		current.Annotations[sourceImageAnnotation] != source ||
+		current.Annotations[targetImageAnnotation] != target ||
+		current.Annotations[backupRefAnnotation] != "backup-20261018" {
+		t.Fatalf("deployment = %#v", current)
+	}
+}
+
+func TestWorkloadUpgradeRejectsMissingCompatibilityBackupAndSource(t *testing.T) {
+	base := managedDeployment(testExecution("deploy", 1))
+	source := "registry.example/v1@sha256:" + strings.Repeat("c", 64)
+	base.Spec.Template.Spec.Containers[0].Image = source
+	target := "registry.example/v2@sha256:" + strings.Repeat("d", 64)
+	cases := []struct {
+		execution ExecutionContext
+		code      ErrorCode
+	}{
+		{upgradeExecution(2, source, target, "false", "backup"), ErrorInvalidRequest},
+		{upgradeExecution(2, source, target, "true", ""), ErrorInvalidRequest},
+		{upgradeExecution(2, "registry.example/other@sha256:"+strings.Repeat("e", 64), target, "true", "backup"), ErrorResourceConflict},
+	}
+	for _, tc := range cases {
+		client := fake.NewClientset(base)
+		_, err := NewExecutor(client, allowedNamespaces(), 10).Execute(context.Background(), tc.execution)
+		assertStatusError(t, err, tc.code, false)
+	}
+}
+
+func rollbackExecution(generation int64, source, target, irreversible, backup string) ExecutionContext {
+	execution := testExecution("workload.rollback", generation)
+	execution.Inputs = stringMapToAny(map[string]string{
+		"namespace": "hnb-e2e", "name": "demo", "source_image": source, "target_image": target,
+		"expected_uid": "deployment-uid", "data_irreversible": irreversible, "backup_ref": backup,
+	})
+	return execution
+}
+
+func TestWorkloadRollbackRestoresPinnedTarget(t *testing.T) {
+	base := managedDeployment(testExecution("deploy", 1))
+	bad := "registry.example/bad@sha256:" + strings.Repeat("e", 64)
+	good := "registry.example/v2@sha256:" + strings.Repeat("d", 64)
+	base.Spec.Template.Spec.Containers[0].Image = bad
+	execution := rollbackExecution(3, bad, good, "false", "lab-backup-v1")
+	client := fake.NewClientset(base)
+	installAvailableUpdateReactor(client)
+	result, err := NewExecutor(client, allowedNamespaces(), 10).Execute(context.Background(), execution)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Outputs["action"] != "workload.rolledback" {
+		t.Fatalf("result = %#v", result)
+	}
+	current, err := client.AppsV1().Deployments("hnb-e2e").Get(context.Background(), "demo", metav1.GetOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if current.Spec.Template.Spec.Containers[0].Image != good || current.Annotations[backupRefAnnotation] != "lab-backup-v1" {
+		t.Fatalf("deployment = %#v", current)
+	}
+}
+
+func TestWorkloadRollbackRejectsIrreversibleAndMissingBackup(t *testing.T) {
+	base := managedDeployment(testExecution("deploy", 1))
+	bad := "registry.example/bad@sha256:" + strings.Repeat("e", 64)
+	good := "registry.example/v2@sha256:" + strings.Repeat("d", 64)
+	base.Spec.Template.Spec.Containers[0].Image = bad
+	for _, execution := range []ExecutionContext{
+		rollbackExecution(3, bad, good, "true", "backup"),
+		rollbackExecution(3, bad, good, "false", ""),
+	} {
+		client := fake.NewClientset(base)
+		_, err := NewExecutor(client, allowedNamespaces(), 10).Execute(context.Background(), execution)
+		assertStatusError(t, err, ErrorInvalidRequest, false)
+	}
+}
+
+func deletePVCExecution(generation int64, authorized, uid string) ExecutionContext {
+	execution := testExecution("pvc.delete", generation)
+	execution.Inputs = stringMapToAny(map[string]string{
+		"namespace": "hnb-e2e", "name": "demo-data", "expected_uid": uid, "data_cleanup_authorized": authorized,
+	})
+	return execution
+}
+
+func managedPVC(execution ExecutionContext) *corev1.PersistentVolumeClaim {
+	claim := &corev1.PersistentVolumeClaim{ObjectMeta: metav1.ObjectMeta{Name: "demo-data", Namespace: "hnb-e2e", UID: types.UID("pvc-uid")}}
+	storageClass := "fast"
+	claim.Spec.StorageClassName = &storageClass
+	setPVCExecutionAnnotations(claim, execution, "pvc.deploy")
+	return claim
+}
+
+func TestPVCDeleteRequiresExplicitAuthorizationAndOwner(t *testing.T) {
+	base := managedPVC(pvcExecution(1, "128Mi"))
+	client := fake.NewClientset(base)
+	_, err := NewExecutor(client, allowedNamespaces(), 10).Execute(context.Background(), deletePVCExecution(2, "false", "pvc-uid"))
+	assertStatusError(t, err, ErrorInvalidRequest, false)
+	if actionsFor(client, "persistentvolumeclaims", "delete") != 0 {
+		t.Fatal("unauthorized pvc delete reached the target")
+	}
+	_, err = NewExecutor(client, allowedNamespaces(), 10).Execute(context.Background(), deletePVCExecution(2, "true", "wrong-uid"))
+	assertStatusError(t, err, ErrorResourceConflict, false)
+
+	foreign := base.DeepCopy()
+	foreign.Annotations[tenantAnnotation] = "tenant-b"
+	client = fake.NewClientset(foreign)
+	_, err = NewExecutor(client, allowedNamespaces(), 10).Execute(context.Background(), deletePVCExecution(2, "true", "pvc-uid"))
+	assertStatusError(t, err, ErrorResourceConflict, false)
+
+	client = fake.NewClientset(base)
+	result, err := NewExecutor(client, allowedNamespaces(), 10).Execute(context.Background(), deletePVCExecution(2, "true", "pvc-uid"))
+	if err != nil || result.Outputs["action"] != "pvc.deleted" {
+		t.Fatalf("delete = %#v/%v", result, err)
+	}
+	if _, err := client.CoreV1().PersistentVolumeClaims("hnb-e2e").Get(context.Background(), "demo-data", metav1.GetOptions{}); !apierrors.IsNotFound(err) {
+		t.Fatalf("pvc still exists: %v", err)
+	}
 }

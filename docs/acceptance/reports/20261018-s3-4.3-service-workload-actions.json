@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "s3-service-workload/v1",
+  "runId": "s3-4.3-service-workload-20261018",
+  "commit": "533d8ae41b386d9ae738528f73641720d40f997f",
+  "scope": "typed service.deploy provider action with ownership, idempotency, CAS, fencing, partial-failure prevention and minimal target RBAC; no real HTTP target execution",
+  "assertions": {
+    "typed_service_deploy": true,
+    "associated_workload_ownership": true,
+    "tenant_ownership_annotations": true,
+    "idempotent_replay": true,
+    "cas_conflict_retry": true,
+    "fencing_reject": true,
+    "no_partial_service_without_workload": true,
+    "invalid_port_rejected": true,
+    "minimal_target_rbac": true
+  },
+  "rbac": {
+    "allowed": [
+      "create services -n hnb-app",
+      "update deployments -n hnb-app"
+    ],
+    "denied": [
+      "create services -n default",
+      "get secrets -n hnb-app",
+      "create namespaces"
+    ]
+  },
+  "caveats": [
+    "provider HTTP target execution is deferred to 4.11/4.12",
+    "service.delete is 4.9",
+    "new action conformance is 4.10"
+  ]
+}

@@ -1,0 +1,80 @@
+{
+  "schemaVersion": "s3-action-conformance/v1",
+  "runId": "s3-4.10-action-conformance-20261018",
+  "commit": "533d8ae41b386d9ae738528f73641720d40f997f",
+  "status": "passed",
+  "scope": "new action evidence matrix, RBAC, hard quota, NetworkPolicy allow/deny and lab performance budgets",
+  "actions": [
+    "service.deploy",
+    "pvc.deploy",
+    "pvc.delete",
+    "workload.upgrade",
+    "workload.rollback",
+    "gateway.route"
+  ],
+  "rbac": {
+    "allowed": [
+      "create services hnb-app",
+      "update deployments hnb-app",
+      "create/get/delete pvc hnb-app",
+      "routes/hnb-app+hnb-lab-probes",
+      "read gateway/hnb-gateway"
+    ],
+    "denied": [
+      "get secrets",
+      "default namespace services",
+      "create namespaces"
+    ]
+  },
+  "quota": {
+    "limitStorage": "200Mi",
+    "usedStorage": "128Mi",
+    "deny256Mi": true,
+    "allow64Mi": true,
+    "deniedPVCNotCreated": true
+  },
+  "networkIsolation": {
+    "defaultDeny": true,
+    "sameNamespaceAllowed": true,
+    "otherNamespaceDenied": true,
+    "policyActuallyEnforced": true,
+    "testNamespacesDeleted": true
+  },
+  "assertions": {
+    "service_contract_security_idempotency_fencing": true,
+    "pvc_contract_security_idempotency_quota": true,
+    "upgrade_rollback_contract_security_idempotency_fencing": true,
+    "delete_authorization_owner": true,
+    "gateway_contract_controller_network_negatives": true,
+    "rbac_allow_deny": true,
+    "hard_quota_allow_deny": true,
+    "network_isolation_allow_deny": true,
+    "performance_conformance": true,
+    "platform_per_action_matrix": false,
+    "performance_budget_measured": true
+  },
+  "partial": [
+    "lab performance only; not S0 production capacity",
+    "gateway.route not individually timed",
+    "platform-api production-ready matrix promotion not granted"
+  ],
+  "performance": {
+    "budget": "20261018-s3-4.10-performance-budget.json",
+    "result": "20261018-s3-4.10-performance-result.json",
+    "readinessP95ms": 4.04,
+    "clusterDetailP95ms": 6.24,
+    "actionReplayP95ms": 6.89,
+    "operationSeconds": [
+      0.156,
+      0.856,
+      0.889,
+      1.436
+    ],
+    "errors": 0
+  },
+  "limitations": [
+    "lab performance only; not S0 production capacity",
+    "gateway.route not individually timed",
+    "platform-api production-ready matrix promotion not granted"
+  ]
+}

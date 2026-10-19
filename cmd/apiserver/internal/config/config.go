@@ -21,6 +21,7 @@ type Config struct {
 	MetricsAddr            string
 	TokenIssuer            string
 	TokenAudience          string
+	ObserverAudience       string
 	TokenAudiences         []string
 	TokenKeyManifestPath   string
 	TokenPrivateKeyPath    string
@@ -50,6 +51,7 @@ func Load() (*Config, error) {
 	flag.StringVar(&cfg.MetricsAddr, "metrics-addr", envOrDefault("METRICS_ADDR", ":8081"), "Metrics listen address")
 	flag.StringVar(&cfg.TokenIssuer, "token-issuer", os.Getenv("API_TOKEN_ISSUER"), "Access token issuer")
 	cfg.TokenAudience = "hnb-apiserver"
+	cfg.ObserverAudience = envOrDefault("OBSERVER_TOKEN_AUDIENCE", "hnb-platform-api")
 	flag.StringVar(&audiences, "token-audiences", os.Getenv("API_TOKEN_AUDIENCES"), "Comma-separated approved access token audiences")
 	flag.StringVar(&cfg.TokenPrivateKeyPath, "token-private-key", os.Getenv("API_TOKEN_PRIVATE_KEY_FILE"), "PEM ES256 private key file")
 	flag.StringVar(&cfg.TokenKeyManifestPath, "token-key-manifest", os.Getenv("API_TOKEN_KEY_MANIFEST_FILE"), "Versioned signing-key manifest file")

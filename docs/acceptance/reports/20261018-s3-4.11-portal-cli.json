@@ -1,0 +1,88 @@
+{
+  "schemaVersion": "s3-portal-cli/v1",
+  "runId": "s3-4.11-portal-cli-20261018",
+  "commit": "533d8ae41b386d9ae738528f73641720d40f997f",
+  "status": "passed",
+  "scope": "Portal page and hnbctl plan/status/preview plus deploy/upgrade/rollback/delete through real Operations",
+  "cloudRestart": {
+    "managementNodesReady": true,
+    "targetNodesReady": true,
+    "gatewayProgrammed": true,
+    "pvcRetained": true,
+    "agentGeneration": 6,
+    "targetStatus": "RUNNING/FRESH"
+  },
+  "executionPath": "CLI -> BFF -> platform-api /v1/operations -> operation-worker -> kubernetes-provider -> target",
+  "operations": {
+    "deploy": {
+      "id": "e8ebd453-e427-42a8-adcd-46ab92d0bab2",
+      "status": "succeeded",
+      "uid": "2bd312c1-f88c-41b3-a664-0f336e0edbfe"
+    },
+    "upgrade": {
+      "id": "ef6275e7-1501-438b-bfb8-a683e3640a5d",
+      "status": "succeeded"
+    },
+    "rollback": {
+      "id": "4c04334d-c265-4046-b7bf-357aae9b5f6b",
+      "initial": "pending_approval",
+      "final": "succeeded"
+    },
+    "delete": {
+      "id": "3082c944-06e4-48dc-9625-d3164f6096f8",
+      "initial": "pending_approval",
+      "final": "succeeded",
+      "deploymentReplicas": 0,
+      "pvc": "Bound"
+    },
+    "portalDeploy": {
+      "id": "ff13be05-5137-4421-888f-f4eb27ec5f24",
+      "status": "succeeded"
+    }
+  },
+  "replay": {
+    "idempotencyKey": "cli-deploy-5",
+    "operationId": "e8ebd453-e427-42a8-adcd-46ab92d0bab2",
+    "same": true
+  },
+  "pendingWithoutApproval": {
+    "id": "5bb37f99-67d7-47c8-8dc1-f89442917f6d",
+    "status": "pending_approval"
+  },
+  "tenantSwitch": {
+    "mismatchRejected": true
+  },
+  "assertions": {
+    "cli_plan": true,
+    "portal_bff_plan": true,
+    "cli_status": true,
+    "portal_bff_status": true,
+    "cli_deletion_preview": true,
+    "portal_bff_deletion_preview": true,
+    "cli_deploy_operation": true,
+    "cli_upgrade_operation": true,
+    "cli_rollback_operation": true,
+    "cli_delete_operation": true,
+    "bff_operation_execution": true,
+    "operation_worker_provider_route": true,
+    "high_risk_requires_approval": true,
+    "duplicate_replay_same_operation": true,
+    "tenant_scope_guard": true,
+    "portal_visual_action_page": true,
+    "portal_action_page": true,
+    "portal_deploy_operation": true
+  },
+  "partial": [
+    "readiness verification not auto-triggered by Operation completion",
+    "lab images are not release artifacts"
+  ],
+  "portal": {
+    "page": "/application/delivery",
+    "menu": "\u5e94\u7528\u4ea4\u4ed8",
+    "playwright": true,
+    "deletionPreview": true,
+    "deployOperationId": "ff13be05-5137-4421-888f-f4eb27ec5f24",
+    "deployStatus": "succeeded", "planNamespace": "hnb-app", "planStep": "api/Deployment",
+    "deploymentUid": "870c125e-6ce2-4aa3-a579-970a6ff3c38c"
+  }
+}

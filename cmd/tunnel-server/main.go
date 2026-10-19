@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -14,6 +15,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/F31/hnb/cmd/tunnel-server/internal/config"
+	dbpkg "github.com/F31/hnb/pkg/db"
 	"github.com/F31/hnb/pkg/iam"
 	"github.com/F31/hnb/pkg/tunnel"
 )
@@ -41,7 +43,37 @@ func main() {
 	if err != nil {
 		log.Fatalf("tunnel service identity: %v", err)
 	}
+	agentVerifier, err := iam.NewAgentTunnelTokenVerifier(iam.AgentTunnelTokenConfig{
+		Issuer: cfg.TokenIssuer, Audience: cfg.TokenAudience, TTL: iam.MaxAgentTunnelTokenTTL,
+	}, keys)
+	if err != nil {
+		log.Fatalf("agent tunnel token verifier: %v", err)
+	}
+	var sessions iam.AgentSessionStore
+	if cfg.DBDSN != "" {
+		db, err := sql.Open("postgres", cfg.DBDSN)
+		if err != nil {
+			log.Fatalf("db: %v", err)
+		}
+		defer db.Close()
+		if err := dbpkg.WaitForReady(context.Background(), db); err != nil {
+			log.Fatalf("db ping: %v", err)
+		}
+		sessions = iam.NewServiceIdentityDBStore(db)
+	}
 	verifyToken := func(ctx context.Context, token, tenantID, clusterID string) (time.Time, error) {
+		if claims, err := agentVerifier.VerifyClaims(ctx, token, tenantID, clusterID); err == nil {
+			if claims.SessionID != "" {
+				if sessions == nil {
+					return time.Time{}, fmt.Errorf("agent session store is unavailable")
+				}
+				session, err := sessions.GetAgentSession(ctx, tenantID, clusterID, claims.SessionID)
+				if err != nil || session.RevokedAt != nil || !session.ExpiresAt.After(time.Now()) || session.Generation != claims.Generation {
+					return time.Time{}, fmt.Errorf("agent session unavailable")
+				}
+			}
+			return time.Unix(claims.ExpiresAt, 0).UTC(), nil
+		}
 		trusted, err := authenticator.Authenticate(ctx, token, iam.ActionExecute, tenantID, "cluster", clusterID)
 		return trusted.ExpiresAt, err
 	}

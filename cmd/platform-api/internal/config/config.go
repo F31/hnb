@@ -119,9 +119,6 @@ func (c *Config) DBConfig() db.DatabaseConfig {
 	if c.DBDSN != "" {
 		if parsed, err := db.ParsePostgresURL(c.DBDSN); err == nil {
 			parsed.Driver = c.DBDriver
-			if c.DBDriver == "" {
-				parsed.Driver = parsed.Driver
-			}
 			parsed.MaxOpenConns = 25
 			parsed.MaxIdleConns = 10
 			parsed.ConnMaxLifetime = 5 * time.Minute

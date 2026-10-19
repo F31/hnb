@@ -1,0 +1,78 @@
+{
+  "schemaVersion": "s2-reconnect-portal-cli/v1",
+  "runId": "s2-reconnect-portal-cli-20261018",
+  "commit": "533d8ae41b386d9ae738528f73641720d40f997f",
+  "scope": "independent target Agent stop/re-enrollment, PVC state, source-reset, stale/fresh recovery, Portal BFF and CLI list; 3.4 passed, 3.5 partial",
+  "targetId": "ef14ba93-f2df-523f-9231-cd2fad333cc3",
+  "outage": {
+    "stoppedAt": "2026-10-18T03:55:27Z",
+    "restartedAt": "2026-10-18T04:01:40Z",
+    "durationSeconds": 373,
+    "stale": {
+      "status": "STALE",
+      "freshnessState": "STALE",
+      "lifecycleState": "ACTIVE",
+      "healthState": "HEALTHY",
+      "connectivityState": "CONNECTED",
+      "observedAt": "2026-10-18T03:51:30Z",
+      "available": false,
+      "generation": 4,
+      "revision": 15
+    }
+  },
+  "recovery": {
+    "preGeneration": 4,
+    "newGeneration": 5,
+    "sourceReset": true,
+    "status": "RUNNING",
+    "freshnessState": "FRESH",
+    "runtimeVersion": "v1.36.5+k3s1",
+    "nodeCount": 2,
+    "available": true,
+    "generation": 5,
+    "revision": 9,
+    "duplicateTarget": false,
+    "observedAt": "2026-10-18T04:06:10Z"
+  },
+  "agentRestart": {
+    "beforeSequence": 8,
+    "afterSequence": 9,
+    "gap": false
+  },
+  "portal": {
+    "endpoint": "GET /api/v1/resources/clusters",
+    "targetVisible": true,
+    "available": true
+  },
+  "cli": {
+    "command": "hnbctl cluster list --platform-url https://10.9.180.147:30443 --token-file \u2026",
+    "targetVisible": true,
+    "active": true,
+    "runtimeVersion": "v1.36.5+k3s1",
+    "sameImportReplay": {
+      "intentId": "914b4bc5-0594-4bac-940f-8f8408a3045e",
+      "operationId": "600fabde-2c0e-4ca3-8cb0-91208cf85168",
+      "replayed": true
+    }
+  },
+  "assertions": {
+    "agent_state_persisted_on_pvc": true,
+    "agent_restart_resumes_sequence": true,
+    "stale_preserves_old_state": true,
+    "re_enrollment_new_generation": true,
+    "source_reset_used": true,
+    "recovery_fresh_and_available": true,
+    "no_duplicate_target": true,
+    "portal_and_cli_same_target": true,
+    "portal_and_cli_same_import_replay": true
+  },
+  "partial": [
+    "cross-tenant rejection not exercised with a second tenant token",
+    "late-response isolation not exercised"
+  ],
+  "caveats": [
+    "lab TLS reverse proxy, not management Gateway",
+    "lab conformance report expired after one hour",
+    "service subject provisioned directly in lab database"
+  ]
+}

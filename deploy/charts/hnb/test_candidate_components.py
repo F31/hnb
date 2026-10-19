@@ -171,6 +171,42 @@ class WholeChartDigestTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("serviceTokenFiles", result.stderr)
 
+    def test_operation_worker_renewal_adapter_receives_identity_configuration(self):
+        def configure(doc):
+            doc["operation-worker"]["serviceIdentity"] = {
+                "enabled": True, "issuerURL": "http://apiserver:8080",
+                "issuer": "https://issuer.hnb.test/", "existingManifestSecret": "renewal-public-keys",
+            }
+
+        result = self.render_all(configure)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        deployment = next(d for d in yaml.safe_load_all(result.stdout)
+                          if d and d["kind"] == "Deployment" and d["metadata"]["name"] == "operation-worker")
+        pod = deployment["spec"]["template"]["spec"]
+        env = {e["name"]: e.get("value") for e in pod["containers"][0]["env"]}
+        self.assertEqual(env["SERVICE_IDENTITY_ISSUER_URL"], "http://apiserver:8080")
+        self.assertEqual(env["SERVICE_IDENTITY_ISSUER"], "https://issuer.hnb.test/")
+        self.assertEqual(env["SERVICE_IDENTITY_KEY_MANIFEST_FILE"], "/var/run/hnb-service-identity/manifest.json")
+        self.assertEqual(env["SERVICE_IDENTITY_KEY_RELOAD_INTERVAL"], "5s")
+        mount = next(m for m in pod["containers"][0]["volumeMounts"] if m["name"] == "service-identity-keys")
+        self.assertTrue(mount["readOnly"])
+        secret = next(v["secret"] for v in pod["volumes"] if v["name"] == "service-identity-keys")
+        self.assertEqual(secret, {"secretName": "renewal-public-keys", "defaultMode": 0o440})
+
+    def test_operation_worker_renewal_requires_issuer_url_and_public_keys(self):
+        for missing in ("issuerURL", "issuer", "existingManifestSecret"):
+            with self.subTest(missing=missing):
+                def configure(doc):
+                    doc["operation-worker"]["serviceIdentity"] = {
+                        "enabled": True, "issuerURL": "http://apiserver:8080",
+                        "issuer": "https://issuer.hnb.test/", "existingManifestSecret": "renewal-public-keys",
+                        missing: "",
+                    }
+
+                result = self.render_all(configure)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("serviceIdentity." + missing + " is required", result.stderr)
+
     def test_kubernetes_provider_requires_explicit_namespaces(self):
         result = self.render_all(lambda doc: doc["kubernetes-provider"].update(allowedNamespaces=[]))
         self.assertNotEqual(result.returncode, 0)

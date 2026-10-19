@@ -1,0 +1,31 @@
+{
+  "schemaVersion": "s3-application-delivery/v1",
+  "runId": "s3-4.1-application-delivery-20261018",
+  "commit": "533d8ae41b386d9ae738528f73641720d40f997f",
+  "scope": "application delivery binding migration and tenant-scoped latest-revision query; no application write/operation",
+  "migration": {
+    "file": "106_application_delivery_bindings.sql",
+    "applied": 1,
+    "skipped": 104,
+    "schemaAfter": "f946ceea25b86fa9c8a514c74708eb005e4cd6402dceeb8b70472187de4c58bb"
+  },
+  "query": {
+    "endpoint": "GET /api/v1/application-deliveries",
+    "latestRevision": 2,
+    "invalidTargetStatus": 400,
+    "temporaryRowsDeleted": 2
+  },
+  "assertions": {
+    "additive_migration_on_existing_schema": true,
+    "tenant_scoped_query": true,
+    "latest_revision_selected": true,
+    "invalid_target_rejected_before_query": true,
+    "pvc_ingress_uid_operation_observation_fields_recorded": true,
+    "no_credentials_recorded": true
+  },
+  "caveats": [
+    "release_id is not yet foreign-keyed to app-market releases",
+    "no write path yet; 4.3-4.5 own typed actions",
+    "real second-tenant token isolation remains 3.5/4.11"
+  ]
+}

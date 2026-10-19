@@ -29,6 +29,10 @@ clusterReadProjection:
   mode: shadow
   alerts:
     enabled: false
+bootstrapAdmin:
+  # Initial instance credential, supplied as an existing Secret, never values.
+  existingSecret: ""
+  passwordKey: password
 identity:
   # Copied from the Secret to a private, owner-only file by the init container.
   stagedKeyName: active-private.pem

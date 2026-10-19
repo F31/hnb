@@ -1,0 +1,44 @@
+{
+  "schemaVersion": "s3-gateway-route/v1",
+  "runId": "s3-4.5-gateway-route-20261018",
+  "commit": "533d8ae41b386d9ae738528f73641720d40f997f",
+  "status": "passed",
+  "scope": "actual Traefik Gateway/HTTPRoute binding, external probe, negative cases for backend, controller, CRD and network",
+  "gateway": {
+    "namespace": "hnb-gateway",
+    "name": "hnb-lab",
+    "class": "hnb-traefik",
+    "address": "10.9.14.115",
+    "programmed": true
+  },
+  "route": {
+    "namespace": "hnb-lab-probes",
+    "name": "probe-app2",
+    "hostname": "app2.hnb.test",
+    "backend": "probe-server:8080",
+    "probeURL": "http://10.9.14.115/",
+    "expectedMarker": "hnb-persist-after-recreation-20261018",
+    "passed": true
+  },
+  "negatives": {
+    "missingBackend": "BackendNotFound",
+    "missingController": "Gateway not Programmed",
+    "unreachablePort": "connection refused",
+    "missingCRD": "CRD is not installed (unit)"
+  },
+  "assertions": {
+    "route_accepted": true,
+    "route_resolved": true,
+    "gateway_programmed": true,
+    "external_probe_passed": true,
+    "missing_backend_fails": true,
+    "missing_controller_fails": true,
+    "unreachable_entry_fails": true,
+    "missing_crd_fails": true
+  },
+  "caveats": [
+    "probe-app2 remains as lab evidence",
+    "TLS/public DNS not part of this run",
+    "4.6 readiness aggregation remains"
+  ]
+}

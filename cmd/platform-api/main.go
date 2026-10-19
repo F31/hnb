@@ -66,6 +66,7 @@ func main() {
 	if err := dbpkg.WaitForReady(context.Background(), db); err != nil {
 		log.Fatalf("db ping: %v", err)
 	}
+	go observer.RunFreshnessSweeper(context.Background(), db, 10*time.Second)
 
 	st, err := store.New(db, store.Driver(cfg.DBDriver))
 	if err != nil {

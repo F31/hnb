@@ -79,11 +79,11 @@ func TestClusterRequiresHTTPSAndPrivateToken(t *testing.T) {
 	}
 }
 
-func TestClusterImportRequiresTargetID(t *testing.T) {
+func TestClusterImportRequiresCredentialReference(t *testing.T) {
 	token := writeTokenFile(t)
 	code, _, errOut := runCLI(t, "cluster", "import", "--platform-url", "https://api.invalid", "--token-file", token, "--idempotency-key", "k")
-	if code == ExitSuccess || !strings.Contains(errOut, "--target-id") {
-		t.Fatalf("import without target id accepted: %d %s", code, errOut)
+	if code == ExitSuccess || !strings.Contains(errOut, "--credential-provider") {
+		t.Fatalf("import without credential reference accepted: %d %s", code, errOut)
 	}
 }
 
@@ -96,9 +96,9 @@ func TestClusterUnknownSubcommandRejected(t *testing.T) {
 
 // cluster list 从服务端权威列表读取，不伪造行；缺凭据与 5xx 本地拒绝。
 func TestClusterListIsServerAuthoritative(t *testing.T) {
-	body := `{"total":1,"targets":[{"id":"t-1","name":"minimal","targetType":"kubernetes","distribution":"k3s","connectionType":"kubeconfig","status":"active","labels":{},"isActive":true,"createdAt":"2026-10-12T00:00:00Z"}]}`
+	body := `{"total":1,"items":[{"clusterId":"t-1","displayName":"minimal","kind":"kubernetes","status":"RUNNING","runtimeVersion":"v1.36.5+k3s1","createdAt":"2026-10-12T00:00:00Z","acceptance":{"available":true}}]}`
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/api/v1/targets" {
+		if r.URL.Path != "/api/v1/resources/clusters" {
 			t.Fatalf("unexpected path: %s", r.URL.Path)
 		}
 		if r.Header.Get("Authorization") != "Bearer fixture-api-token" {

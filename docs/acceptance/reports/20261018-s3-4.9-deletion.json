@@ -1,0 +1,48 @@
+{
+  "schemaVersion": "s3-deletion/v1",
+  "runId": "s3-4.9-deletion-20261018",
+  "commit": "533d8ae41b386d9ae738528f73641720d40f997f",
+  "status": "passed",
+  "scope": "deletion preview, workload tombstone, PVC retention, explicit data cleanup, unmanaged rejection, late deploy fencing",
+  "preview": {
+    "deployment": "demo",
+    "service": "demo-http",
+    "route": "probe-upgrade",
+    "pvc": "demo-data",
+    "pvcAction": "retain",
+    "requiresDataCleanupAuthorization": true
+  },
+  "tombstone": {
+    "generation": 5,
+    "lateDeployGeneration": 4,
+    "fenced": true,
+    "replicas": 0
+  },
+  "retainedPVC": {
+    "name": "demo-data",
+    "status": "Bound",
+    "volume": "pvc-c5b39346-0835-4a5c-9915-c542aa14fbbc"
+  },
+  "cleanup": {
+    "unauthorizedRejected": true,
+    "authorizedDeleted": true
+  },
+  "foreignPVC": {
+    "rejected": true,
+    "remained": true
+  },
+  "assertions": {
+    "deletion_preview": true,
+    "pvc_default_retain": true,
+    "tombstone_written": true,
+    "late_deploy_fenced": true,
+    "cleanup_requires_authorization": true,
+    "authorized_cleanup_deletes": true,
+    "unmanaged_rejected": true
+  },
+  "caveats": [
+    "service/route delete execution is 4.12",
+    "pvc delete has no tombstone",
+    "demo-data retained"
+  ]
+}

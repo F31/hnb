@@ -417,3 +417,65 @@ func TestAgentEnrollmentSessionRenewAndRevocation(t *testing.T) {
 		t.Fatalf("missing renew/revoke session audit events: %+v", audit.events)
 	}
 }
+
+type fakeAgentObserverIssuer struct {
+	calls      int
+	identity   iam.ObserverIdentity
+	leaseID    string
+	generation int64
+}
+
+func (f *fakeAgentObserverIssuer) Sign(_ context.Context, _ string, identity iam.ObserverIdentity, leaseID string, generation int64) (string, error) {
+	f.calls++
+	f.identity, f.leaseID, f.generation = identity, leaseID, generation
+	return "observer-token-" + uuid.NewString(), nil
+}
+
+func TestAgentEnrollmentBindsObserverTokenToSession(t *testing.T) {
+	h, _, _, _, _, now, _, actor := newAgentEnrollmentHandlerForTest(t)
+	issuer := &fakeAgentObserverIssuer{}
+	h.ConfigureObserverTokenSigner(issuer, 5*time.Minute)
+	_, enrollmentSecret := createAgentEnrollmentForTest(t, h, actor, "target-a")
+	rec := exchangeAgentEnrollment(h, enrollmentSecret, "tenant-a", "target-a")
+	if rec.Code != http.StatusOK {
+		t.Fatalf("exchange failed: %d %s", rec.Code, rec.Body.String())
+	}
+	var exchanged struct {
+		Credential      string `json:"credential"`
+		SessionID       string `json:"sessionId"`
+		Generation      int64  `json:"generation"`
+		ObserverToken   string `json:"observerToken"`
+		ObserverExpires string `json:"observerTokenExpiresAt"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &exchanged); err != nil {
+		t.Fatal(err)
+	}
+	if exchanged.ObserverToken == "" || exchanged.ObserverExpires == "" {
+		t.Fatal("exchange returned no observer token")
+	}
+	if issuer.calls != 1 || issuer.identity.TenantID != "tenant-a" || issuer.identity.TargetID != "target-a" ||
+		issuer.identity.TargetKind != "KubernetesTarget" || issuer.identity.ObserverKind != "Agent" ||
+		issuer.identity.ObserverID != "agent-target-a" || issuer.leaseID != exchanged.SessionID || issuer.generation != exchanged.Generation {
+		t.Fatalf("observer binding mismatch: %+v session=%s/%d", issuer, exchanged.SessionID, exchanged.Generation)
+	}
+	if expiry, err := time.Parse(time.RFC3339, exchanged.ObserverExpires); err != nil || expiry.Sub(*now) != 5*time.Minute {
+		t.Fatalf("observer expiry = %q (%v)", exchanged.ObserverExpires, err)
+	}
+
+	renew := httptest.NewRequest(http.MethodPost, "/api/v1/agent-sessions:renew", nil)
+	renew.Header.Set("Authorization", "Bearer "+exchanged.Credential)
+	renewRec := httptest.NewRecorder()
+	h.Renew(renewRec, renew)
+	if renewRec.Code != http.StatusOK {
+		t.Fatalf("renew failed: %d %s", renewRec.Code, renewRec.Body.String())
+	}
+	var renewed struct {
+		ObserverToken string `json:"observerToken"`
+	}
+	if err := json.Unmarshal(renewRec.Body.Bytes(), &renewed); err != nil {
+		t.Fatal(err)
+	}
+	if renewed.ObserverToken == "" || issuer.calls != 2 {
+		t.Fatalf("renewal did not reissue an observer token: %+v", renewed)
+	}
+}

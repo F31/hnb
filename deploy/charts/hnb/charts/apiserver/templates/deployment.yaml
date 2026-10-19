@@ -37,6 +37,13 @@ spec:
               value: {{ required "apiserver.appMarketURL is required" .Values.appMarketURL | quote }}
             - name: REQUIRE_PLATFORM_API
               value: "true"
+            {{- if .Values.bootstrapAdmin.existingSecret }}
+            - name: HNB_BOOTSTRAP_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.bootstrapAdmin.existingSecret | quote }}
+                  key: {{ .Values.bootstrapAdmin.passwordKey | quote }}
+            {{- end }}
             - name: NATS_URL
               value: {{ .Values.nats.url | default $.Values.global.nats.url }}
             - name: NATS_TLS_CERT_FILE

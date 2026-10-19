@@ -1,0 +1,49 @@
+{
+  "schemaVersion": "s2-cross-tenant/v1",
+  "runId": "s2-3.5-cross-tenant-20261018",
+  "commit": "533d8ae41b386d9ae738528f73641720d40f997f",
+  "status": "passed",
+  "tenantA": "default",
+  "tenantB": "c6874e7a-3305-4a2e-b723-1c74a8296698",
+  "tenantBMembership": "d1e8f7fc-bee1-4592-9db7-5845c5c14393",
+  "portal": {
+    "clusters": 0,
+    "emptyText": "\u6682\u65e0\u5df2\u7eb3\u7ba1\u96c6\u7fa4",
+    "tenantATargetVisible": false
+  },
+  "cli": {
+    "clusterListTotal": 0,
+    "aReadiness": "404"
+  },
+  "crossTenant": {
+    "bTarget": "404",
+    "bDeliveries": "empty",
+    "bReadiness": "404",
+    "bAction": "403",
+    "aTarget": "200",
+    "aReadiness": "200"
+  },
+  "lateResponse": {
+    "clustersA": 200,
+    "clustersB": 200,
+    "aHasTarget": true,
+    "bHasTarget": false,
+    "readinessA": 200,
+    "readinessB": 404,
+    "interleavedRuns": 20,
+    "failures": 0
+  },
+  "assertions": {
+    "portal_tenant_b_empty": true,
+    "cli_tenant_b_empty": true,
+    "cross_tenant_read_denied": true,
+    "cross_tenant_action_denied": true,
+    "late_response_isolated": true,
+    "no_cache_bleed_20_runs": true
+  },
+  "limitations": [
+    "lab SQL provisioning for identity bridge/membership/role",
+    "tenant B read/list only",
+    "2-node lab, no production HA"
+  ]
+}

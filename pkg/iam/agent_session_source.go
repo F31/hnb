@@ -9,6 +9,8 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -20,13 +22,15 @@ import (
 // the same session ID and generation; revocation makes every future renewal
 // fail permanently.
 type AgentSessionCredential struct {
-	Credential string    `json:"credential"`
-	ExpiresAt  time.Time `json:"expiresAt"`
-	SessionID  string    `json:"sessionId"`
-	Generation int64     `json:"generation"`
-	TenantID   string    `json:"tenantId,omitempty"`
-	TargetID   string    `json:"targetId,omitempty"`
-	Subject    string    `json:"subject,omitempty"`
+	Credential             string    `json:"credential"`
+	ExpiresAt              time.Time `json:"expiresAt"`
+	SessionID              string    `json:"sessionId"`
+	Generation             int64     `json:"generation"`
+	TenantID               string    `json:"tenantId,omitempty"`
+	TargetID               string    `json:"targetId,omitempty"`
+	Subject                string    `json:"subject,omitempty"`
+	ObserverToken          string    `json:"observerToken,omitempty"`
+	ObserverTokenExpiresAt time.Time `json:"observerTokenExpiresAt,omitempty"`
 }
 
 type AgentSessionIssuer interface {
@@ -128,13 +132,15 @@ func (i *HTTPAgentSessionIssuer) post(ctx context.Context, path string, body []b
 		}
 	}
 	var payload struct {
-		Credential string `json:"credential"`
-		ExpiresAt  string `json:"expiresAt"`
-		SessionID  string `json:"sessionId"`
-		Generation int64  `json:"generation"`
-		TenantID   string `json:"tenantId"`
-		TargetID   string `json:"targetId"`
-		Subject    string `json:"subject"`
+		Credential             string `json:"credential"`
+		ExpiresAt              string `json:"expiresAt"`
+		SessionID              string `json:"sessionId"`
+		Generation             int64  `json:"generation"`
+		TenantID               string `json:"tenantId"`
+		TargetID               string `json:"targetId"`
+		Subject                string `json:"subject"`
+		ObserverToken          string `json:"observerToken"`
+		ObserverTokenExpiresAt string `json:"observerTokenExpiresAt"`
 	}
 	decoder := json.NewDecoder(bytes.NewReader(data))
 	decoder.DisallowUnknownFields()
@@ -152,9 +158,23 @@ func (i *HTTPAgentSessionIssuer) post(ctx context.Context, path string, body []b
 	if _, err := uuid.Parse(payload.SessionID); err != nil {
 		return AgentSessionCredential{}, ErrServiceCredentialRejected
 	}
+	if (payload.ObserverToken == "") != (payload.ObserverTokenExpiresAt == "") {
+		return AgentSessionCredential{}, fmt.Errorf("%w: incomplete observer token payload", ErrServiceCredentialUnavailable)
+	}
+	var observerExpiry time.Time
+	if payload.ObserverToken != "" {
+		if len(payload.ObserverToken) > MaxObserverTokenSize {
+			return AgentSessionCredential{}, fmt.Errorf("%w: observer token is too large", ErrServiceCredentialUnavailable)
+		}
+		observerExpiry, err = time.Parse(time.RFC3339, payload.ObserverTokenExpiresAt)
+		if err != nil || !observerExpiry.After(i.now().UTC()) {
+			return AgentSessionCredential{}, fmt.Errorf("%w: observer token is already expired", ErrServiceCredentialUnavailable)
+		}
+	}
 	return AgentSessionCredential{
 		Credential: payload.Credential, ExpiresAt: expiry, SessionID: payload.SessionID,
 		Generation: payload.Generation, TenantID: payload.TenantID, TargetID: payload.TargetID, Subject: payload.Subject,
+		ObserverToken: payload.ObserverToken, ObserverTokenExpiresAt: observerExpiry,
 	}, nil
 }
 
@@ -163,22 +183,23 @@ func (i *HTTPAgentSessionIssuer) post(ctx context.Context, path string, body []b
 // half its lifetime. A revoked/rejected session is a permanent stop; a
 // transient issuer failure keeps the old token only until its original exp.
 type AgentSessionTokenSource struct {
-	ctx              context.Context
-	cancel           context.CancelFunc
-	verifier         *AgentTunnelTokenVerifier
-	issuer           AgentSessionIssuer
-	tenantID         string
-	targetID         string
-	enrollmentSecret string
-	clock            renewalClock
-	once             sync.Once
-	mu               sync.Mutex
-	changed          chan struct{}
-	value            string
-	expiry           time.Time
-	lastErr          error
-	store            AgentSessionPersistenceStore
-	sessionPath      string
+	ctx               context.Context
+	cancel            context.CancelFunc
+	verifier          *AgentTunnelTokenVerifier
+	issuer            AgentSessionIssuer
+	tenantID          string
+	targetID          string
+	enrollmentSecret  string
+	clock             renewalClock
+	once              sync.Once
+	mu                sync.Mutex
+	changed           chan struct{}
+	value             string
+	expiry            time.Time
+	lastErr           error
+	store             AgentSessionPersistenceStore
+	sessionPath       string
+	observerTokenPath string
 }
 
 func NewAgentSessionTokenSource(parent context.Context, verifier *AgentTunnelTokenVerifier, issuer AgentSessionIssuer, tenantID, targetID, enrollmentSecret string) (*AgentSessionTokenSource, error) {
@@ -208,6 +229,15 @@ func NewAgentSessionTokenSource(parent context.Context, verifier *AgentTunnelTok
 func (s *AgentSessionTokenSource) ConfigurePersistence(store AgentSessionPersistenceStore, path string) {
 	s.mu.Lock()
 	s.store, s.sessionPath = store, path
+	s.mu.Unlock()
+}
+
+// ConfigureObserverTokenFile writes the session-bound observer token to a
+// private file whenever the session is exchanged or rotated. The observer
+// reporter reads that file for each ingest request.
+func (s *AgentSessionTokenSource) ConfigureObserverTokenFile(path string) {
+	s.mu.Lock()
+	s.observerTokenPath = path
 	s.mu.Unlock()
 }
 
@@ -344,12 +374,41 @@ func (s *AgentSessionTokenSource) verify(credential AgentSessionCredential) erro
 func (s *AgentSessionTokenSource) set(credential AgentSessionCredential) {
 	s.mu.Lock()
 	s.value, s.expiry, s.lastErr = credential.Credential, credential.ExpiresAt, nil
-	store, path := s.store, s.sessionPath
+	store, path, observerPath := s.store, s.sessionPath, s.observerTokenPath
 	s.mu.Unlock()
 	if store != nil && path != "" {
 		_ = store.Save(path, credential)
 	}
+	if observerPath != "" && credential.ObserverToken != "" && credential.ObserverTokenExpiresAt.After(time.Now().UTC()) {
+		_ = writePrivateFile(observerPath, []byte(credential.ObserverToken))
+	}
 	s.notify()
+}
+
+func writePrivateFile(path string, data []byte) error {
+	dir := filepath.Dir(path)
+	tmp, err := os.CreateTemp(dir, ".observer-token-*")
+	if err != nil {
+		return err
+	}
+	name := tmp.Name()
+	defer os.Remove(name)
+	if err := tmp.Chmod(0o600); err != nil {
+		tmp.Close()
+		return err
+	}
+	if _, err := tmp.Write(data); err != nil {
+		tmp.Close()
+		return err
+	}
+	if err := tmp.Sync(); err != nil {
+		tmp.Close()
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+	return os.Rename(name, path)
 }
 
 func (s *AgentSessionTokenSource) fail(err error) {

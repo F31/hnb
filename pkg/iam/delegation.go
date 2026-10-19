@@ -234,6 +234,13 @@ func validateDelegationEvidence(actor TrustedContext, evidence DelegationEvidenc
 			!semanticDigestPattern.MatchString(evidence.SemanticDigest) {
 			return errors.New("invalid delegation evidence")
 		}
+	case string(ResourceApplicationDelivery):
+		// Application action delegation is scoped to one immutable delivery
+		// binding; it never carries an operation ID before the Operation exists.
+		if !uuidString(evidence.Scope.ResourceID) || evidence.Action != ActionExecute ||
+			evidence.IntentKind != "" || evidence.SemanticDigest != "" {
+			return errors.New("invalid delegation evidence")
+		}
 	case string(ResourceOperation):
 		// Operation delegation: the operation UUID and an operation action are
 		// required; list carries no resource ID. There is no intent kind or

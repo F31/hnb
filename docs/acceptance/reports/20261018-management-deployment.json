@@ -1,0 +1,130 @@
+{
+  "schemaVersion": "management-deployment/v1",
+  "runId": "management-deployment-20261018",
+  "commit": "533d8ae41b386d9ae738528f73641720d40f997f",
+  "scope": "three-host lab management cluster startup deployment and real login; no independent target import, Agent onboarding, application E2E, HA or production certification",
+  "startedAt": "2026-10-18T08:53:00Z",
+  "finishedAt": "2026-10-18T09:12:00Z",
+  "exitCode": 0,
+  "commands": [
+    "python3 scripts/lab/build-management.py --output-dir /tmp/opencode/hnb-lab-build",
+    "/home/ubuntu/deploy-management.sh /home/ubuntu/management-infra.yaml infra",
+    "/tmp/hnb-migrate -owner platform|market|artifact -dir /tmp/migrations -dsn-file /tmp/dsn-*",
+    "/home/ubuntu/deploy-management.sh /home/ubuntu/management-full.yaml full",
+    "curl http://127.0.0.1:18080/api/v1/auth/login",
+    "curl -H Authorization: Bearer <admin-token> http://127.0.0.1:18080/api/v1/{workspaces,tenants,agents}"
+  ],
+  "images": {
+    "apiserver": {
+      "repository": "docker.io/hnb-lab/apiserver",
+      "digest": "sha256:16e049e63508370510567dbe04cafc3578f562fe2aa90ae83a828151b6f117a6"
+    },
+    "platform-api": {
+      "repository": "docker.io/hnb-lab/platform-api",
+      "digest": "sha256:6eb07c559629a4885d0168e80c755603deb423a730458691f6906e94b50cf163"
+    },
+    "operation-worker": {
+      "repository": "docker.io/hnb-lab/operation-worker",
+      "digest": "sha256:fdf3ece464ce6986980b877d8366379d41e5c1934e490f497f2228b9cfe64238"
+    },
+    "extension-controller": {
+      "repository": "docker.io/hnb-lab/extension-controller",
+      "digest": "sha256:c3ef76959fca5f566ed98139e5b97df4496ea0954b2be1a0a0fb31e9d9e527ac"
+    },
+    "app-market": {
+      "repository": "docker.io/hnb-lab/app-market",
+      "digest": "sha256:8c2ed0ead07672b35d646376669e1492c5f02a17784f492368f4e95a701e7bfa"
+    },
+    "cluster-router": {
+      "repository": "docker.io/hnb-lab/cluster-router",
+      "digest": "sha256:a404eecefeb2cce43bdd57fff4ae48df4c50034696122527931e4fdb17416563"
+    },
+    "tunnel-server": {
+      "repository": "docker.io/hnb-lab/tunnel-server",
+      "digest": "sha256:8086013a8cce6ff95b2d4c7c7ca7ae3f9577a3336a1acc85594e829ca463c7ca"
+    },
+    "kubernetes-provider": {
+      "repository": "docker.io/hnb-lab/kubernetes-provider",
+      "digest": "sha256:5cbc938392fa8273350419d8d948d910623f6166c99052bfbef8ea375a7bcc49"
+    },
+    "runtime-target-lifecycle-provider": {
+      "repository": "docker.io/hnb-lab/runtime-target-lifecycle-provider",
+      "digest": "sha256:4616558e0ab237429555f2bd80ab582713113da01925e5f90fe78b22aab30b9d"
+    },
+    "cluster-agent": {
+      "repository": "docker.io/hnb-lab/cluster-agent",
+      "digest": "sha256:932fa8de1c431be12dd1759f82ffa30a585821fce7f2343b26dea78e5f6a4665"
+    },
+    "portal": {
+      "repository": "docker.io/hnb-lab/portal",
+      "digest": "sha256:ef05e4d073b118530d0cea9d50239a7ab497a17f79baaf2486c67c0b28052048"
+    },
+    "postgresql": {
+      "repository": "docker.io/library/postgres",
+      "digest": "sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d"
+    },
+    "nats": {
+      "repository": "docker.io/library/nats",
+      "digest": "sha256:4bb7463f82c83da51fd098d9ddbc0dccfdc7415e110b02de375f60066b392878"
+    }
+  },
+  "buildTotals": {
+    "images": 13
+  },
+  "migrations": {
+    "platform": {
+      "applied": 104,
+      "schemaAfter": "60d3d34fe602eb588e8d6f2508cc552f8fb3555b93a0de23421cc24819808483",
+      "maxVersion": 105
+    },
+    "market": {
+      "applied": 104,
+      "schemaAfter": "60d3d34fe602eb588e8d6f2508cc552f8fb3555b93a0de23421cc24819808483",
+      "maxVersion": 105
+    },
+    "artifact": {
+      "applied": 104,
+      "schemaAfter": "60d3d34fe602eb588e8d6f2508cc552f8fb3555b93a0de23421cc24819808483",
+      "maxVersion": 105
+    }
+  },
+  "workloads": {
+    "ready": [
+      "apiserver",
+      "platform-api",
+      "app-market",
+      "operation-worker",
+      "extension-controller",
+      "cluster-router",
+      "tunnel-server",
+      "portal",
+      "postgresql",
+      "nats"
+    ],
+    "count": 10
+  },
+  "login": {
+    "login": 200,
+    "workspaces": 200,
+    "tenants": 200,
+    "agents": 200,
+    "anonymousWorkspaces": 401
+  },
+  "assertions": {
+    "thirteen_images_digest_pinned": true,
+    "three_plane_migrations_applied": true,
+    "ten_workloads_ready": true,
+    "admin_login_real": true,
+    "authenticated_reads": true,
+    "anonymous_rejected": true,
+    "service_identity_revoke_route_registered": true,
+    "credentials_not_in_report": true
+  },
+  "knownGaps": [
+    "runtime-target-lifecycle-provider and kubernetes-provider are not deployed",
+    "operation-worker runtimeProviders is empty",
+    "target kubeconfig SecretReference is not registered",
+    "formal observer token issue/renew API is absent; only build-ignore temporary signer exists",
+    "no Agent on independent target, no import/replay/reconnect, no S3 application, HA or production certification"
+  ]
+}

@@ -1,0 +1,126 @@
+{
+  "readiness": {
+    "samples": 100,
+    "ok": 100,
+    "codes": {
+      "200": 100
+    },
+    "p50_ms": 3.15,
+    "p95_ms": 4.04,
+    "p99_ms": 4.89,
+    "max_ms": 5.66
+  },
+  "cluster_detail": {
+    "samples": 100,
+    "ok": 100,
+    "codes": {
+      "200": 100
+    },
+    "p50_ms": 4.96,
+    "p95_ms": 6.24,
+    "p99_ms": 7.28,
+    "max_ms": 7.88
+  },
+  "action_replay": {
+    "samples": 20,
+    "ok": 20,
+    "codes": {
+      "200": 20
+    },
+    "p50_ms": 6.32,
+    "p95_ms": 6.89,
+    "p99_ms": 7.42,
+    "max_ms": 7.42
+  },
+  "operation_durations": [
+    {
+      "id": "ff13be05-5137-4421-888f-f4eb27ec5f24",
+      "type": "deploy",
+      "seconds": 0.856
+    },
+    {
+      "id": "ef6275e7-1501-438b-bfb8-a683e3640a5d",
+      "type": "upgrade",
+      "seconds": 0.889
+    },
+    {
+      "id": "e8ebd453-e427-42a8-adcd-46ab92d0bab2",
+      "type": "deploy",
+      "seconds": 1.436
+    },
+    {
+      "id": "600fabde-2c0e-4ca3-8cb0-91208cf85168",
+      "type": "deploy",
+      "seconds": 0.156
+    }
+  ],
+  "budget": {
+    "schemaVersion": "lab-performance-budget/v1",
+    "runId": "s3-4.10-performance-20261018",
+    "status": "approved",
+    "approval": {
+      "approvedBy": "lab-operator",
+      "approvedAt": "2026-10-18T12:10:00Z",
+      "scope": "S3 lab only; not production capacity or SLA"
+    },
+    "environment": {
+      "management": "single K3s node 4C/8GiB",
+      "target": "2 K3s nodes, total 4C/8GiB",
+      "storage": "TopoLVM",
+      "gateway": "Traefik 3.7.13"
+    },
+    "budgets": [
+      {
+        "id": "bff_readiness_p95",
+        "metric": "http_latency",
+        "limit": 500,
+        "unit": "ms",
+        "window": "200 requests, concurrency 8"
+      },
+      {
+        "id": "bff_cluster_detail_p95",
+        "metric": "http_latency",
+        "limit": 500,
+        "unit": "ms",
+        "window": "200 requests, concurrency 8"
+      },
+      {
+        "id": "action_submit_p95",
+        "metric": "http_latency",
+        "limit": 1000,
+        "unit": "ms",
+        "window": "20 idempotent replays"
+      },
+      {
+        "id": "operation_end_to_end",
+        "metric": "operation_duration",
+        "limit": 30,
+        "unit": "s",
+        "window": "deploy/upgrade Operations"
+      },
+      {
+        "id": "error_rate",
+        "metric": "http_error_rate",
+        "limit": 0,
+        "unit": "ratio",
+        "window": "all measured requests"
+      }
+    ]
+  },
+  "checks": {
+    "bff_readiness_p95": true,
+    "bff_cluster_detail_p95": true,
+    "action_submit_p95": true,
+    "error_rate": true,
+    "operation_end_to_end": true
+  },
+  "status": "passed",
+  "runId": "s3-4.10-performance-20261018",
+  "measuredAt": "2026-10-18T12:12:00Z",
+  "environment": {
+    "management": "single K3s node 4C/8GiB",
+    "target": "2 K3s nodes 4C/8GiB total",
+    "storage": "TopoLVM",
+    "gateway": "Traefik 3.7.13"
+  }
+}

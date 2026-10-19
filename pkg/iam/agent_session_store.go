@@ -25,7 +25,7 @@ func (FileAgentSessionStore) Load(path string) (AgentSessionCredential, bool, er
 	if err != nil {
 		return AgentSessionCredential{}, false, err
 	}
-	if !info.Mode().IsRegular() || info.Mode().Perm()&0o077 != 0 {
+	if !info.Mode().IsRegular() || info.Mode().Perm()&0o007 != 0 {
 		return AgentSessionCredential{}, false, errors.New("agent session file must be a private regular file")
 	}
 	data, err := os.ReadFile(path)

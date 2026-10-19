@@ -36,6 +36,7 @@ const (
 	ResourceStorageAlertRule          AuthorizationResource = "storageAlertRule"
 	ResourceSecret                    AuthorizationResource = "secret"
 	ResourceServiceIdentity           AuthorizationResource = "serviceIdentity"
+	ResourceApplicationDelivery       AuthorizationResource = "applicationDelivery"
 )
 
 const (

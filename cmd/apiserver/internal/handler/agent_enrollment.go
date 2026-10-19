@@ -75,20 +75,29 @@ type AgentEnrollmentAuditEvent struct {
 
 type AgentEnrollmentAuditFunc func(context.Context, AgentEnrollmentAuditEvent)
 
+// ObserverTokenIssuer is the narrow signing boundary for target-bound observer
+// identities. The Agent receives the token with its session so observation
+// cannot outlive or escape the session's tenant/target/generation.
+type ObserverTokenIssuer interface {
+	Sign(context.Context, string, iam.ObserverIdentity, string, int64) (string, error)
+}
+
 // AgentEnrollmentHandler issues one-time bootstrap credentials, exchanges them
 // for renewable Agent sessions, rotates sessions, and revokes them. Secret
 // material is returned once and never written to audit.
 type AgentEnrollmentHandler struct {
-	store         AgentEnrollmentStore
-	sessions      iam.AgentSessionStore
-	targets       AgentTargetResolver
-	signer        *iam.AgentTunnelTokenSigner
-	verifier      *iam.AgentTunnelTokenVerifier
-	sessionTTL    time.Duration
-	enrollmentTTL time.Duration
-	now           func() time.Time
-	audit         AgentEnrollmentAuditFunc
-	revokeConn    func(tenantID, targetID string)
+	store          AgentEnrollmentStore
+	sessions       iam.AgentSessionStore
+	targets        AgentTargetResolver
+	signer         *iam.AgentTunnelTokenSigner
+	verifier       *iam.AgentTunnelTokenVerifier
+	sessionTTL     time.Duration
+	enrollmentTTL  time.Duration
+	now            func() time.Time
+	audit          AgentEnrollmentAuditFunc
+	revokeConn     func(tenantID, targetID string)
+	observerSigner ObserverTokenIssuer
+	observerTTL    time.Duration
 }
 
 func NewAgentEnrollmentHandler(
@@ -119,6 +128,27 @@ func NewAgentEnrollmentHandler(
 		sessionTTL: sessionTTL, enrollmentTTL: DefaultAgentEnrollmentTTL, now: now,
 		audit: audit, revokeConn: revokeConnection,
 	}
+}
+
+// ConfigureObserverTokenSigner binds observer issuance to the session lifecycle.
+// Without a signer the legacy response remains unchanged.
+func (h *AgentEnrollmentHandler) ConfigureObserverTokenSigner(signer ObserverTokenIssuer, ttl time.Duration) {
+	h.observerSigner = signer
+	h.observerTTL = ttl
+}
+
+func (h *AgentEnrollmentHandler) issueObserverToken(ctx context.Context, session *iam.AgentSessionRecord) (string, time.Time, error) {
+	if h.observerSigner == nil || h.observerTTL <= 0 {
+		return "", time.Time{}, nil
+	}
+	token, err := h.observerSigner.Sign(ctx, agentEnrollmentSubject, iam.ObserverIdentity{
+		TenantID: session.TenantID, TargetID: session.TargetID, TargetKind: "KubernetesTarget",
+		ObserverID: "agent-" + session.TargetID, ObserverKind: "Agent",
+	}, session.ID, session.Generation)
+	if err != nil {
+		return "", time.Time{}, err
+	}
+	return token, h.now().UTC().Add(h.observerTTL), nil
 }
 
 func (h *AgentEnrollmentHandler) Create(w http.ResponseWriter, r *http.Request) {
@@ -208,15 +238,25 @@ func (h *AgentEnrollmentHandler) Exchange(w http.ResponseWriter, r *http.Request
 		response.ServiceUnavailable(w, "agent session issuance unavailable")
 		return
 	}
+	observerToken, observerExpiry, err := h.issueObserverToken(r.Context(), session)
+	if err != nil {
+		response.ServiceUnavailable(w, "observer identity issuance unavailable")
+		return
+	}
 	h.audit(r.Context(), AgentEnrollmentAuditEvent{
 		Action: "agentEnrollment.exchange", ServiceSubjectID: agentEnrollmentSubject,
 		TenantID: record.TenantID, TargetID: record.TargetID, EnrollmentID: record.ID, SessionID: session.ID,
 	})
-	writeAgentSecretJSON(w, http.StatusOK, map[string]any{
+	payload := map[string]any{
 		"credential": credential, "expiresAt": expiry.UTC().Format(time.RFC3339),
 		"tenantId": record.TenantID, "targetId": record.TargetID, "subject": record.ExpectedSubject,
 		"sessionId": session.ID, "generation": session.Generation,
-	})
+	}
+	if observerToken != "" {
+		payload["observerToken"] = observerToken
+		payload["observerTokenExpiresAt"] = observerExpiry.Format(time.RFC3339)
+	}
+	writeAgentSecretJSON(w, http.StatusOK, payload)
 }
 
 // Renew is public but requires a still-valid session credential. It keeps the
@@ -253,15 +293,25 @@ func (h *AgentEnrollmentHandler) Renew(w http.ResponseWriter, r *http.Request) {
 		response.ServiceUnavailable(w, "agent session issuance unavailable")
 		return
 	}
+	observerToken, observerExpiry, err := h.issueObserverToken(r.Context(), rotated)
+	if err != nil {
+		response.ServiceUnavailable(w, "observer identity issuance unavailable")
+		return
+	}
 	h.audit(r.Context(), AgentEnrollmentAuditEvent{
 		Action: "agentEnrollment.renew", ServiceSubjectID: agentEnrollmentSubject,
 		TenantID: tenantID, TargetID: targetID, SessionID: rotated.ID,
 	})
-	writeAgentSecretJSON(w, http.StatusOK, map[string]any{
+	payload := map[string]any{
 		"credential": credential, "expiresAt": expiry.UTC().Format(time.RFC3339),
 		"tenantId": tenantID, "targetId": targetID, "subject": rotated.Subject,
 		"sessionId": rotated.ID, "generation": rotated.Generation,
-	})
+	}
+	if observerToken != "" {
+		payload["observerToken"] = observerToken
+		payload["observerTokenExpiresAt"] = observerExpiry.Format(time.RFC3339)
+	}
+	writeAgentSecretJSON(w, http.StatusOK, payload)
 }
 
 func (h *AgentEnrollmentHandler) Revoke(w http.ResponseWriter, r *http.Request) {
