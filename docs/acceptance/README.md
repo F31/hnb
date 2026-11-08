@@ -7,6 +7,11 @@
 [`统一底座与四档组装契约`](../deployment/profile-composition-contract.md)、
 [`阶段计划/预算/证据校验`](product-readiness-manifests.md)。这些建设记录不提升既有认证。
 
+2026-11-08 新增：[`S4 候选包 0.1.1 干净 kind 独立安装验收`](reports/20261108-s4-candidate-0.1.1-kind-install.md)
+（install run `2fb558ed0c9b6e5410a5709827c161a0` succeeded、19/19 冒烟、conformance 六类全 PASS + Ed25519 信任链、
+lifecycle provider 注册 production_ready、post-install 接线完成；S3 实机 E2E deploy/delete Operation 均 succeeded、
+readiness verification 自动关联实机证据成立；新登记 10 项安装缺口含 admin 种子绑定剥离 approve 的代码 bug，已修复）。
+
 2026-10-27 新增：[`S4 干净环境独立安装（kind / Minimal / existing）`](reports/20261027-s4-clean-kind-install.md)
 （ReleaseLock 候选生成、锁内渲染 fail-closed、install run `35e92df2139d40765314d4e1cb1027dc` succeeded、
 19/19 Ready、登录/集群 API/主机集群 agent 隧道心跳冒烟通过、resume 幂等拒绝二次进入；

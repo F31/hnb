@@ -62,12 +62,15 @@
 ## 5. P1 验收、诊断与首个可交付包
 
 - [x] 5.1 实现 node/cluster/platform/managed 的 verify 检查集及自有测试资源清理；验证：登录、PG/JetStream、Provider、最小真实应用 Operation、Agent/Read Model 各层失败门。（PINST-005、DPLY-005）
+  - 2026-11-08 S4 候选包 0.1.1 干净 kind（`hnb-s4-clean`）安装冒烟 19/19 通过（run `2fb558ed0c9b6e5410a5709827c161a0` succeeded）；最小真实应用 Operation（demo-s3 deploy `f31e0b8b…` / delete `44b55bcb…`）均 succeeded，Agent/Read Model 链路可用。证据 `docs/acceptance/reports/20261108-s4-candidate-0.1.1-kind-install.md`。
 - [x] 5.2 实现脱敏诊断 collect 与报告输出身份；验证：密码/私钥/kubeconfig/token/DSN/客户数据 fixtures 不出包。（DPLY-007、DBND-005）
 - [x] 5.3 在独立已有 Kubernetes 环境完成 Minimal 平台 E2E；保留命令、源码/物料、身份/入口、存储与完整业务闭环报告。（PINST-002、PINST-005、DBND-005）
   - 2026-10-16 在已有单节点 K3s（Ubuntu 26.04 / kernel 7.0.0-30-generic / amd64）完成 Minimal 平台 full-delivery E2E：19/19 工作负载就绪、三平面迁移账本各 103、portal 登录/读 API/agent 隧道连通、匿名 401、PVC 2Gi/1Gi 于 `hnb-topolvm`，并对 PG/NATS/Deployment 滚动重启后数据身份与账本保持。报告 `docs/acceptance/reports/20261016-existing-minimal-e2e.md`，结果 `...-result.json`，登记 `existing_minimal_platform_delivery`。据此把 `Profiles[Minimal]`、`Routes[existing]`、`OSAdaptations[ubuntu-26.04/existing/k3s]` 置为 certified；`CertifiedOS` 不含 ubuntu-26.04，`Routes[bootstrap]` 与 HA/Enterprise/offline 维持 blocked。（PINST-002、PINST-005、DBND-005）
   - 2026-10-16 追加 `hnbctl` 端到端：`install --execute`（渲染+真实 `kubectl apply`+rollout，run succeeded）、受控 `upgrade --to`（run kind=upgrade succeeded）、`scale`（水平/垂直/存储，run kind=scale succeeded），报告 `docs/acceptance/reports/20261016-existing-minimal-hnbctl-execute.md` 与 `...-profile-upgrade-rehearsal.md`，登记 `hnbctl_install_execute_uninstall`、`profile_upgrade_and_scaling`。
+  - 2026-11-08 S4 正式候选包 0.1.1 在干净 kind 集群 `hnb-s4-clean` 完成独立安装与业务闭环：锁 digest `sha256:2589866a…`、run `2fb558ed0c9b6e5410a5709827c161a0` succeeded、19/19 冒烟；lifecycle provider 接线后 S3 应用交付实机 E2E 闭环（deploy/delete Operation 均 succeeded、Service/HTTPRoute 经 provider 删除、readiness verification 自动 upsert 关联 Operation 终态）。新登记 10 项安装缺口（含已修复的 admin 种子绑定剥离 approve/reject/cancel 代码 bug）。报告 `docs/acceptance/reports/20261108-s4-candidate-0.1.1-kind-install.md`。
 - [x] 5.8 实现 provider 动作级签名 conformance 报告与受控原子登记，绑定实际镜像/manifest/矩阵/期限；验证：无权限、未受信签名、篡改、缺类、失败、过期、错物料与并发换 manifest 均拒绝。（PINST-005、DBND-001、DBND-005）
   - 已完成：签名报告校验、公开信任挂载、事务内加锁原子登记、独立 PostgreSQL 集成测试与真机负向检查；期间修复 manifest upsert、NOT NULL 数组与 404 映射三处真实缺陷。
+  - 2026-11-08 在 S4 候选 0.1.1 真实安装上完成端到端：Ed25519 信任锚 Secret 挂载、manifest 注册 201（identity digest `sha256:e169c096…`）、签名 conformance 上报 201（RunID `s4-import-conformance-20261108`），`provider_manifests.conformance_level=production_ready`（有效期至 2026-11-12）。证据 `docs/acceptance/reports/20261108-s4-candidate-0.1.1-kind-install.md`。
 - [x] 5.9 在隔离测试环境运行 Kubernetes import conformance，正式登记后绑定 worker 并经 Intent 验证真实 Operation/幂等/失败语义；保留独立报告，不提升完整 Minimal/HA 资格。（PINST-005、DPLY-006、DBND-005）
   - 已完成：隔离环境真实 provider 镜像通过六类断言并登记 import cell；Chart 支持 owner-only 令牌暂存；真机 Operation `d423131c` 到达 `succeeded`，同键重放返回同一 Operation、同键异体 409、异键只执行一次。
   - 阻塞：服务凭据签发/轮换未实现（60 秒上限 + 暂存副本仅随重启更新）；导入目标仍为 REGISTERING，尚无 Agent 认证与 Read Model 闭环。
