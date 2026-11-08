@@ -7,13 +7,14 @@ require (
 	github.com/F31/hnb/pkg/alert v0.0.0-00010101000000-000000000000
 	github.com/F31/hnb/pkg/audit v0.0.0-00010101000000-000000000000
 	github.com/F31/hnb/pkg/core v0.0.0-00010101000000-000000000000
+	github.com/F31/hnb/pkg/db v0.0.0-20261019034626-4236acce79b8
 	github.com/F31/hnb/pkg/gslb v0.0.0-00010101000000-000000000000
 	github.com/F31/hnb/pkg/iam v0.0.0-00010101000000-000000000000
 	github.com/F31/hnb/pkg/messaging v0.0.0-00010101000000-000000000000
 	github.com/F31/hnb/pkg/tunnel v0.0.0-00010101000000-000000000000
 	github.com/fsnotify/fsnotify v1.7.0
 	github.com/google/uuid v1.6.0
-	github.com/lib/pq v1.10.9
+	github.com/lib/pq v1.12.3
 	github.com/nats-io/nats.go v1.37.0
 	github.com/prometheus/client_golang v1.19.0
 	golang.org/x/time v0.14.0
@@ -44,6 +45,7 @@ replace (
 	github.com/F31/hnb/pkg/alert => ../../pkg/alert
 	github.com/F31/hnb/pkg/audit => ../../pkg/audit
 	github.com/F31/hnb/pkg/core => ../../pkg/core
+	github.com/F31/hnb/pkg/db => ../../pkg/db
 	github.com/F31/hnb/pkg/extension => ../../pkg/extension
 	github.com/F31/hnb/pkg/gslb => ../../pkg/gslb
 	github.com/F31/hnb/pkg/iam => ../../pkg/iam

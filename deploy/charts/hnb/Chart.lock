@@ -74,5 +74,8 @@ dependencies:
 - name: nats
   repository: ""
   version: 0.1.0
-digest: sha256:6886f1348cba6d9f58cb6dd41f5dda461aaa5bd3ee01c815d83498dd681b1277
-generated: "2026-10-13T07:51:01.932247194+08:00"
+- name: cloudnative-pg
+  repository: ""
+  version: 0.1.0
+digest: sha256:615d82bfdae45ad25d4c3b484a86a90141990fe1af3920bce9d62965f042c153
+generated: "2026-10-26T20:35:11.481277346+08:00"

@@ -30,8 +30,8 @@ require (
 )
 
 replace (
-	github.com/F31/hnb/pkg/db => ../../pkg/db
 	github.com/F31/hnb/pkg/core => ../../pkg/core
+	github.com/F31/hnb/pkg/db => ../../pkg/db
 	github.com/F31/hnb/pkg/extension => ../../pkg/extension
 	github.com/F31/hnb/pkg/messaging => ../../pkg/messaging
 )

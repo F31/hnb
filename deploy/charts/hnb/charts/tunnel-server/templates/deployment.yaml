@@ -47,8 +47,8 @@ spec:
             - name: API_TOKEN_KEY_RELOAD_INTERVAL
               value: {{ .Values.identity.reloadInterval | quote }}
           ports:
-            - containerPort: 8080
-              name: http
+            - containerPort: 9443
+              name: tunnel
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:

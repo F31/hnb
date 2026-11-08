@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -198,6 +199,10 @@ func RenderLockedChart(ctx context.Context, cfg *DeploymentConfig, lock *Release
 		"-f", filepath.Join(dir, "overlay.yaml"), "-f", filepath.Join(dir, "bindings.yaml"))
 	output, err := command.Output()
 	if err != nil {
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) {
+			return nil, fmt.Errorf("locked Chart rendering failed: %s", strings.TrimSpace(string(exitErr.Stderr)))
+		}
 		return nil, fmt.Errorf("locked Chart rendering failed; check binding references and local Helm availability")
 	}
 	decoder := yaml.NewDecoder(bytes.NewReader(output))

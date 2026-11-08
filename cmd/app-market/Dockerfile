@@ -1,4 +1,5 @@
-FROM golang:1.24 AS build
+ARG GOLANG_IMAGE=golang:1.24
+FROM ${GOLANG_IMAGE} AS build
 ARG GOPROXY=https://goproxy.cn,direct
 ENV GOPROXY=${GOPROXY} \
     GOWORK=off \

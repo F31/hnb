@@ -3,12 +3,12 @@ module github.com/F31/hnb/cmd/operation-worker
 go 1.24.0
 
 require (
-	github.com/F31/hnb/pkg/db v0.0.0-00010101000000-000000000000
 	github.com/F31/hnb/pkg/core v0.0.0-00010101000000-000000000000
+	github.com/F31/hnb/pkg/db v0.0.0-00010101000000-000000000000
 	github.com/F31/hnb/pkg/iam v0.0.0-00010101000000-000000000000
 	github.com/F31/hnb/pkg/messaging v0.0.0-00010101000000-000000000000
 	github.com/google/uuid v1.6.0
-	github.com/lib/pq v1.10.9
+	github.com/lib/pq v1.12.3
 	github.com/nats-io/nats.go v1.37.0
 )
 

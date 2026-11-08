@@ -7,6 +7,16 @@
 [`统一底座与四档组装契约`](../deployment/profile-composition-contract.md)、
 [`阶段计划/预算/证据校验`](product-readiness-manifests.md)。这些建设记录不提升既有认证。
 
+2026-10-27 新增：[`S4 干净环境独立安装（kind / Minimal / existing）`](reports/20261027-s4-clean-kind-install.md)
+（ReleaseLock 候选生成、锁内渲染 fail-closed、install run `35e92df2139d40765314d4e1cb1027dc` succeeded、
+19/19 Ready、登录/集群 API/主机集群 agent 隧道心跳冒烟通过、resume 幂等拒绝二次进入；
+已登记 6 项已知缺口，S4 5.10 前必须闭环）。
+
+2026-11-08 新增：[`S2/S3 复验（实况 + 代码级再验证）`](reports/20261108-s2-s3-reverify.md)
+（S2：import/幂等重放/agent enrollment/观测 FRESH 实机通过（2026-10-28，环境已销毁）；
+S3：readiness verification 自动关联 Operation 终态、Service/HTTPRoute 删除走 Provider 的代码修复，
+Provider 单测 9 用例 + 真实 PG 107 迁移集成测试通过；实机 E2E 并入下次 S4 候选冒烟）。
+
 2026-10-18 新增：[`S3 4.4 PVC 与 Secret 挂载（实现完成，真实环境阻塞）`](reports/20261018-s3-4.4-pvc-secret-mounts.md)
 （`pvc.deploy`、真实 TopoLVM Bound、Redis PVC/Secret 挂载、marker 读写、
 Secret 不回显、删除工作负载后 PVC 保留；最小 RBAC 已验证）。

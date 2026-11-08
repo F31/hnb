@@ -22,6 +22,8 @@ graphify-out
 web
 cmd/*
 !cmd
+!cmd/alert-manager
+!cmd/alert-manager/**
 !cmd/apiserver
 !cmd/apiserver/**
 !cmd/platform-api

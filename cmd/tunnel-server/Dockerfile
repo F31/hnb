@@ -17,6 +17,7 @@ WORKDIR /src
 # requires (pkg/iam -> pkg/core, pkg/tunnel -> pkg/core).
 COPY cmd/tunnel-server/ cmd/tunnel-server/
 COPY pkg/core/ pkg/core/
+COPY pkg/db/ pkg/db/
 COPY pkg/iam/ pkg/iam/
 COPY pkg/tunnel/ pkg/tunnel/
 WORKDIR /src/cmd/tunnel-server
