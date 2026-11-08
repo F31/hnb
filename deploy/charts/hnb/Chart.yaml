@@ -2,8 +2,8 @@ apiVersion: v2
 name: hnb
 description: HNB Cloud Platform - Multi-cloud container management platform
 type: application
-version: 0.1.0
-appVersion: "0.1.0"
+version: 0.1.1
+appVersion: "0.1.1"
 
 dependencies:
   - name: apiserver
@@ -16,7 +16,7 @@ dependencies:
     version: 0.1.0
     condition: extension-controller.enabled
   - name: tunnel-server
-    version: 0.1.0
+    version: 0.1.1
     condition: tunnel-server.enabled
   - name: cluster-router
     version: 0.1.0
@@ -43,7 +43,7 @@ dependencies:
     version: 0.1.0
     condition: network-registry.enabled
   - name: kubernetes-provider
-    version: 0.1.0
+    version: 0.1.1
     condition: kubernetes-provider.enabled
   - name: karmada-provider
     version: 0.1.0

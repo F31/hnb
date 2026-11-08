@@ -58,7 +58,7 @@ func main() {
 	}
 	now := time.Now().UTC().Truncate(time.Second)
 	report := core.ConformanceReport{
-		SchemaVersion: core.ConformanceReportSchema, RunID: "s4-import-conformance-20261028",
+		SchemaVersion: core.ConformanceReportSchema, RunID: "s4-import-conformance-20261108",
 		SourceDigest: *sourceDigest, Environment: "s4-clean-kind/provider-unit",
 		ProviderID: "runtime-target.lifecycle.kubernetes", ProviderVersion: "1.0.0",
 		ArtifactDigest: *artifactDigest, ManifestDigest: *manifestDigest, MatrixVersion: "1.0.0",

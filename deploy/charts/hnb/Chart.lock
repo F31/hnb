@@ -10,7 +10,7 @@ dependencies:
   version: 0.1.0
 - name: tunnel-server
   repository: ""
-  version: 0.1.0
+  version: 0.1.1
 - name: cluster-router
   repository: ""
   version: 0.1.0
@@ -37,7 +37,7 @@ dependencies:
   version: 0.1.0
 - name: kubernetes-provider
   repository: ""
-  version: 0.1.0
+  version: 0.1.1
 - name: karmada-provider
   repository: ""
   version: 0.1.0
@@ -77,5 +77,5 @@ dependencies:
 - name: cloudnative-pg
   repository: ""
   version: 0.1.0
-digest: sha256:615d82bfdae45ad25d4c3b484a86a90141990fe1af3920bce9d62965f042c153
-generated: "2026-10-26T20:35:11.481277346+08:00"
+digest: sha256:d8fbea22155d61e5a97f2e46060fa082c5434901077374ee8541a65ed2ec6b75
+generated: "2026-11-08T10:38:17.432180641+08:00"

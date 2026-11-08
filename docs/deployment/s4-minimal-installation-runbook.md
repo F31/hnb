@@ -6,7 +6,7 @@
 ## 0. 认证边界（只在此矩阵内有效）
 
 - 操作系统：ubuntu-24.04、rocky-10.1（amd64）
-- Kubernetes：1.36.5（K3s v1.36.5+k3s1 已验证；existing 集群路线）
+- Kubernetes：1.36.4（kind v1.36.4 已验证；existing 集群路线。K3s v1.36.5+k3s1 兼容声明沿用，本候选未重新验证）
 - 形态：Minimal / bundled（PostgreSQL、NATS 随 Chart 单实例部署）
 - 不在边界内：bootstrap 裸机建集群、in-cluster-ha/external 数据面、LiteHA 及以上形态、离线包
 

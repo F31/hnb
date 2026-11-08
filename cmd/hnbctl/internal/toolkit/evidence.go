@@ -203,7 +203,7 @@ func containsStr(list []string, want string) bool {
 // bootstrap route stays blocked, so existing-route evidence is never promoted
 // into a kubeadm bootstrap release.
 var CurrentEvidence = &EvidenceMatrix{
-	Version:       "2026-10-16",
+	Version:       "2026-11-08",
 	CertifiedOS:   []string{"ubuntu-24.04", "rocky-10.1"},
 	CertifiedArch: []string{"amd64"},
 	OSAdaptations: []OSAdaptation{
@@ -213,6 +213,7 @@ var CurrentEvidence = &EvidenceMatrix{
 	},
 	Kubernetes: []EvidenceVersion{
 		{Version: "1.36.5", Status: "certified", Report: "docs/acceptance/reports/20261011-provider-ssh-ubuntu2404.md"},
+		{Version: "1.36.4", Status: "certified", Report: "docs/acceptance/reports/20261108-s4-candidate-0.1.1-kind-install.md"},
 	},
 	CNI: []EvidenceVersion{
 		{Plugin: "cilium", Version: "1.20.1", Status: "certified", Report: "docs/acceptance/reports/20261011-provider-ssh-ubuntu2404.md (cilium)"},
