@@ -543,6 +543,9 @@ func (s *OperationStore) commitStepResult(
 		if err := updateRuntimeTargetLifecycleForOperation(ctx, tx, op, result.Outputs); err != nil {
 			return err
 		}
+		if err := recordApplicationVerification(ctx, tx, op); err != nil {
+			return err
+		}
 	}
 	event.AggregateVersion = op.Version
 	if err := insertOutboxEvent(ctx, tx, event); err != nil {
@@ -707,6 +710,101 @@ func updateRuntimeTargetLifecycleForOperation(ctx context.Context, tx *sql.Tx, o
 	)
 	if err != nil {
 		return fmt.Errorf("update runtime target lifecycle: %w", err)
+	}
+	return nil
+}
+
+// recordApplicationVerification links a terminal application delivery
+// Operation to the readiness ledger. Operations submitted for an application
+// delivery binding carry the applicationDeliveryId tag; when such an
+// Operation reaches a terminal state the execution and observation dimensions
+// are recorded automatically. External probe and volume evidence stay
+// operator-supplied ("not_run"), matching the four-dimension readiness model
+// in which verification never rewrites the Operation terminal state.
+func recordApplicationVerification(ctx context.Context, tx *sql.Tx, op *engine.Operation) error {
+	bindingID := op.Tags["applicationDeliveryId"]
+	if bindingID == "" {
+		return nil
+	}
+	var (
+		targetID, releaseID, releaseVersion, resourceUID, pvcName string
+		revision, expectedGeneration, expectedRevision              int64
+	)
+	err := tx.QueryRowContext(ctx, `
+		SELECT target_id::text, release_id, release_version, revision, resource_uid,
+			COALESCE(observation_generation, 0), COALESCE(observation_revision, 0),
+			COALESCE(pvc_name, '')
+		FROM application_delivery_bindings
+		WHERE id = $1::uuid AND tenant_id = $2`,
+		bindingID, op.TenantID,
+	).Scan(&targetID, &releaseID, &releaseVersion, &revision, &resourceUID,
+		&expectedGeneration, &expectedRevision, &pvcName)
+	if errors.Is(err, sql.ErrNoRows) {
+		// The binding was removed after submission; nothing to record against.
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("load application delivery binding: %w", err)
+	}
+
+	freshness := "UNKNOWN"
+	var generation, observationRevision int64
+	_ = tx.QueryRowContext(ctx, `
+		SELECT COALESCE(observation_generation, 0), COALESCE(observation_revision, 0),
+			COALESCE(freshness_state, 'UNKNOWN')
+		FROM runtime_targets
+		WHERE id = $1::uuid AND tenant_id = $2`,
+		targetID, op.TenantID,
+	).Scan(&generation, &observationRevision, &freshness)
+
+	executionStatus := "unknown"
+	switch op.Status {
+	case engine.StatusSucceeded:
+		executionStatus = "succeeded"
+	case engine.StatusFailed, engine.StatusCancelled:
+		executionStatus = "failed"
+	}
+
+	// Mirror cmd/apiserver/internal/application/readiness.Evaluate: the four
+	// dimensions stay separate and any unmet dimension makes the record
+	// not-ready without touching the Operation outcome.
+	reasons := []string{}
+	if executionStatus != "succeeded" {
+		reasons = append(reasons, "EXECUTION_FAILED")
+	}
+	if freshness != "FRESH" {
+		reasons = append(reasons, "OBSERVATION_STALE")
+	}
+	if generation < expectedGeneration || observationRevision < expectedRevision {
+		reasons = append(reasons, "OBSERVATION_BEHIND")
+	}
+	reasons = append(reasons, "EXTERNAL_PROBE_FAILED", "VOLUME_READ_WRITE_FAILED")
+	ready := len(reasons) == 0
+	reasonsJSON, err := json.Marshal(reasons)
+	if err != nil {
+		return fmt.Errorf("marshal verification reasons: %w", err)
+	}
+
+	_, err = tx.ExecContext(ctx, `
+		INSERT INTO application_delivery_verifications (
+			binding_id, tenant_id, target_id, release_id, release_version, revision,
+			operation_id, resource_uid, observation_generation, observation_revision,
+			observation_freshness, execution_status, external_probe_status,
+			volume_status, pvc_name, ready, reasons, checked_at
+		) VALUES ($1,$2,$3::uuid,$4,$5,$6,$7::uuid,$8,$9,$10,$11,$12,'not_run','not_run',NULLIF($13,''),$14,$15,now())
+		ON CONFLICT (binding_id, revision) DO UPDATE SET
+			operation_id=EXCLUDED.operation_id, resource_uid=EXCLUDED.resource_uid,
+			observation_generation=EXCLUDED.observation_generation,
+			observation_revision=EXCLUDED.observation_revision,
+			observation_freshness=EXCLUDED.observation_freshness,
+			execution_status=EXCLUDED.execution_status,
+			ready=EXCLUDED.ready, reasons=EXCLUDED.reasons, checked_at=now()`,
+		bindingID, op.TenantID, targetID, releaseID, releaseVersion, revision,
+		op.ID, resourceUID, generation, observationRevision, freshness,
+		executionStatus, pvcName, ready, string(reasonsJSON),
+	)
+	if err != nil {
+		return fmt.Errorf("record application verification: %w", err)
 	}
 	return nil
 }

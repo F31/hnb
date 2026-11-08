@@ -53,16 +53,19 @@ func (h *ResourceClusterHandler) ApplicationAction(w http.ResponseWriter, r *htt
 		namespace      string
 		workloadName   string
 		serviceName    string
+		ingressName    string
 		pvcName        string
 		targetID       string
 	}
 	err := h.db.QueryRowContext(r.Context(), `
 		SELECT release_id, release_version, revision, resource_uid, namespace,
-		       COALESCE(workload_name,''), COALESCE(service_name,''), COALESCE(pvc_name,''), target_id::text
+		       COALESCE(workload_name,''), COALESCE(service_name,''), COALESCE(ingress_name,''),
+		       COALESCE(pvc_name,''), target_id::text
 		FROM application_delivery_bindings
 		WHERE id=$1 AND tenant_id=$2`, bindingID, trusted.TenantID).Scan(
 		&binding.releaseID, &binding.releaseVersion, &binding.revision, &binding.resourceUID,
-		&binding.namespace, &binding.workloadName, &binding.serviceName, &binding.pvcName, &binding.targetID)
+		&binding.namespace, &binding.workloadName, &binding.serviceName, &binding.ingressName,
+		&binding.pvcName, &binding.targetID)
 	if errors.Is(err, sql.ErrNoRows) {
 		response.NotFound(w, "application delivery binding not found")
 		return
@@ -85,6 +88,27 @@ func (h *ResourceClusterHandler) ApplicationAction(w http.ResponseWriter, r *htt
 		"stepType": applicationProviderStepType(req.Action), "providerId": "kubernetes-provider",
 		"inputs": inputs, "maxRetries": 1, "timeoutSeconds": 900,
 	}}
+	if req.Action == "delete" {
+		// The deployment step tombstones the workload; associated Service and
+		// HTTPRoute are deleted through the same provider so the deletion
+		// preview matches what is actually executed.
+		if binding.serviceName != "" {
+			steps = append(steps, map[string]any{
+				"id": "application-service-delete", "name": "application service delete",
+				"stepType": "service.delete", "providerId": "kubernetes-provider",
+				"inputs": map[string]string{"namespace": binding.namespace, "name": binding.serviceName},
+				"maxRetries": 1, "timeoutSeconds": 900,
+			})
+		}
+		if binding.ingressName != "" {
+			steps = append(steps, map[string]any{
+				"id": "application-httproute-delete", "name": "application httproute delete",
+				"stepType": "httproute.delete", "providerId": "kubernetes-provider",
+				"inputs": map[string]string{"namespace": binding.namespace, "name": binding.ingressName},
+				"maxRetries": 1, "timeoutSeconds": 900,
+			})
+		}
+	}
 	body, _ := json.Marshal(map[string]any{
 		"tenantId": trusted.TenantID, "namespaceId": binding.namespace,
 		"releaseId": binding.releaseID, "operationType": req.Action,

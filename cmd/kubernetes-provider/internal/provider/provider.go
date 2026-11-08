@@ -15,9 +15,11 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -109,13 +111,21 @@ func targetError(operation string, err error) error {
 
 type Executor struct {
 	client       kubernetes.Interface
+	dynamic      dynamic.Interface
 	allowed      map[string]struct{}
 	maxReplicas  int32
 	pollInterval time.Duration
 }
 
 func NewExecutor(client kubernetes.Interface, allowed map[string]struct{}, maxReplicas int32) *Executor {
-	return &Executor{client: client, allowed: allowed, maxReplicas: maxReplicas, pollInterval: 200 * time.Millisecond}
+	return NewExecutorWithDynamic(client, nil, allowed, maxReplicas)
+}
+
+// NewExecutorWithDynamic additionally accepts a dynamic client used for
+// Gateway API resources (HTTPRoute). It may be nil, in which case HTTPRoute
+// step types are rejected as unavailable.
+func NewExecutorWithDynamic(client kubernetes.Interface, dyn dynamic.Interface, allowed map[string]struct{}, maxReplicas int32) *Executor {
+	return &Executor{client: client, dynamic: dyn, allowed: allowed, maxReplicas: maxReplicas, pollInterval: 200 * time.Millisecond}
 }
 
 func (e *Executor) Execute(ctx context.Context, execution ExecutionContext) (Result, error) {
@@ -169,6 +179,16 @@ func (e *Executor) Execute(ctx context.Context, execution ExecutionContext) (Res
 			return Result{}, err
 		}
 		return e.deletePVC(ctx, execution, namespace, name)
+	case "service.delete":
+		if err := validateInputKeys(stringInputs(execution.Inputs), "namespace", "name", "expected_uid"); err != nil {
+			return Result{}, err
+		}
+		return e.deleteService(ctx, execution, namespace, name)
+	case "httproute.delete":
+		if err := validateInputKeys(stringInputs(execution.Inputs), "namespace", "name", "expected_uid"); err != nil {
+			return Result{}, err
+		}
+		return e.deleteHTTPRoute(ctx, execution, namespace, name)
 	default:
 		return Result{}, fail(400, ErrorUnsupportedAction, false, "unsupported step type %q", execution.StepType)
 	}
@@ -1038,4 +1058,101 @@ func (e *Executor) deletePVC(ctx context.Context, execution ExecutionContext, na
 	return Result{Outputs: map[string]any{
 		"namespace": namespace, "name": name, "uid": string(claim.UID), "action": "pvc.deleted",
 	}, Checkpoint: fmt.Sprintf("pvc-deleted:%s/%s:%s", namespace, name, claim.UID)}, nil
+}
+
+// deleteService removes a managed Service. Deletion is terminal and
+// idempotent: a missing Service is a successful replay, while an existing one
+// must be owned by this provider/tenant, match expected_uid when supplied and
+// not carry a newer fencing generation. A tombstone annotation is written
+// before the delete call so a concurrent redeploy loses the CAS race.
+func (e *Executor) deleteService(ctx context.Context, execution ExecutionContext, namespace, name string) (Result, error) {
+	expectedUID := stringInputs(execution.Inputs)["expected_uid"]
+	services := e.client.CoreV1().Services(namespace)
+	for attempt := 0; attempt < maxCASAttempts; attempt++ {
+		service, err := services.Get(ctx, name, metav1.GetOptions{})
+		if apierrors.IsNotFound(err) {
+			return Result{Outputs: map[string]any{
+				"namespace": namespace, "name": name, "action": "service.deleted",
+			}, Checkpoint: fmt.Sprintf("service-deleted:%s/%s", namespace, name)}, nil
+		}
+		if err != nil {
+			return Result{}, targetError("get service", err)
+		}
+		if err := checkManagedService(service, execution); err != nil {
+			return Result{}, err
+		}
+		if expectedUID != "" && string(service.UID) != expectedUID {
+			return Result{}, conflict("expected_uid does not match service UID")
+		}
+		storedGeneration, err := storedServiceFencingGeneration(service)
+		if err != nil {
+			return Result{}, err
+		}
+		if storedGeneration > execution.FencingGeneration {
+			return Result{}, fenced(storedGeneration, execution.FencingGeneration)
+		}
+		if service.Annotations[lastActionAnnotation] != "delete" {
+			updated := service.DeepCopy()
+			setServiceExecutionAnnotations(updated, execution, "delete")
+			if _, err := services.Update(ctx, updated, metav1.UpdateOptions{}); err != nil {
+				if apierrors.IsConflict(err) || apierrors.IsNotFound(err) {
+					continue
+				}
+				return Result{}, targetError("write service tombstone", err)
+			}
+		}
+		uid := service.UID
+		if err := services.Delete(ctx, name, metav1.DeleteOptions{Preconditions: &metav1.Preconditions{UID: &uid}}); err != nil {
+			if apierrors.IsNotFound(err) {
+				continue
+			}
+			return Result{}, targetError("delete service", err)
+		}
+		return Result{Outputs: map[string]any{
+			"namespace": namespace, "name": name, "uid": string(service.UID), "action": "service.deleted",
+		}, Checkpoint: fmt.Sprintf("service-deleted:%s/%s:%s", namespace, name, service.UID)}, nil
+	}
+	return Result{}, fail(503, ErrorTargetUnavailable, true, "service changed during bounded CAS retries")
+}
+
+// httpRouteGVR is the Gateway API HTTPRoute resource.
+var httpRouteGVR = schema.GroupVersionResource{Group: "gateway.networking.k8s.io", Version: "v1", Resource: "httproutes"}
+
+// deleteHTTPRoute removes the HTTPRoute associated with an application
+// delivery. Routes created outside the provider (for example by the route
+// binder) carry no managed annotations; ownership is enforced only when the
+// managed-by marker is present, so foreign provider routes stay protected.
+// A missing route is a successful replay.
+func (e *Executor) deleteHTTPRoute(ctx context.Context, execution ExecutionContext, namespace, name string) (Result, error) {
+	if e.dynamic == nil {
+		return Result{}, fail(503, ErrorTargetUnavailable, true, "httproute deletion is unavailable: dynamic client not configured")
+	}
+	expectedUID := stringInputs(execution.Inputs)["expected_uid"]
+	routes := e.dynamic.Resource(httpRouteGVR).Namespace(namespace)
+	route, err := routes.Get(ctx, name, metav1.GetOptions{})
+	if apierrors.IsNotFound(err) {
+		return Result{Outputs: map[string]any{
+			"namespace": namespace, "name": name, "action": "httproute.deleted",
+		}, Checkpoint: fmt.Sprintf("httproute-deleted:%s/%s", namespace, name)}, nil
+	}
+	if err != nil {
+		return Result{}, targetError("get httproute", err)
+	}
+	annotations := route.GetAnnotations()
+	if owner := annotations[managedByAnnotation]; owner != "" && owner != managedByValue {
+		return Result{}, conflict("httproute is managed by another provider")
+	}
+	if owner := annotations[managedByAnnotation]; owner == managedByValue && annotations[tenantAnnotation] != execution.TenantID {
+		return Result{}, conflict("httproute is not owned by this tenant")
+	}
+	if expectedUID != "" && string(route.GetUID()) != expectedUID {
+		return Result{}, conflict("expected_uid does not match httproute UID")
+	}
+	uid := route.GetUID()
+	if err := routes.Delete(ctx, name, metav1.DeleteOptions{Preconditions: &metav1.Preconditions{UID: &uid}}); err != nil && !apierrors.IsNotFound(err) {
+		return Result{}, targetError("delete httproute", err)
+	}
+	return Result{Outputs: map[string]any{
+		"namespace": namespace, "name": name, "uid": string(route.GetUID()), "action": "httproute.deleted",
+	}, Checkpoint: fmt.Sprintf("httproute-deleted:%s/%s:%s", namespace, name, route.GetUID())}, nil
 }

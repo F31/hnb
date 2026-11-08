@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -31,6 +32,10 @@ func main() {
 	if err != nil {
 		log.Fatalf("kubernetes client: %v", err)
 	}
+	dynClient, err := dynamic.NewForConfig(restConfig)
+	if err != nil {
+		log.Fatalf("kubernetes dynamic client: %v", err)
+	}
 	if _, err := client.Discovery().ServerVersion(); err != nil {
 		log.Fatalf("kubernetes discovery: %v", err)
 	}
@@ -40,7 +45,7 @@ func main() {
 		log.Fatalf("service identity: %v", err)
 	}
 	handler := iam.RequireServiceIdentity(authenticator, iam.ActionExecute, iam.RuntimeExecutionScope(64<<10), "/healthz")(
-		provider.NewHandler(provider.NewExecutor(client, cfg.AllowedNamespaces, cfg.MaxReplicas)),
+		provider.NewHandler(provider.NewExecutorWithDynamic(client, dynClient, cfg.AllowedNamespaces, cfg.MaxReplicas)),
 	)
 	server := &http.Server{Addr: cfg.ListenAddress, Handler: handler, ReadHeaderTimeout: 5 * time.Second}
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
