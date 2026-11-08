@@ -82,7 +82,15 @@ func bootstrapAdmin(ctx context.Context, db *sql.DB, password, issuer string) er
 			[]any{policyID, tenantID, string(policyDocBytes), policyDigest, now}},
 		{`INSERT INTO scoped_roles (id, tenant_id, name, permissions, is_active, created_at, updated_at) VALUES ($1,$2,'admin',$3,true,$4,$4)`,
 			[]any{roleID, tenantID, string(permBytes), now}},
-		{`INSERT INTO scoped_role_bindings (id, tenant_id, subject_id, role_id, scope_kind, actions, granted_at) VALUES ($1,$2,$3,$4,'tenant',ARRAY['read','list','create','update','delete','execute'],$5)`,
+		// Empty actions means "inherit every action declared on the role":
+		// ResolvePermissions falls back to each role permission's own action
+		// when a binding does not restrict them. Restricting the bootstrap
+		// admin to read/list/create/update/delete/execute would cross-product
+		// against the role's ten wildcard permissions (60+ entries, past the
+		// 64-entry snapshot ceiling once approve/reject/cancel are added) and,
+		// worse, silently strip approve/reject/cancel so no operation could
+		// ever be approved on a fresh install.
+		{`INSERT INTO scoped_role_bindings (id, tenant_id, subject_id, role_id, scope_kind, actions, granted_at) VALUES ($1,$2,$3,$4,'tenant','{}',$5)`,
 			[]any{bindingID, tenantID, subjectID, roleID, now}},
 		{`INSERT INTO role_bindings (id, role_id, user_id, scope, created_at) VALUES ($1,'admin',$2,'global',$3)`,
 			[]any{rbBindingID, userID, now}},
