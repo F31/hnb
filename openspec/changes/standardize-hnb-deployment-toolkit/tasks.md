@@ -85,7 +85,8 @@
 - [ ] 5.5 在独立 Rocky 环境完成平台 bootstrap/worker/网络矩阵测试，记录精简内核与 OS 配方约束。（PINST-001、DBND-002、DBND-005）
 - [ ] 5.6 执行平台节点/进程重启持久化和一条 PG/消息/身份材料备份恢复演练；验证实际批准的 RTO/RPO。（PINST-006、DBND-004、DBND-005）
   - 2026-10-16 在云主机完成部分演练：PG `hnb_platform`（130 表）`pg_dump`→恢复到 scratch 库→130 表一致→清理（非破坏）；身份材料 6 文件（master.key/admin-bootstrap.password/private.pem/public.pem/manifest.json/identity-state.json）打包→解包→逐文件 sha256 一致；进程/节点滚动重启持久化见 existing-Minimal E2E。报告 `docs/acceptance/reports/20261016-backup-restore-drill.md`，登记 `existing_minimal_backup_restore`。**未勾选**：JetStream 消息面备份恢复与经批准的 RTO/RPO 实测仍待补。（PINST-006、DBND-004、DBND-005）
-- [ ] 5.7 生成首个可安装 release lock、版本包、操作卡与已支持能力矩阵；验证：无占位摘要、缺服务或未通过必需层。（DBND-001、DBND-002、DPLY-008）
+- [x] 5.7 生成首个可安装 release lock、版本包、操作卡与已支持能力矩阵；验证：无占位摘要、缺服务或未通过必需层。（DBND-001、DBND-002、DPLY-008）
+  - 2026-11-12 完成：ReleaseLock 0.1.1（digest `sha256:2589866a…`，42 处 sha256、20 镜像、3×107 迁移 checksum，零占位）两次干净安装 succeeded（run `2fb558ed`、`2d7eff21`）；版本包 `hnb-0.1.1.tgz` + `hnbctl` + 17 份 CycloneDX SBOM（`sbom/index.yaml`）；操作卡 `docs/deployment/s4-minimal-installation-runbook.md` + `s4-implementation-runbook.md`（经真实安装校准）；能力矩阵 `docs/deployment/supported-capability-matrix.md`（与 evidence.go/registry.yaml 一致）。验证：锁内 20 镜像在 Harbor 全部 200、无占位摘要；未通过必需层由 `EvidenceGate` fail-closed（bootstrap/LiteHA/离线 blocked 如实标注）。局限：矩阵覆盖范围为 kind/K3s 实验证据，Ubuntu/Rocky 独立复验见 5.4/5.5。
 
 ## 6. P2 Portal、节点生命周期与运维交付
 
