@@ -1,7 +1,16 @@
 replicaCount: 1
 listenAddress: ":8080"
+# ServiceAccount the provider pod runs as. Empty uses hnb-kubernetes-provider.
+serviceAccountName: ""
 # Explicit execution scope; no implicit access to every namespace.
 allowedNamespaces: []
+# Provision the narrow executor Role/RoleBinding in each allowed namespace when
+# the runtime target is this same cluster. Leave disabled for independent
+# targets: apply the equivalent RBAC on the target during onboarding instead.
+executorRBAC:
+  enabled: false
+  # Empty reuses serviceAccountName (then the chart default).
+  serviceAccountName: ""
 maxReplicas: 10
 image:
   repository: hnb/{{ .Chart.Name }}

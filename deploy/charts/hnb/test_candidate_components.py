@@ -669,6 +669,37 @@ class CandidateChartTests(unittest.TestCase):
         self.assertEqual(ingress["spec"]["tls"][0]["secretName"], "fixture-tls")
         self.assertNotEqual(command("portal", {"apiBaseURL": "http://api; injected"}).returncode, 0)
 
+    def test_kubernetes_provider_executor_rbac(self):
+        """Same-cluster targets get the narrow executor Role in each namespace."""
+        args = ["helm", "template", "fixture", str(CHART / "charts" / "kubernetes-provider"),
+                "--set", f"image.digest={DIGEST}",
+                "--set-string", "global.imageRegistry=",
+                "--set-string", "global.imagePullPolicy=IfNotPresent",
+                "--set-string", "identity.existingManifestSecret=fixture-manifest",
+                "--set-string", "identity.issuer=https://issuer.hnb.test",
+                "--set", "allowedNamespaces={ns-a,ns-b}"]
+        disabled = subprocess.run(args, capture_output=True, text=True, timeout=30)
+        self.assertEqual(disabled.returncode, 0, disabled.stderr)
+        self.assertFalse([d for d in yaml.safe_load_all(disabled.stdout)
+                          if d and d.get("kind") == "Role"])
+
+        enabled = subprocess.run(args + ["--set", "executorRBAC.enabled=true"],
+                                 capture_output=True, text=True, timeout=30)
+        self.assertEqual(enabled.returncode, 0, enabled.stderr)
+        docs = [d for d in yaml.safe_load_all(enabled.stdout) if d]
+        roles = [d for d in docs if d.get("kind") == "Role"]
+        binds = [d for d in docs if d.get("kind") == "RoleBinding"]
+        self.assertEqual({r["metadata"]["namespace"] for r in roles}, {"ns-a", "ns-b"})
+        self.assertEqual({b["metadata"]["namespace"] for b in binds}, {"ns-a", "ns-b"})
+        for role in roles:
+            rules = {frozenset(r["resources"]) for r in role["rules"]}
+            self.assertIn(frozenset({"deployments", "replicasets"}), rules)
+            self.assertIn(frozenset({"services", "pods", "persistentvolumeclaims",
+                                     "secrets", "configmaps"}), rules)
+            self.assertIn(frozenset({"httproutes"}), rules)
+        for binding in binds:
+            self.assertEqual(binding["subjects"][0]["name"], "hnb-kubernetes-provider")
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

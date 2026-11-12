@@ -21,8 +21,18 @@ func TestApplicationActionInputs(t *testing.T) {
 	if inputs["namespace"] != "hnb-app" || inputs["name"] != "cli-app" || inputs["image"] != "nginx@sha256:abc" {
 		t.Fatalf("inputs = %v", inputs)
 	}
-	if inputs["secret_reference"] != "demo-secret" || inputs["mount_reference"] != "/etc/hnb-secret" {
-		t.Fatalf("secret aliases = %v", inputs)
+	if _, ok := inputs["secret_reference"]; ok {
+		t.Fatalf("deploy without secretName must not invent a secret: %v", inputs)
+	}
+
+	withSecret, err := applicationActionInputs(applicationActionRequest{
+		Action: "deploy", Image: "nginx@sha256:abc", ExpectedUID: "uid", SecretName: "app-secret",
+	}, "hnb-app", "cli-app", "", "fallback")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if withSecret["secret_reference"] != "app-secret" || withSecret["mount_reference"] != "/etc/hnb-secret" {
+		t.Fatalf("explicit secret aliases = %v", withSecret)
 	}
 
 	if _, err := applicationActionInputs(applicationActionRequest{Action: "deploy"}, "n", "w", "", ""); err == nil {

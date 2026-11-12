@@ -69,6 +69,12 @@ kubectl -n $NS create secret tls hnb-tls --cert=server.crt --key=server.key
   三平面 database/role/Secret 引用与上节一致、`storage.className` 指向集群默认 SC）。
 - `bindings.yaml`：只含 Secret 引用与组件参数，**禁止** `db.dsn` 等内联凭据；
   `apiserver.sandbox` / `operation-worker.sandbox` 的 digest 从 lock 的 `sandbox` 镜像复制。
+- **同一集群目标**：`kubernetes-provider.executorRBAC.enabled=true`，在 `allowedNamespaces`
+  的每个命名空间渲染窄权限 `hnb-kubernetes-provider-executor` Role/RoleBinding（Deployment/
+  ReplicaSet、Service/Pod/PVC/Secret/ConfigMap、Gateway HTTPRoute）。独立目标集群不要开启，
+  应在目标侧 onboarding 中应用等价 RBAC（参考 `deploy/lab/kubernetes-provider-target-rbac.yaml`）。
+- **SecretReference 必须显式**：应用 deploy 不再隐式引用 `demo-secret`。仅当目标命名空间已存在
+  该 Secret 时传 `secretName`；无 Secret 的工作负载不要传，避免 Pod 因 FailedMount 挂死。
 
 ## 5. 渲染 → 安装 → 迁移
 

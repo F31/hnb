@@ -1,0 +1,58 @@
+{{/*
+Narrow executor RBAC for same-cluster runtime targets.
+
+kubernetes-provider executes typed steps against the namespaces listed in
+allowedNamespaces. On the "existing cluster" install route the runtime target is
+the management cluster itself, so this chart can provision the executor Role in
+each allowed namespace and bind it to the provider ServiceAccount.
+
+For a genuinely independent target cluster the equivalent Role/RoleBinding must
+be applied on that target during onboarding; this template only targets the
+release cluster and is opt-in because allowedNamespaces may name namespaces that
+do not exist in the management cluster.
+
+The rules are deliberately narrow and cover exactly the actions the provider is
+allowed to perform. Wildcard resources are not granted.
+*/}}
+{{- if .Values.executorRBAC.enabled }}
+{{- $sa := .Values.executorRBAC.serviceAccountName | default (.Values.serviceAccountName | default "hnb-kubernetes-provider") }}
+{{- range .Values.allowedNamespaces }}
+{{- $namespace := . }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: hnb-kubernetes-provider-executor
+  namespace: {{ $namespace | quote }}
+  labels:
+    app.kubernetes.io/name: {{ $.Chart.Name }}
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: [""]
+    resources: ["services", "pods", "persistentvolumeclaims", "secrets", "configmaps"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["gateway.networking.k8s.io"]
+    resources: ["httproutes"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: hnb-kubernetes-provider-executor
+  namespace: {{ $namespace | quote }}
+  labels:
+    app.kubernetes.io/name: {{ $.Chart.Name }}
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: hnb-kubernetes-provider-executor
+subjects:
+  - kind: ServiceAccount
+    name: {{ $sa | quote }}
+    namespace: {{ $.Release.Namespace | quote }}
+{{- end }}
+{{- end }}

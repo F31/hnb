@@ -183,8 +183,10 @@ func applicationActionInputs(req applicationActionRequest, namespace, workload, 
 			inputs["pvc_name"] = pvc
 			inputs["pvc_mount_path"] = applicationDefault(req.PVCMountPath, "/usr/share/nginx/html")
 		}
-		inputs["secret_reference"] = applicationDefault(req.SecretName, "demo-secret")
-		inputs["mount_reference"] = applicationDefault(req.SecretMountPath, "/etc/hnb-secret")
+		if secretName := strings.TrimSpace(req.SecretName); secretName != "" {
+			inputs["secret_reference"] = secretName
+			inputs["mount_reference"] = applicationDefault(req.SecretMountPath, "/etc/hnb-secret")
+		}
 	case "upgrade", "rollback":
 		if strings.TrimSpace(req.SourceImage) == "" || strings.TrimSpace(req.TargetImage) == "" || expectedUID == "" {
 			return nil, errors.New(req.Action + " requires sourceImage, targetImage and expectedUid")

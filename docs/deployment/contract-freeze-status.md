@@ -25,12 +25,19 @@
 
 | 组 | 缺口 | 阻断 |
 |---|---|---|
-| typed 应用组合/动作 | 尚无 Service/工作负载/PVC/入口/升级/删除的类型化 action Schema 与 OpenAPI | S3 4.1–4.12 |
-| 应用旅程 Read Model | 无部署→卷→入口→升级→恢复的旅程投影契约/事件 | S3/S4 |
+| typed 应用组合/动作 | `application-plans:preview`、`application-deliveries/{id}/actions` 等 BFF 路由已在 `router.go` 与 Portal 使用，但**不在** `contracts/openapi/console/v1/openapi.yaml`；无类型化 action/组合 Schema | S3 4.1–4.12 / S4 |
+| 应用旅程 Read Model | 无部署→卷→入口→升级→恢复的旅程投影契约/事件；readiness 仅有手写 TS 类型 | S3/S4 |
 | 统一能力目录 | `capability.schema.json` 只有 name/available/version；无组合、依赖、实际安装态、原因字典 | S5 6.1–6.3 |
 | releaseVersion/profile/selectedCapabilities/backing | release-lock/Readiness 有字段，但未形成跨 API/事件统一契约 | S4/S5 |
 | owning-plane 迁移清单 | 只有身份迁移 105 与既有迁移；应用/能力/安装态增量未列 | S3–S5 |
-| 原因字典 | cluster 字典存在，应用/能力/安装/升级统一原因码未冻结 | S3–S6 |
+| 原因字典 | cluster 字典存在；应用 readiness 原因码仅在 Go 常量（`EXECUTION_FAILED/OBSERVATION_STALE/EXTERNAL_PROBE_FAILED/VOLUME_READ_WRITE_FAILED` 等），未进入公共契约；能力/安装/升级原因码未冻结 | S3–S6 |
+
+## 2.1 2026-11-11 核对
+
+- `npm run contracts:check` 通过：**80 operations / 5 APIs / 36 messages / 81 JSON schemas**，
+  compatibility=checked、generated drift 无变化。门禁绿只证明现有契约一致，不覆盖上表缺口。
+- 应用交付相关 BFF 路由共 6 个（list/actions/plan preview/readiness/verification/deletion-preview），
+  目前只有运行时 Go 结构与 Portal 手写类型，缺少版本化 Schema 与 OpenAPI，属于 1.5 的实质缺口。
 
 ## 3. 兼容规则与门禁
 

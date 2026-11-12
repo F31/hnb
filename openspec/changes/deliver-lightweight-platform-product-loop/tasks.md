@@ -16,6 +16,7 @@
   - 2026-10-17 proposed：`docs/deployment/decision-baseline.md` 修订 0.1 整理 A1–A17 默认值、量测条件、故障边界与分组批准方式；S1 身份预算可先批，容量绝对值/生产恢复仍需绑定实际环境。本文尚非批准记录，不生成假摘要/approved ReadinessPlan，本任务保持未完成。
   - 2026-10-17 S1 development adopted：用户指示“按规划继续执行”，据此采纳 S1-IDENTITY 为本批开发/测试输入，记录及原基线摘要见 `docs/deployment/service-credential-renewal.md`；生产组和环境绑定仍 pending，不据此完成全项或提升认证。
   - 2026-10-17 status：`docs/deployment/budget-approval-status.md` 明确 S1 仅作开发/测试输入，APP-OPERATIONS、PRODUCTION-BUDGETS、RECOVERY、CAPACITY 仍未批准；缺批准方/有效期/环境条件，不生成 approved ReadinessPlan。
+  - 2026-11-11 partial：用户批准 APP-OPERATIONS（A8–A11）为 S3/S4 应用验证预算（批准方 jinfeng105、有效期至 2027-02-09），记录见 `docs/deployment/budget-approval-status.md`；PRODUCTION-BUDGETS、RECOVERY、CAPACITY 与 A14 仍 pending，1.4 保持未完成。
 - [ ] 1.5 冻结服务身份/入网、typed 应用组合/动作、旅程 Read Model、统一能力目录/组合/实际安装态及原因字典的增量 Schema/API/事件；分开 releaseVersion/profile/selectedCapabilities/backing，列出兼容规则、owning-plane 数据迁移清单，运行契约/漂移检查。（IDENT-001、IDENT-002、ADL-001、UXLOOP-001、PREADY-002、PUPG-006）
   - 2026-10-16 partial：本批仅新增离线 readiness 计划/预算/证据 Schema，复用现有 identity、console、RuntimeTarget 契约和 BFF delegation；在线身份发行/入网及 typed 应用动作仍需独立冻结，不以离线 Schema 替代本任务。
   - 2026-10-17 proposed：上述决策基线 B1–B11 与 §6.2 列明建议采纳项和实际冻结包；按现有 apiserver/IAM owner 复用签发，conditions 增量兼容摘要，typed union 仅后续 PoC。批准方向不等于 Schema/API/事件/迁移已冻结，本任务保持未完成。
@@ -129,8 +130,10 @@
 
 - [ ] 5.1 核验真实 CLI/Chart/镜像/迁移/依赖/锁与兼容矩阵一致性，生成产品候选包清单；检查所有 S1–S3 物料摘要对应实际运行身份。（PREADY-001、PREADY-005）
   - 2026-10-18 blocked：无 release lock/Chart 包；Chart values digest 为空；apiserver/platform-api/portal 运行镜像为 lab 临时 tag；工作树 119 项未提交；lifecycle conformance 已过期，app actions 未进入 production-ready 矩阵；无干净环境独立安装。见 `20261018-s4-5.1-candidate-inventory.md`。
+  - 2026-11-08 partial：生成 0.1.1 ReleaseLock（`sha256:2589866a…`），在 kind `hnb-s4-clean` 完成安装（run `2fb558ed` succeeded、冒烟 19/19）、lifecycle manifest 注册与签名 conformance 登记；物料摘要与安装身份部分对应。兼容矩阵一致性、Ubuntu/Rocky 与非实施者复验未做，不勾选。见 `docs/acceptance/reports/20261108-s4-candidate-0.1.1-kind-install.md`。
   - 2026-10-27 partial：候选物料已生成——ReleaseLock（candidate，20 镜像 manifestDigest、3×107 迁移 checksum、Chart+CLI digest）、Chart 包 `hnb-0.1.0.tgz`、16 份 CycloneDX SBOM；锁内渲染 fail-closed 校验通过（0 Secret、全 digest）。干净 kind 集群（v1.36.1）install run `35e92df2139d40765314d4e1cb1027dc` succeeded、19/19 Ready、登录/集群 API/隧道心跳冒烟通过。见 `20261027-s4-clean-kind-install.md`。剩余：S1–S3 物料身份逐项核对、portal 基础镜像 provenance、kind 1.36.1 vs 矩阵 1.36.5 差异消除。
 - [ ] 5.2 补齐面向实施者的安装→纳管→应用→升级恢复操作卡，区分能力加载、档位调整与软件版本升级，注明预置条件、缓存、端口、维护窗口、身份/存储绑定、保留/卸载语义及已支持范围。（PREADY-005、ADL-004、PUPG-006）
+  - 2026-11-08 partial：`docs/deployment/s4-minimal-installation-runbook.md` 与 `s4-implementation-runbook.md` 已覆盖安装/纳管/应用/升级恢复/保留，但未由独立实施者按 0.1.1 包验证，仍为草案。
   - 2026-10-18 partial：已写操作卡草案 `docs/deployment/s4-implementation-runbook.md`，覆盖安装前置/端口/缓存/维护窗口、纳管、应用、升级恢复、能力/档位/软件版本区分、身份/存储/保留/卸载和 lab 支持范围；未由独立实施者验证，不勾选。
   - 2026-10-27 partial：`docs/deployment/s4-minimal-installation-runbook.md` 经真实干净安装校准，补入 DSN 主机解析/port-forward 要求、主机集群 agent onboarding 步骤（API 铸币→Secret→bindings）、静态令牌 24h TTL 限制；修复 Chart 缺口（tunnel-server/kubernetes-provider Service 模板）。纳管/应用/升级恢复章节仍待 S2/S3 复验后校准。
 - [ ] 5.3 从既有配置/锁/run/观测核对实际安装态，保留显式能力、版本、配置覆写及资源/数据引用；补齐必要增量迁移并测试旧配置兼容和未知能力不丢失，不新建第二权威状态库。（PSHAPE-002、PUPG-006）
@@ -140,7 +143,9 @@
 - [ ] 5.7 由非该实现开发者在干净已有 Kubernetes 环境仅凭正式包/文档执行首次安装，记录人工步骤、问题和耗时，不沿用历史已运行平台。（PREADY-005）
 - [ ] 5.8 在该安装实例执行受控安装中断/续跑及一次保留已选能力、配置和数据的真实平台版本升级/失败恢复，校验 run/锁/源安装态/集群身份；记录维护窗口和持续业务探针，不可逆路径验证明确拒绝。（PREADY-005、PUPG-006）
 - [ ] 5.9 由实施者复验 S2/S3 全旅程，核对 UI/CLI 状态和数据标记；失败先修复并重跑受影响断言，再登记基础闭环结果。（PREADY-005、PREADY-006、UXLOOP-001）
+  - 2026-11-08 partial：0.1.1 候选仅复验 S3 deploy→delete 三步与 readiness 自动关联；S2 完整 import/FRESH 观测、S3 外部持久读写/升级/回滚/保留未在候选包重跑，不能据此登记 S4 全旅程。
 - [ ] 5.10 发布 S4 范围报告及支持矩阵：基础闭环与生产/HA/离线分别标注；未完成的 bootstrap/离线仍引用原 change blocked 项，不推导通过。（PREADY-001、PREADY-006）
+  - 2026-11-08 partial：已发布 0.1.1 kind 安装报告与 conformance/S3 deploy-delete 证据；支持矩阵尚未成文，Ubuntu/Rocky、bootstrap、离线、HA 仍缺报告，不得推导通过。
 
 退出条件：正式发布包在独立实施者安装的环境复现完整基础闭环。
 

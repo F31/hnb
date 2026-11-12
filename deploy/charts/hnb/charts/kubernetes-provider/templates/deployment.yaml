@@ -15,6 +15,7 @@ spec:
       labels:
         app.kubernetes.io/name: {{ .Chart.Name }}
     spec:
+      serviceAccountName: {{ .Values.serviceAccountName | default "hnb-kubernetes-provider" }}
       securityContext:
         runAsNonRoot: true
         runAsUser: {{ .Values.runAsUser | default 65532 }}

@@ -149,7 +149,14 @@ features:
       commands: ["POST /api/v1/application-deliveries/{id}/verification", "GET /api/v1/application-deliveries/{id}/readiness"]
       scope: "four-dimension readiness aggregation with binding revision/UID/observation generation/revision; execution success separated from failed verification; DB/API integration only"
       assertions: [revision_bound, resource_uid_bound, observation_generation_revision_bound, execution_observation_external_volume_separate, ready_requires_all, execution_succeeded_but_verification_failed_not_ready, operation_terminal_state_not_rewritten, readiness_query_returns_latest]
-    real_e2e: {status: not_run}
+    real_e2e:
+      status: partial
+      run_id: s4-s3-readiness-20261108
+      commit: 43d12328e4a01637da6bfcf4c09f4c0e580532c7
+      report: reports/20261108-s4-candidate-0.1.1-kind-install.md
+      scope: "readiness verification row auto-upserted on S3 delete Operation terminal in the 0.1.1 kind candidate; observation remained UNKNOWN and external/volume checks did not pass"
+      assertions: [auto_upsert_on_operation_terminal, operation_id_linked, execution_status_succeeded, reasons_mirror_apiserver_rules]
+      partial: ["observation_freshness UNKNOWN; FRESH not proven on the candidate", "external probe and volume read/write recorded as failed/not_run", "ready=false; value is auto-link evidence, not a passed readiness journey"]
     production_ha: {status: not_run}
   s3_application_upgrade:
     real_e2e:
@@ -206,7 +213,7 @@ features:
       commands: ["Portal /application/delivery", "hnbctl application deploy/upgrade/rollback/delete", "POST /api/v1/application-deliveries/{id}/actions"]
       scope: "Portal page and CLI plan/status/preview plus deploy/upgrade/rollback/delete through real Operations"
       assertions: [cli_plan, portal_bff_plan, cli_status, portal_bff_status, cli_deletion_preview, portal_bff_deletion_preview, portal_action_page, portal_deploy_operation, cli_deploy_operation, cli_upgrade_operation, cli_rollback_operation, cli_delete_operation, bff_operation_execution, operation_worker_provider_route, high_risk_requires_approval, duplicate_replay_same_operation, tenant_scope_guard]
-      partial: ["readiness verification not auto-triggered by Operation completion", "lab images are not release artifacts"]
+      partial: ["readiness verification auto-trigger now proven in the 0.1.1 kind candidate; lab images are still not release artifacts", "Portal/CLI full journey was lab-only; 0.1.1 candidate re-ran deploy/delete only"]
     production_ha: {status: not_run}
   s2_cross_tenant_portal_cli:
     real_e2e:
@@ -231,6 +238,19 @@ features:
       assertions: [inventory_recorded, blockers_recorded]
       partial: ["no release lock/package", "dirty worktree", "lab runtime images", "no independent clean install"]
     production_ha: {status: not_run}
+  s4_candidate_0_1_1_kind_install:
+    real_e2e:
+      status: partial
+      run_id: s4-candidate-0.1.1-kind-20261108
+      install_run_id: 2fb558ed0c9b6e5410a5709827c161a0
+      commit: 43d12328e4a01637da6bfcf4c09f4c0e580532c7
+      report: reports/20261108-s4-candidate-0.1.1-kind-install.md
+      artifact_digests: ["release.lock.yaml:sha256:2589866a72deb1d0728d1160e3c413f7a28390cb6718339050dcd5439245463d", "manifest:sha256:e169c0964a03979c3757d0c27470d6a62cf8a2a14a7c0063521a51f35d92403b"]
+      commands: ["hnbctl lock generate", "hnbctl install --execute", "install smoke 19/19", "POST /v1/providers/runtime-target.lifecycle.kubernetes/manifest", "signed conformance report upload"]
+      scope: "clean kind cluster hnb-s4-clean, Minimal/bundled existing route, candidate 0.1.1 lock; host-cluster target; S3 deploy/delete Operations; no independent implementer, Ubuntu/Rocky, offline or HA"
+      assertions: [release_lock_generated, install_run_succeeded, install_smoke_19_of_19, conformance_six_categories_passed, ed25519_trust_chain, manifest_registered_production_ready, post_install_provider_wiring, s3_deploy_operation_succeeded, s3_delete_three_steps_succeeded, service_and_httproute_removed, readiness_verification_auto_upserted]
+      partial: ["kind-only clean install; no independent implementer", "readiness observation UNKNOWN (OBSERVATION_STALE/EXTERNAL_PROBE_FAILED/VOLUME_READ_WRITE_FAILED)", "signed conformance expires 2026-11-12", "ten install gaps recorded; executor RBAC and implicit demo-secret default fixed in this worktree", "not Ubuntu/Rocky, offline or HA"]
+    production_ha: {status: not_run}
   s4_implementation_runbook:
     real_e2e:
       status: partial
@@ -244,11 +264,14 @@ features:
     production_ha: {status: not_run}
   provider_conformance_gate:
     real_e2e:
-      status: blocked
-      run_id: observer-session-binding-20261018
-      report: reports/20261018-observer-session-binding.md
-      scope: "lifecycle provider manifest registered with conformance_level=none; platform-api returns 503 PROVIDER_INCOMPATIBLE; no target import or Agent observation"
-      blocked: ["signed production_ready conformance report and exact matrix-cell evidence are required", "formal service-subject provisioning API is absent", "no Agent on independent target"]
+      status: partial
+      run_id: s4-import-conformance-20261108
+      commit: 43d12328e4a01637da6bfcf4c09f4c0e580532c7
+      report: reports/20261108-s4-candidate-0.1.1-kind-install.md
+      scope: "Ed25519 trust anchor mounted, lifecycle manifest registered, signed six-category conformance accepted and provider_manifests promoted to production_ready in the 0.1.1 kind candidate"
+      assertions: [trust_anchor_mounted, manifest_registered_201, signed_report_accepted_201, provider_manifests_production_ready]
+      partial: ["production_ready valid until 2026-11-12; a fresh signed report is required after expiry", "kind lab only; no independent target"]
+      blocked: ["formal service-subject provisioning API is absent; candidate inserted identity_subjects rows directly", "no Agent on an independent business target in this run"]
     production_ha: {status: blocked}
   service_identity_renewal_wire_contract:
     unit:
