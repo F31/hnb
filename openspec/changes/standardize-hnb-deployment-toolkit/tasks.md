@@ -71,6 +71,7 @@
 - [x] 5.8 实现 provider 动作级签名 conformance 报告与受控原子登记，绑定实际镜像/manifest/矩阵/期限；验证：无权限、未受信签名、篡改、缺类、失败、过期、错物料与并发换 manifest 均拒绝。（PINST-005、DBND-001、DBND-005）
   - 已完成：签名报告校验、公开信任挂载、事务内加锁原子登记、独立 PostgreSQL 集成测试与真机负向检查；期间修复 manifest upsert、NOT NULL 数组与 404 映射三处真实缺陷。
   - 2026-11-08 在 S4 候选 0.1.1 真实安装上完成端到端：Ed25519 信任锚 Secret 挂载、manifest 注册 201（identity digest `sha256:e169c096…`）、签名 conformance 上报 201（RunID `s4-import-conformance-20261108`），`provider_manifests.conformance_level=production_ready`（有效期至 2026-11-12）。证据 `docs/acceptance/reports/20261108-s4-candidate-0.1.1-kind-install.md`。
+  - 2026-11-12 续期：实验环境随主机重启销毁后完整重建（Harbor 数据卷保留 + kind 重建 + 0.1.1 重装 run `2d7eff21dd01a2a481d48b76fbcc59fc` succeeded），六类证据重跑全 PASS，manifest/artifact/source digest 与原注册一致，新签名上报 RunID `s4-import-conformance-20261112` 受理 201（evidenceRef `sha256:e87b6189…`），production_ready 续期至 2026-11-16。
 - [x] 5.9 在隔离测试环境运行 Kubernetes import conformance，正式登记后绑定 worker 并经 Intent 验证真实 Operation/幂等/失败语义；保留独立报告，不提升完整 Minimal/HA 资格。（PINST-005、DPLY-006、DBND-005）
   - 已完成：隔离环境真实 provider 镜像通过六类断言并登记 import cell；Chart 支持 owner-only 令牌暂存；真机 Operation `d423131c` 到达 `succeeded`，同键重放返回同一 Operation、同键异体 409、异键只执行一次。
   - 阻塞：服务凭据签发/轮换未实现（60 秒上限 + 暂存副本仅随重启更新）；导入目标仍为 REGISTERING，尚无 Agent 认证与 Read Model 闭环。

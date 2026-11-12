@@ -265,12 +265,11 @@ features:
   provider_conformance_gate:
     real_e2e:
       status: partial
-      run_id: s4-import-conformance-20261108
-      commit: 43d12328e4a01637da6bfcf4c09f4c0e580532c7
+      run_id: s4-import-conformance-20261112
       report: reports/20261108-s4-candidate-0.1.1-kind-install.md
-      scope: "Ed25519 trust anchor mounted, lifecycle manifest registered, signed six-category conformance accepted and provider_manifests promoted to production_ready in the 0.1.1 kind candidate"
-      assertions: [trust_anchor_mounted, manifest_registered_201, signed_report_accepted_201, provider_manifests_production_ready]
-      partial: ["production_ready valid until 2026-11-12; a fresh signed report is required after expiry", "kind lab only; no independent target"]
+      scope: "Ed25519 trust anchor mounted, lifecycle manifest registered, signed six-category conformance accepted and provider_manifests promoted to production_ready in the 0.1.1 kind candidate; renewed 2026-11-12 on a rebuilt clean install (run 2d7eff21dd01a2a481d48b76fbcc59fc) with identical manifest/artifact/source digests"
+      assertions: [trust_anchor_mounted, manifest_registered_201, signed_report_accepted_201, provider_manifests_production_ready, renewal_accepted_201_after_reinstall]
+      partial: ["production_ready valid until 2026-11-16; a fresh signed report is required after expiry", "kind lab only; no independent target", "renewal required full environment rebuild after host restart destroyed the lab; evidence ref sha256:e87b618903914a39ddad2e642bbbe899f16666703bbb2cddb6285b793f5c67d3"]
       blocked: ["formal service-subject provisioning API is absent; candidate inserted identity_subjects rows directly", "no Agent on an independent business target in this run"]
     production_ha: {status: blocked}
   service_identity_renewal_wire_contract:
